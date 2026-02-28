@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oyaa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f2;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 48px 24px 80px;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 48px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: #1a1a1a;
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: #999;
+      margin-top: 5px;
+      font-weight: 400;
+    }
+
+    /* Card */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e6e6e2;
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Labels */
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      border: 1px solid #e2e2de;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: inherit;
+      font-size: 14px;
+      color: #1a1a1a;
+      line-height: 1.65;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      background: #fafaf8;
+    }
+
+    textarea:focus {
+      border-color: #1a1a1a;
+      background: #ffffff;
+    }
+
+    textarea::placeholder {
+      color: #c0c0b8;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: #f0f0ec;
+      margin: 28px 0;
+    }
+
+    /* Button grid */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 680px) {
+      .button-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 400px) {
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .output-btn {
+      background: #fafaf8;
+      border: 1px solid #e2e2de;
+      border-radius: 10px;
+      padding: 14px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: #444;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+      line-height: 1.4;
+      position: relative;
+    }
+
+    .output-btn:hover {
+      border-color: #aaa;
+      background: #f0f0ec;
+      color: #1a1a1a;
+    }
+
+    .output-btn:active {
+      transform: scale(0.98);
+    }
+
+    .output-btn.active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #ffffff;
+    }
+
+    .btn-number {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #bbb;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .output-btn.active .btn-number {
+      color: #666;
+    }
+
+    /* Output section */
+    .output-card {
+      display: none;
+    }
+
+    .output-card.visible {
+      display: block;
+    }
+
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .output-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid #e2e2de;
+      border-radius: 7px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .copy-btn:hover {
+      border-color: #1a1a1a;
+      color: #1a1a1a;
+    }
+
+    .copy-btn.copied {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #ffffff;
+    }
+
+    /* Spinner */
+    .spinner-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px 0;
+      color: #999;
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #e2e2de;
+      border-top-color: #1a1a1a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Output content – rendered markdown */
+    .output-content {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #1a1a1a;
+      background: #fafaf8;
+      border: 1px solid #e6e6e2;
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .output-content h1,
+    .output-content h2,
+    .output-content h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-top: 20px;
+      margin-bottom: 6px;
+    }
+
+    .output-content h1:first-child,
+    .output-content h2:first-child,
+    .output-content h3:first-child {
+      margin-top: 0;
+    }
+
+    .output-content p {
+      margin-bottom: 12px;
+    }
+
+    .output-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .output-content ul,
+    .output-content ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .output-content li {
+      margin-bottom: 5px;
+    }
+
+    .output-content strong {
+      font-weight: 600;
+    }
+
+    .output-content hr {
+      border: none;
+      border-top: 1px solid #e6e6e2;
+      margin: 16px 0;
+    }
+
+    /* Error */
+    .error-msg {
+      font-size: 13px;
+      color: #b33;
+      padding: 16px;
+      background: #fdf4f4;
+      border-radius: 8px;
+      border: 1px solid #f0d0d0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo">Oyaa</div>
+      <div class="tagline">Transcript verwerker voor accountmanagers</div>
+    </header>
+
+    <div class="card">
+      <label class="field-label" for="transcript">Transcript</label>
+      <textarea
+        id="transcript"
+        placeholder="Plak hier het transcript van je vergadering, gesprek of call…"
+        spellcheck="false"
+      ></textarea>
+
+      <div class="divider"></div>
+
+      <label class="field-label">Gewenste output</label>
+      <div class="button-grid">
+        <button class="output-btn" data-type="internal-briefing">
+          <span class="btn-number">01</span>
+          Interne briefing
+        </button>
+        <button class="output-btn" data-type="external-debrief">
+          <span class="btn-number">02</span>
+          Externe debrief naar klant
+        </button>
+        <button class="output-btn" data-type="internal-actions">
+          <span class="btn-number">03</span>
+          Actiepunten intern
+        </button>
+        <button class="output-btn" data-type="external-actions">
+          <span class="btn-number">04</span>
+          Actiepunten extern
+        </button>
+        <button class="output-btn" data-type="project-planning">
+          <span class="btn-number">05</span>
+          Projectplanning aanzet
+        </button>
+      </div>
+    </div>
+
+    <div class="card output-card" id="outputCard">
+      <div class="output-header">
+        <span class="output-title" id="outputTitle">Output</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Kopiëren
+        </button>
+      </div>
+      <div id="outputBody"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const OUTPUT_TITLES = {
+      'internal-briefing':  'Interne briefing',
+      'external-debrief':   'Externe debrief naar klant',
+      'internal-actions':   'Actiepunten intern',
+      'external-actions':   'Actiepunten extern',
+      'project-planning':   'Projectplanning aanzet'
+    };
+
+    let rawOutput = '';
+
+    // ── Button click handlers ──────────────────────────────────────────────
+
+    document.querySelectorAll('.output-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const transcript = document.getElementById('transcript').value.trim();
+        if (!transcript) {
+          document.getElementById('transcript').focus();
+          document.getElementById('transcript').style.borderColor = '#d0392b';
+          setTimeout(() => {
+            document.getElementById('transcript').style.borderColor = '';
+          }, 1200);
+          return;
+        }
+
+        const outputType = btn.dataset.type;
+
+        // Active state
+        document.querySelectorAll('.output-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Show card with spinner
+        const card   = document.getElementById('outputCard');
+        const body   = document.getElementById('outputBody');
+        const title  = document.getElementById('outputTitle');
+        const copyBtn = document.getElementById('copyBtn');
+
+        title.textContent = OUTPUT_TITLES[outputType];
+        body.innerHTML = `
+          <div class="spinner-wrapper">
+            <div class="spinner"></div>
+            <span>Bezig met verwerken…</span>
+          </div>`;
+        copyBtn.style.display = 'none';
+        rawOutput = '';
+
+        card.classList.add('visible');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        // API call
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, outputType })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              body.innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
+            } else {
+              rawOutput = data.result;
+              body.innerHTML = `<div class="output-content">${renderMarkdown(data.result)}</div>`;
+              copyBtn.style.display = '';
+            }
+          })
+          .catch(() => {
+            body.innerHTML = `<div class="error-msg">Er is een fout opgetreden. Controleer je verbinding en probeer het opnieuw.</div>`;
+          });
+      });
+    });
+
+    // ── Copy ──────────────────────────────────────────────────────────────
+
+    function copyOutput() {
+      if (!rawOutput) return;
+      navigator.clipboard.writeText(rawOutput).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Gekopieerd`;
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Kopiëren`;
+          btn.classList.remove('copied');
+        }, 2200);
+      });
+    }
+
+    // ── Minimal markdown renderer ─────────────────────────────────────────
+
+    function renderMarkdown(text) {
+      let html = escapeHtml(text);
+
+      // Bold: **text** or __text__
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+      // Italic: *text* or _text_
+      html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+      html = html.replace(/_([^_\n]+?)_/g, '<em>$1</em>');
+
+      // Headers: ## or ###
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+      // Horizontal rule
+      html = html.replace(/^---+$/gm, '<hr>');
+
+      // Unordered lists: lines starting with - or *
+      html = html.replace(/^[*\-] (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/s, (match) => {
+        return '<ul>' + match + '</ul>';
+      });
+
+      // Ordered lists: 1. 2. etc.
+      html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+      // Wrap consecutive <li> blocks in <ul> or <ol>
+      html = html.replace(/(<li>[\s\S]*?<\/li>)/g, (match) => {
+        if (match.trim()) return '<ul>' + match + '</ul>';
+        return match;
+      });
+
+      // Paragraphs: double newlines
+      html = html.replace(/\n\n+/g, '</p><p>');
+      html = '<p>' + html + '</p>';
+
+      // Single newlines → <br> inside paragraphs (but not around block elements)
+      html = html.replace(/(?<!>)\n(?!<)/g, '<br>');
+
+      // Clean up empty paragraphs
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      html = html.replace(/<p>(<h[1-3]>)/g, '$1');
+      html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<ul>)/g, '$1');
+      html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+
+      return html;
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
