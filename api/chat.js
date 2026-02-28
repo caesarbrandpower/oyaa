@@ -8,6 +8,7 @@ Gebruik deze structuur:
 
 **Samenvatting** — wat is er besproken in 5-8 zinnen?
 
+**Actiepunten** — genummerde lijst met per punt: de actie, de eigenaar (indien genoemd), en de deadline (indien genoemd). Als eigenaar of deadline niet vermeld is, schrijf dan "Niet besproken."
 
 Transcript:
 ${transcript}

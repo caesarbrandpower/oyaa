@@ -6,6 +6,8 @@
   <title>Oyaa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -91,6 +93,22 @@
     textarea::placeholder {
       color: #c0c0b8;
     }
+
+    textarea.drag-over {
+      border-color: #1a1a1a;
+      border-style: dashed;
+      background: #f0f0ec;
+    }
+
+    .file-status {
+      margin-top: 8px;
+      font-size: 12px;
+      min-height: 18px;
+    }
+
+    .file-status.loading { color: #888; }
+    .file-status.success { color: #2a7a4b; }
+    .file-status.error   { color: #b33; }
 
     /* Divider */
     .divider {
@@ -344,9 +362,10 @@
       <label class="field-label" for="transcript">Plak je gesprek</label>
       <textarea
         id="transcript"
-        placeholder="Plak hier het transcript van je vergadering, gesprek of call…"
+        placeholder="Plak hier het transcript van je vergadering, gesprek of call… of sleep een bestand hierin (.txt, .pdf, .doc, .docx)"
         spellcheck="false"
       ></textarea>
+      <div id="fileStatus" class="file-status"></div>
 
       <div class="divider"></div>
 
@@ -400,6 +419,102 @@
   </div>
 
   <script>
+    // ── PDF.js worker ─────────────────────────────────────────────────────
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // ── Drag & drop ───────────────────────────────────────────────────────
+
+    const ta         = document.getElementById('transcript');
+    const fileStatus = document.getElementById('fileStatus');
+
+    const SUPPORTED = ['.txt', '.pdf', '.doc', '.docx'];
+
+    function setStatus(msg, type) {
+      fileStatus.textContent = msg;
+      fileStatus.className = 'file-status ' + (type || '');
+    }
+
+    ta.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      ta.classList.add('drag-over');
+    });
+
+    ta.addEventListener('dragleave', (e) => {
+      if (!ta.contains(e.relatedTarget)) {
+        ta.classList.remove('drag-over');
+      }
+    });
+
+    ta.addEventListener('drop', (e) => {
+      e.preventDefault();
+      ta.classList.remove('drag-over');
+
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+
+      const name = file.name.toLowerCase();
+      const ext  = name.slice(name.lastIndexOf('.'));
+
+      if (!SUPPORTED.includes(ext)) {
+        setStatus(`Bestandstype "${ext}" wordt niet ondersteund. Gebruik .txt, .pdf, .doc of .docx.`, 'error');
+        return;
+      }
+
+      setStatus('Bestand wordt ingelezen…', 'loading');
+
+      if (ext === '.txt') {
+        readTxt(file);
+      } else if (ext === '.pdf') {
+        readPdf(file);
+      } else {
+        readDocx(file);
+      }
+    });
+
+    function readTxt(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        ta.value = e.target.result;
+        setStatus(`"${file.name}" ingeladen.`, 'success');
+      };
+      reader.onerror = () => setStatus('Fout bij het lezen van het bestand.', 'error');
+      reader.readAsText(file);
+    }
+
+    async function readPdf(file) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page    = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          text += strings.join(' ') + '\n';
+        }
+        ta.value = text.trim();
+        setStatus(`"${file.name}" ingeladen (${pdf.numPages} pagina's).`, 'success');
+      } catch (err) {
+        setStatus('Fout bij het uitlezen van de PDF.', 'error');
+      }
+    }
+
+    async function readDocx(file) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        ta.value = result.value.trim();
+        setStatus(`"${file.name}" ingeladen.`, 'success');
+      } catch (err) {
+        setStatus('Fout bij het uitlezen van het Word-bestand.', 'error');
+      }
+    }
+
+    // ── Output types ──────────────────────────────────────────────────────
+
     const OUTPUT_TITLES = {
       'summary-actions':    'Samenvatting met actiepunten',
       'internal-briefing':  'Interne briefing',
