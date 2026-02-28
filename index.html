@@ -102,17 +102,17 @@
     /* Button grid */
     .button-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
 
-    @media (max-width: 680px) {
+    @media (max-width: 560px) {
       .button-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
 
-    @media (max-width: 400px) {
+    @media (max-width: 360px) {
       .button-grid {
         grid-template-columns: 1fr;
       }
@@ -341,7 +341,7 @@
     </header>
 
     <div class="card">
-      <label class="field-label" for="transcript">Transcript</label>
+      <label class="field-label" for="transcript">Plak je gesprek</label>
       <textarea
         id="transcript"
         placeholder="Plak hier het transcript van je vergadering, gesprek of call…"
@@ -350,32 +350,36 @@
 
       <div class="divider"></div>
 
-      <label class="field-label">Gewenste output</label>
+      <label class="field-label">Wat wil je maken?</label>
       <div class="button-grid">
-        <button class="output-btn" data-type="internal-briefing">
+        <button class="output-btn" data-type="summary-actions">
           <span class="btn-number">01</span>
+          Samenvatting met actiepunten
+        </button>
+        <button class="output-btn" data-type="internal-briefing">
+          <span class="btn-number">02</span>
           Interne briefing
         </button>
         <button class="output-btn" data-type="external-debrief">
-          <span class="btn-number">02</span>
+          <span class="btn-number">03</span>
           Externe debrief naar klant
         </button>
         <button class="output-btn" data-type="internal-actions">
-          <span class="btn-number">03</span>
+          <span class="btn-number">04</span>
           Actiepunten intern
         </button>
         <button class="output-btn" data-type="external-actions">
-          <span class="btn-number">04</span>
+          <span class="btn-number">05</span>
           Actiepunten extern
         </button>
         <button class="output-btn" data-type="project-planning">
-          <span class="btn-number">05</span>
+          <span class="btn-number">06</span>
           Projectplanning aanzet
         </button>
       </div>
 
       <div id="generateWrap" style="display:none; margin-top: 20px;">
-        <button id="generateBtn" onclick="generate()">Genereer output</button>
+        <button id="generateBtn" onclick="generate()">Verwerk</button>
       </div>
     </div>
 
@@ -397,6 +401,7 @@
 
   <script>
     const OUTPUT_TITLES = {
+      'summary-actions':    'Samenvatting met actiepunten',
       'internal-briefing':  'Interne briefing',
       'external-debrief':   'Externe debrief naar klant',
       'internal-actions':   'Actiepunten intern',

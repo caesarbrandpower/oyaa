@@ -1,6 +1,19 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const PROMPTS = {
+  'summary-actions': (transcript) =>
+    `Je bent een ervaren accountmanager bij een reclamebureau. Maak op basis van het onderstaande transcript een heldere samenvatting van het gesprek, gevolgd door alle actiepunten.
+
+Gebruik deze structuur:
+
+**Samenvatting** — wat is er besproken in 5-8 zinnen?
+
+
+Transcript:
+${transcript}
+
+Schrijf in professioneel Nederlands.`,
+
   'internal-briefing': (transcript) =>
     `Je bent een ervaren accountmanager bij een reclamebureau. Maak op basis van het onderstaande transcript een heldere interne briefing voor het creatieve team.
 
