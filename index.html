@@ -115,7 +115,7 @@
     }
 
     .section-sub {
-      font-size: 14px;
+      font-size: 15px;
       color: var(--text-sec);
       margin-bottom: 20px;
     }
@@ -205,7 +205,7 @@
       border-radius: 8px;
       padding: 14px 14px;
       font-family: 'Inter', sans-serif;
-      font-size: 12px;
+      font-size: 15px;
       font-weight: 500;
       color: var(--text-sec);
       cursor: pointer;
@@ -231,7 +231,7 @@
 
     .btn-number {
       display: block;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--border);
       margin-bottom: 6px;
@@ -437,6 +437,36 @@
       border: 1px solid #FECACA;
     }
 
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    .site-footer {
+      background: #1F1F1F;
+      color: rgba(255, 255, 255, 0.55);
+      padding: 28px 0;
+      font-size: 13px;
+    }
+
+    .site-footer .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer .footer-left {
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .site-footer .footer-left strong {
+      color: var(--white);
+      font-weight: 500;
+    }
+
+    .site-footer .footer-right {
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 0.02em;
+    }
+
     /* ── Responsive ──────────────────────────────────────────────────────── */
     @media (max-width: 640px) {
       .hero         { padding: 56px 0 52px; }
@@ -467,12 +497,11 @@
 
       <div class="card">
         <h2 class="section-heading">Jouw notities</h2>
-        <p class="section-sub">Plak een transcript of sleep een bestand in het veld hieronder.</p>
+        <p class="section-sub">Zet je notities neer of sleep een bestand. Wij doen de rest.</p>
 
-        <label class="field-label" for="transcript">Transcript of aantekeningen</label>
         <textarea
           id="transcript"
-          placeholder="Plak hier het transcript van je vergadering, gesprek of call… of sleep een bestand hierin (.txt, .pdf, .doc, .docx)"
+          placeholder="📋  Sleep een bestand hierin, of typ je aantekeningen."
           spellcheck="false"
         ></textarea>
         <div id="fileStatus" class="file-status"></div>
@@ -549,6 +578,14 @@
 
     </div>
   </div>
+
+  <!-- ── Footer ── -->
+  <footer class="site-footer">
+    <div class="container">
+      <span class="footer-left">© 2026 <strong>Oyaa</strong> — Made for agency people</span>
+      <span class="footer-right">oyaa.nl</span>
+    </div>
+  </footer>
 
   <script>
     // ── PDF.js worker ─────────────────────────────────────────────────────
