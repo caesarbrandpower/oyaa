@@ -3,11 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oyaa</title>
+  <title>Oyaa.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- File extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- Markdown rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <!-- Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -45,6 +51,14 @@
       color: #999;
       margin-top: 5px;
       font-weight: 400;
+    }
+
+    .description {
+      font-size: 13px;
+      color: #777;
+      margin-top: 12px;
+      line-height: 1.65;
+      max-width: 520px;
     }
 
     /* Card */
@@ -125,15 +139,11 @@
     }
 
     @media (max-width: 560px) {
-      .button-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .button-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 360px) {
-      .button-grid {
-        grid-template-columns: 1fr;
-      }
+      .button-grid { grid-template-columns: 1fr; }
     }
 
     .output-btn {
@@ -149,7 +159,6 @@
       text-align: left;
       transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
       line-height: 1.4;
-      position: relative;
     }
 
     .output-btn:hover {
@@ -181,6 +190,28 @@
       color: #666;
     }
 
+    /* Generate button */
+    #generateBtn {
+      background: #1a1a1a;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 28px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    #generateBtn:hover   { background: #333; }
+    #generateBtn:active  { transform: scale(0.98); }
+    #generateBtn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     /* Output section */
     .output-card {
       display: none;
@@ -195,6 +226,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
+      gap: 12px;
     }
 
     .output-title {
@@ -203,13 +235,22 @@
       color: #888;
       text-transform: uppercase;
       letter-spacing: 0.8px;
+      flex-shrink: 0;
     }
 
-    .copy-btn {
+    .output-actions {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Shared style for copy / pdf / word buttons */
+    .action-btn {
       background: none;
       border: 1px solid #e2e2de;
       border-radius: 7px;
-      padding: 6px 14px;
+      padding: 6px 12px;
       font-family: inherit;
       font-size: 12px;
       font-weight: 500;
@@ -219,14 +260,15 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      white-space: nowrap;
     }
 
-    .copy-btn:hover {
+    .action-btn:hover {
       border-color: #1a1a1a;
       color: #1a1a1a;
     }
 
-    .copy-btn.copied {
+    .action-btn.success {
       background: #1a1a1a;
       border-color: #1a1a1a;
       color: #ffffff;
@@ -256,7 +298,7 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Output content – rendered markdown */
+    /* Output content */
     .output-content {
       font-size: 14px;
       line-height: 1.8;
@@ -311,32 +353,30 @@
       margin: 16px 0;
     }
 
-    /* Generate button */
-    #generateBtn {
-      background: #1a1a1a;
-      color: #ffffff;
-      border: none;
-      border-radius: 10px;
-      padding: 13px 28px;
-      font-family: inherit;
+    /* Tables */
+    .output-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
       font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
     }
 
-    #generateBtn:hover {
-      background: #333;
+    .output-content th,
+    .output-content td {
+      border: 1px solid #e2e2de;
+      padding: 8px 12px;
+      text-align: left;
+      line-height: 1.5;
+      vertical-align: top;
     }
 
-    #generateBtn:active {
-      transform: scale(0.98);
+    .output-content th {
+      background: #f0f0ec;
+      font-weight: 600;
     }
 
-    #generateBtn:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-      transform: none;
+    .output-content tr:nth-child(even) td {
+      background: #fafaf8;
     }
 
     /* Error */
@@ -354,12 +394,13 @@
   <div class="container">
 
     <header>
-      <div class="logo">Oyaa</div>
-      <div class="tagline">Transcript verwerker voor accountmanagers</div>
+      <div class="logo">Oyaa.</div>
+      <div class="tagline">Van gesprek naar geregeld, in minuten.</div>
+      <p class="description">Stop met uitwerken, begin met doen. Zet je gespreksnotities in een handomdraai om in een briefing, debrief of actielijst. ✓ Done.</p>
     </header>
 
     <div class="card">
-      <label class="field-label" for="transcript">Plak je gesprek</label>
+      <label class="field-label" for="transcript">Jouw notities</label>
       <textarea
         id="transcript"
         placeholder="Plak hier het transcript van je vergadering, gesprek of call… of sleep een bestand hierin (.txt, .pdf, .doc, .docx)"
@@ -405,13 +446,31 @@
     <div class="card output-card" id="outputCard">
       <div class="output-header">
         <span class="output-title" id="outputTitle">Output</span>
-        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          Kopiëren
-        </button>
+        <div class="output-actions" id="outputActions">
+          <button class="action-btn" id="copyBtn" onclick="copyOutput()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Kopiëren
+          </button>
+          <button class="action-btn" id="pdfBtn" onclick="downloadPDF()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            PDF
+          </button>
+          <button class="action-btn" id="wordBtn" onclick="downloadWord()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Word
+          </button>
+        </div>
       </div>
       <div id="outputBody"></div>
     </div>
@@ -425,12 +484,14 @@
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
+    // ── marked.js config ─────────────────────────────────────────────────
+    marked.setOptions({ gfm: true, breaks: true });
+
     // ── Drag & drop ───────────────────────────────────────────────────────
 
     const ta         = document.getElementById('transcript');
     const fileStatus = document.getElementById('fileStatus');
-
-    const SUPPORTED = ['.txt', '.pdf', '.doc', '.docx'];
+    const SUPPORTED  = ['.txt', '.pdf', '.doc', '.docx'];
 
     function setStatus(msg, type) {
       fileStatus.textContent = msg;
@@ -443,9 +504,7 @@
     });
 
     ta.addEventListener('dragleave', (e) => {
-      if (!ta.contains(e.relatedTarget)) {
-        ta.classList.remove('drag-over');
-      }
+      if (!ta.contains(e.relatedTarget)) ta.classList.remove('drag-over');
     });
 
     ta.addEventListener('drop', (e) => {
@@ -465,22 +524,15 @@
 
       setStatus('Bestand wordt ingelezen…', 'loading');
 
-      if (ext === '.txt') {
-        readTxt(file);
-      } else if (ext === '.pdf') {
-        readPdf(file);
-      } else {
-        readDocx(file);
-      }
+      if (ext === '.txt')         readTxt(file);
+      else if (ext === '.pdf')    readPdf(file);
+      else                        readDocx(file);
     });
 
     function readTxt(file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        ta.value = e.target.result;
-        setStatus(`"${file.name}" ingeladen.`, 'success');
-      };
-      reader.onerror = () => setStatus('Fout bij het lezen van het bestand.', 'error');
+      reader.onload  = (e) => { ta.value = e.target.result; setStatus(`"${file.name}" ingeladen.`, 'success'); };
+      reader.onerror = ()  => setStatus('Fout bij het lezen van het bestand.', 'error');
       reader.readAsText(file);
     }
 
@@ -492,12 +544,11 @@
         for (let i = 1; i <= pdf.numPages; i++) {
           const page    = await pdf.getPage(i);
           const content = await page.getTextContent();
-          const strings = content.items.map(item => item.str);
-          text += strings.join(' ') + '\n';
+          text += content.items.map(item => item.str).join(' ') + '\n';
         }
         ta.value = text.trim();
         setStatus(`"${file.name}" ingeladen (${pdf.numPages} pagina's).`, 'success');
-      } catch (err) {
+      } catch {
         setStatus('Fout bij het uitlezen van de PDF.', 'error');
       }
     }
@@ -508,7 +559,7 @@
         const result = await mammoth.extractRawText({ arrayBuffer });
         ta.value = result.value.trim();
         setStatus(`"${file.name}" ingeladen.`, 'success');
-      } catch (err) {
+      } catch {
         setStatus('Fout bij het uitlezen van het Word-bestand.', 'error');
       }
     }
@@ -524,7 +575,7 @@
       'project-planning':   'Projectplanning aanzet'
     };
 
-    let rawOutput = '';
+    let rawOutput    = '';
     let selectedType = null;
 
     // ── Step 1: select output type ────────────────────────────────────────
@@ -532,10 +583,8 @@
     document.querySelectorAll('.output-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         selectedType = btn.dataset.type;
-
         document.querySelectorAll('.output-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         document.getElementById('generateWrap').style.display = 'block';
       });
     });
@@ -543,9 +592,8 @@
     // ── Step 2: generate ──────────────────────────────────────────────────
 
     function generate() {
-      const transcript = document.getElementById('transcript').value.trim();
+      const transcript = ta.value.trim();
       if (!transcript) {
-        const ta = document.getElementById('transcript');
         ta.focus();
         ta.style.borderColor = '#d0392b';
         setTimeout(() => { ta.style.borderColor = ''; }, 1200);
@@ -554,17 +602,16 @@
 
       const card    = document.getElementById('outputCard');
       const body    = document.getElementById('outputBody');
-      const title   = document.getElementById('outputTitle');
-      const copyBtn = document.getElementById('copyBtn');
+      const actions = document.getElementById('outputActions');
       const genBtn  = document.getElementById('generateBtn');
 
-      title.textContent = OUTPUT_TITLES[selectedType];
+      document.getElementById('outputTitle').textContent = OUTPUT_TITLES[selectedType];
       body.innerHTML = `
         <div class="spinner-wrapper">
           <div class="spinner"></div>
           <span>Bezig met verwerken…</span>
         </div>`;
-      copyBtn.style.display = 'none';
+      actions.style.display = 'none';
       rawOutput = '';
       genBtn.disabled = true;
 
@@ -583,8 +630,8 @@
             body.innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
           } else {
             rawOutput = data.result;
-            body.innerHTML = `<div class="output-content">${renderMarkdown(data.result)}</div>`;
-            copyBtn.style.display = '';
+            body.innerHTML = `<div class="output-content">${marked.parse(rawOutput)}</div>`;
+            actions.style.display = 'flex';
           }
         })
         .catch(() => {
@@ -598,78 +645,173 @@
     function copyOutput() {
       if (!rawOutput) return;
       navigator.clipboard.writeText(rawOutput).then(() => {
-        const btn = document.getElementById('copyBtn');
-        btn.innerHTML = `
+        flashBtn('copyBtn', `
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          Gekopieerd`;
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Kopiëren`;
-          btn.classList.remove('copied');
-        }, 2200);
+          </svg> Gekopieerd`,
+          `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg> Kopiëren`
+        );
       });
     }
 
-    // ── Minimal markdown renderer ─────────────────────────────────────────
-
-    function renderMarkdown(text) {
-      let html = escapeHtml(text);
-
-      // Bold: **text** or __text__
-      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-
-      // Italic: *text* or _text_
-      html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-      html = html.replace(/_([^_\n]+?)_/g, '<em>$1</em>');
-
-      // Headers: ## or ###
-      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-      // Horizontal rule
-      html = html.replace(/^---+$/gm, '<hr>');
-
-      // Unordered lists: lines starting with - or *
-      html = html.replace(/^[*\-] (.+)$/gm, '<li>$1</li>');
-      html = html.replace(/(<li>.*<\/li>)/s, (match) => {
-        return '<ul>' + match + '</ul>';
-      });
-
-      // Ordered lists: 1. 2. etc.
-      html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-
-      // Wrap consecutive <li> blocks in <ul> or <ol>
-      html = html.replace(/(<li>[\s\S]*?<\/li>)/g, (match) => {
-        if (match.trim()) return '<ul>' + match + '</ul>';
-        return match;
-      });
-
-      // Paragraphs: double newlines
-      html = html.replace(/\n\n+/g, '</p><p>');
-      html = '<p>' + html + '</p>';
-
-      // Single newlines → <br> inside paragraphs (but not around block elements)
-      html = html.replace(/(?<!>)\n(?!<)/g, '<br>');
-
-      // Clean up empty paragraphs
-      html = html.replace(/<p>\s*<\/p>/g, '');
-      html = html.replace(/<p>(<h[1-3]>)/g, '$1');
-      html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<ul>)/g, '$1');
-      html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
-
-      return html;
+    function flashBtn(id, successHtml, resetHtml) {
+      const btn = document.getElementById(id);
+      btn.innerHTML = successHtml;
+      btn.classList.add('success');
+      setTimeout(() => { btn.innerHTML = resetHtml; btn.classList.remove('success'); }, 2200);
     }
+
+    // ── PDF download ──────────────────────────────────────────────────────
+
+    function downloadPDF() {
+      if (!rawOutput) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      const title    = OUTPUT_TITLES[selectedType] || 'Output';
+      const margin   = 20;
+      const maxWidth = 210 - margin * 2;
+      let y          = 20;
+
+      const addPage = () => { doc.addPage(); y = 20; };
+      const checkY  = (needed) => { if (y + needed > 280) addPage(); };
+
+      // Document title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text(title, margin, y);
+      y += 10;
+
+      doc.setFontSize(10);
+
+      const lines = rawOutput.split('\n');
+      for (const raw of lines) {
+        const line = raw.trim();
+
+        if (line === '') { y += 3; continue; }
+
+        // Bold heading: **text** (optionally followed by — ...)
+        const headingMatch = line.match(/^\*\*(.+?)\*\*(.*)$/);
+        if (headingMatch) {
+          const boldPart  = headingMatch[1];
+          const restPart  = headingMatch[2].replace(/^[\s—]+/, '');
+          checkY(8);
+          y += 2;
+          doc.setFont('helvetica', 'bold');
+          const boldWrapped = doc.splitTextToSize(boldPart + (restPart ? ' — ' + restPart : ''), maxWidth);
+          doc.text(boldWrapped, margin, y);
+          y += boldWrapped.length * 5.5;
+          doc.setFont('helvetica', 'normal');
+          continue;
+        }
+
+        // List item
+        const listMatch = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
+        if (listMatch) {
+          const text = listMatch[1].replace(/\*\*/g, '').replace(/\*/g, '');
+          const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 4);
+          checkY(wrapped.length * 5);
+          doc.text(wrapped, margin + 4, y);
+          y += wrapped.length * 5;
+          continue;
+        }
+
+        // Normal line
+        const text    = line.replace(/\*\*/g, '').replace(/\*/g, '');
+        const wrapped = doc.splitTextToSize(text, maxWidth);
+        checkY(wrapped.length * 5);
+        doc.text(wrapped, margin, y);
+        y += wrapped.length * 5;
+      }
+
+      const filename = title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf';
+      doc.save(filename);
+    }
+
+    // ── Word download ─────────────────────────────────────────────────────
+
+    async function downloadWord() {
+      if (!rawOutput || typeof docx === 'undefined') return;
+
+      const title = OUTPUT_TITLES[selectedType] || 'Output';
+      const lines = rawOutput.split('\n');
+      const paragraphs = [];
+
+      // Document title
+      paragraphs.push(new docx.Paragraph({
+        children: [new docx.TextRun({ text: title, bold: true, size: 28 })],
+        spacing: { after: 280 }
+      }));
+
+      for (const raw of lines) {
+        const line = raw.trim();
+
+        if (line === '') {
+          paragraphs.push(new docx.Paragraph({ text: '', spacing: { after: 60 } }));
+          continue;
+        }
+
+        // Bold heading: **text** optionally with trailing — description
+        const headingMatch = line.match(/^\*\*(.+?)\*\*(.*)$/);
+        if (headingMatch) {
+          const boldText = headingMatch[1];
+          const rest     = headingMatch[2].replace(/^[\s—]+/, '');
+          const runs     = [new docx.TextRun({ text: boldText, bold: true, size: 22 })];
+          if (rest) runs.push(new docx.TextRun({ text: ' — ' + rest, size: 22 }));
+          paragraphs.push(new docx.Paragraph({ children: runs, spacing: { before: 200, after: 80 } }));
+          continue;
+        }
+
+        // List item: - or * or 1.
+        const listMatch = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
+        if (listMatch) {
+          const text = listMatch[1];
+          const runs = parseInlineRuns(text, 20);
+          paragraphs.push(new docx.Paragraph({
+            children: [new docx.TextRun({ text: '• ', size: 20 }), ...runs],
+            indent: { left: 360 },
+            spacing: { after: 60 }
+          }));
+          continue;
+        }
+
+        // Regular paragraph with possible inline bold
+        paragraphs.push(new docx.Paragraph({
+          children: parseInlineRuns(line, 20),
+          spacing: { after: 100 }
+        }));
+      }
+
+      function parseInlineRuns(text, size) {
+        const parts = text.split(/(\*\*[^*]+\*\*)/);
+        return parts
+          .filter(p => p.length > 0)
+          .map(p => {
+            if (p.startsWith('**') && p.endsWith('**')) {
+              return new docx.TextRun({ text: p.slice(2, -2), bold: true, size });
+            }
+            return new docx.TextRun({ text: p.replace(/\*/g, ''), size });
+          });
+      }
+
+      const document = new docx.Document({
+        sections: [{ properties: {}, children: paragraphs }]
+      });
+
+      const blob     = await docx.Packer.toBlob(document);
+      const url      = URL.createObjectURL(blob);
+      const anchor   = window.document.createElement('a');
+      const filename = title.toLowerCase().replace(/[\s/]+/g, '-') + '.docx';
+      anchor.href     = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
 
     function escapeHtml(text) {
       return text
