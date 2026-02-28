@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oyaa.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <!-- File extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -17,86 +17,117 @@
   <style>
     /* ── Tokens ──────────────────────────────────────────────────────────── */
     :root {
-      --green:        #1A5C3A;
-      --green-hover:  #154D30;
-      --green-deep:   #123D27;
-      --green-light:  #EBF4EF;
-      --green-border: #C4D9CC;
-      --bg:           #F7F5F2;
+      --orange:       #FF4800;
+      --orange-hover: #E03E00;
+      --orange-light: #FFF0EB;
+      --orange-mid:   #FFD6C4;
+      --hero-bg:      #FFF4F0;
       --white:        #FFFFFF;
       --text:         #1F1F1F;
-      --text-sec:     #5A574F;
-      --text-muted:   #8A877F;
-      --border:       #E4DFD8;
-      --border-light: #EDE9E3;
-      --shadow:       0 2px 12px rgba(31, 20, 10, 0.07), 0 1px 2px rgba(31, 20, 10, 0.04);
+      --text-sec:     #6B7280;
+      --text-muted:   #9CA3AF;
+      --border:       #E5E7EB;
+      --border-focus: #FF4800;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
     }
 
     /* ── Reset ───────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--white);
       color: var(--text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     .container {
       max-width: 800px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 32px;
     }
 
-    /* ── Header ──────────────────────────────────────────────────────────── */
-    .site-header {
-      background: var(--green);
-      padding: 44px 0 52px;
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      background: var(--hero-bg);
+      padding: 88px 0 80px;
+      border-bottom: 1px solid var(--orange-mid);
     }
 
-    .site-header .container {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 20px;
     }
 
-    .logo {
-      font-size: 32px;
+    .hero-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      flex-shrink: 0;
+    }
+
+    .hero-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 64px;
       font-weight: 700;
-      letter-spacing: -0.8px;
-      color: var(--white);
-      line-height: 1;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      color: var(--text);
+      margin-bottom: 20px;
     }
 
-    .tagline {
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.68);
-      margin-top: 8px;
+    .hero-title .dot {
+      color: var(--orange);
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
       font-weight: 400;
-      letter-spacing: -0.1px;
-    }
-
-    .description {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 16px;
-      line-height: 1.7;
-      max-width: 480px;
+      color: var(--text-sec);
+      line-height: 1.55;
+      max-width: 520px;
+      margin-bottom: 0;
     }
 
     /* ── Main content ────────────────────────────────────────────────────── */
     .main-content {
-      padding: 36px 0 80px;
+      padding: 56px 0 96px;
+    }
+
+    /* ── Section heading ─────────────────────────────────────────────────── */
+    .section-heading {
+      font-family: 'Lexend', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 14px;
+      color: var(--text-sec);
+      margin-bottom: 20px;
     }
 
     /* ── Cards ───────────────────────────────────────────────────────────── */
     .card {
       background: var(--white);
-      border: 1px solid var(--border-light);
-      border-radius: 14px;
-      padding: 32px;
-      margin-bottom: 20px;
-      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
     }
 
     /* ── Labels ──────────────────────────────────────────────────────────── */
@@ -107,39 +138,38 @@
       color: var(--text-muted);
       margin-bottom: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.9px;
+      letter-spacing: 0.1em;
     }
 
     /* ── Textarea ────────────────────────────────────────────────────────── */
     textarea {
       width: 100%;
-      min-height: 200px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      font-family: inherit;
+      min-height: 220px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
       color: var(--text);
-      line-height: 1.65;
+      line-height: 1.7;
       resize: vertical;
       outline: none;
-      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-      background: #FAFAF8;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      background: var(--white);
     }
 
     textarea:focus {
-      border-color: var(--green);
-      background: var(--white);
-      box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.1);
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255, 72, 0, 0.1);
     }
 
-    textarea::placeholder { color: #C4BFB8; }
+    textarea::placeholder { color: #C4C9D4; }
 
     textarea.drag-over {
-      border-color: var(--green);
+      border-color: var(--orange);
       border-style: dashed;
-      background: var(--green-light);
-      box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.1);
+      background: var(--orange-light);
+      box-shadow: 0 0 0 3px rgba(255, 72, 0, 0.1);
     }
 
     .file-status {
@@ -149,14 +179,14 @@
     }
 
     .file-status.loading { color: var(--text-muted); }
-    .file-status.success { color: var(--green); }
-    .file-status.error   { color: #C0392B; }
+    .file-status.success { color: #059669; }
+    .file-status.error   { color: #DC2626; }
 
     /* ── Divider ─────────────────────────────────────────────────────────── */
     .divider {
       height: 1px;
-      background: var(--border-light);
-      margin: 28px 0;
+      background: var(--border);
+      margin: 32px 0;
     }
 
     /* ── Output type buttons ─────────────────────────────────────────────── */
@@ -166,37 +196,37 @@
       gap: 10px;
     }
 
-    @media (max-width: 560px) { .button-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 360px) { .button-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 580px) { .button-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 380px) { .button-grid { grid-template-columns: 1fr; } }
 
     .output-btn {
-      background: #FAFAF8;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 13px;
-      font-family: inherit;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 14px;
+      font-family: 'Inter', sans-serif;
       font-size: 12px;
       font-weight: 500;
       color: var(--text-sec);
       cursor: pointer;
       text-align: left;
-      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
       line-height: 1.4;
     }
 
     .output-btn:hover {
-      border-color: var(--green-border);
-      background: var(--green-light);
-      color: var(--green);
+      border-color: var(--orange);
+      color: var(--orange);
+      background: var(--orange-light);
     }
 
     .output-btn:active { transform: scale(0.98); }
 
     .output-btn.active {
-      background: var(--green);
-      border-color: var(--green);
-      color: var(--white);
-      box-shadow: 0 2px 8px rgba(26, 92, 58, 0.25);
+      border-color: var(--orange);
+      color: var(--orange);
+      background: var(--orange-light);
+      box-shadow: 0 0 0 1px var(--orange);
     }
 
     .btn-number {
@@ -205,37 +235,38 @@
       font-weight: 600;
       color: var(--border);
       margin-bottom: 6px;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.05em;
     }
 
-    .output-btn:hover .btn-number   { color: var(--green-border); }
-    .output-btn.active .btn-number  { color: rgba(255, 255, 255, 0.45); }
+    .output-btn:hover .btn-number  { color: var(--orange-mid); }
+    .output-btn.active .btn-number { color: var(--orange-mid); }
 
-    /* ── Generate button ─────────────────────────────────────────────────── */
+    /* ── Verwerk button ──────────────────────────────────────────────────── */
     #generateBtn {
-      background: var(--green);
+      height: 48px;
+      padding: 0 32px;
+      background: var(--orange);
       color: var(--white);
       border: none;
-      border-radius: 10px;
-      padding: 13px 28px;
-      font-family: inherit;
-      font-size: 13px;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      letter-spacing: 0.1px;
+      letter-spacing: 0.01em;
       transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-      box-shadow: 0 2px 8px rgba(26, 92, 58, 0.3);
+      box-shadow: 0 2px 8px rgba(255, 72, 0, 0.32);
     }
 
     #generateBtn:hover {
-      background: var(--green-hover);
-      box-shadow: 0 3px 12px rgba(26, 92, 58, 0.35);
+      background: var(--orange-hover);
+      box-shadow: 0 4px 14px rgba(255, 72, 0, 0.38);
     }
 
     #generateBtn:active  { transform: scale(0.98); }
 
     #generateBtn:disabled {
-      background: #B8B4AD;
+      background: #D1D5DB;
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -246,7 +277,7 @@
 
     .output-card.visible {
       display: block;
-      border-left: 3px solid var(--green);
+      border-left: 3px solid var(--orange);
     }
 
     .output-header {
@@ -258,11 +289,10 @@
     }
 
     .output-title {
-      font-size: 11px;
+      font-family: 'Lexend', sans-serif;
+      font-size: 15px;
       font-weight: 600;
-      color: var(--green);
-      text-transform: uppercase;
-      letter-spacing: 0.9px;
+      color: var(--text);
       flex-shrink: 0;
     }
 
@@ -273,33 +303,31 @@
       flex-wrap: wrap;
     }
 
-    /* ── Action buttons (copy / pdf / word) ──────────────────────────────── */
+    /* ── Action buttons ──────────────────────────────────────────────────── */
     .action-btn {
-      background: none;
-      border: 1px solid var(--green-border);
+      background: var(--white);
+      border: 1.5px solid var(--orange);
       border-radius: 7px;
-      padding: 6px 12px;
-      font-family: inherit;
+      padding: 7px 14px;
+      font-family: 'Inter', sans-serif;
       font-size: 12px;
-      font-weight: 500;
-      color: var(--green);
+      font-weight: 600;
+      color: var(--orange);
       cursor: pointer;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      transition: background 0.15s, color 0.15s;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       white-space: nowrap;
     }
 
     .action-btn:hover {
-      background: var(--green);
-      border-color: var(--green);
+      background: var(--orange);
       color: var(--white);
     }
 
     .action-btn.success {
-      background: var(--green);
-      border-color: var(--green);
+      background: var(--orange);
       color: var(--white);
     }
 
@@ -308,16 +336,16 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 24px 0;
-      color: var(--text-muted);
-      font-size: 13px;
+      padding: 28px 0;
+      color: var(--text-sec);
+      font-size: 14px;
     }
 
     .spinner {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border: 2px solid var(--border);
-      border-top-color: var(--green);
+      border-top-color: var(--orange);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       flex-shrink: 0;
@@ -330,22 +358,23 @@
       font-size: 14px;
       line-height: 1.8;
       color: var(--text);
-      background: #FAFAF8;
-      border: 1px solid var(--border-light);
-      border-radius: 10px;
-      padding: 24px;
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
     }
 
     .output-content h1,
     .output-content h2,
     .output-content h3 {
+      font-family: 'Lexend', sans-serif;
       font-size: 13px;
-      font-weight: 700;
-      color: var(--green-deep);
-      margin-top: 22px;
-      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 24px;
+      margin-bottom: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.06em;
     }
 
     .output-content h1:first-child,
@@ -361,70 +390,86 @@
       margin-bottom: 12px;
     }
 
-    .output-content li { margin-bottom: 5px; }
-
-    .output-content strong {
-      font-weight: 600;
-      color: var(--text);
-    }
+    .output-content li         { margin-bottom: 6px; }
+    .output-content strong     { font-weight: 600; }
 
     .output-content hr {
       border: none;
-      border-top: 1px solid var(--border-light);
-      margin: 18px 0;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
     }
 
     /* Tables */
     .output-content table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       font-size: 13px;
     }
 
     .output-content th,
     .output-content td {
       border: 1px solid var(--border);
-      padding: 9px 13px;
+      padding: 10px 14px;
       text-align: left;
       line-height: 1.5;
       vertical-align: top;
     }
 
     .output-content th {
-      background: var(--green-light);
+      background: var(--orange-light);
       font-weight: 600;
-      color: var(--green-deep);
+      color: var(--text);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .output-content tr:nth-child(even) td { background: #FAFAF8; }
+    .output-content tr:nth-child(even) td { background: #FAFAFA; }
 
     /* ── Error ───────────────────────────────────────────────────────────── */
     .error-msg {
       font-size: 13px;
-      color: #B33;
-      padding: 16px;
-      background: #FDF4F4;
+      color: #DC2626;
+      padding: 16px 20px;
+      background: #FEF2F2;
       border-radius: 8px;
-      border: 1px solid #F0D0D0;
+      border: 1px solid #FECACA;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero         { padding: 56px 0 52px; }
+      .hero-title   { font-size: 44px; letter-spacing: -1px; }
+      .hero-subtitle { font-size: 17px; }
+      .container    { padding: 0 20px; }
+      .card         { padding: 24px; }
     }
   </style>
 </head>
 <body>
 
-  <header class="site-header">
+  <!-- ── Hero ── -->
+  <section class="hero">
     <div class="container">
-      <div class="logo">Oyaa.</div>
-      <div class="tagline">Van gesprek naar geregeld, in minuten.</div>
-      <p class="description">Stop met uitwerken, begin met doen. Zet je gespreksnotities in een handomdraai om in een briefing, debrief of actielijst. ✓ Done.</p>
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        Voor accountmanagers bij reclamebureaus
+      </div>
+      <h1 class="hero-title">Oyaa<span class="dot">.</span></h1>
+      <p class="hero-subtitle">Van gesprek naar geregeld, in minuten. Stop met uitwerken, begin met doen.</p>
     </div>
-  </header>
+  </section>
 
+  <!-- ── Content ── -->
   <div class="main-content">
     <div class="container">
 
       <div class="card">
-        <label class="field-label" for="transcript">Jouw notities</label>
+        <h2 class="section-heading">Jouw notities</h2>
+        <p class="section-sub">Plak een transcript of sleep een bestand in het veld hieronder.</p>
+
+        <label class="field-label" for="transcript">Transcript of aantekeningen</label>
         <textarea
           id="transcript"
           placeholder="Plak hier het transcript van je vergadering, gesprek of call… of sleep een bestand hierin (.txt, .pdf, .doc, .docx)"
@@ -434,7 +479,10 @@
 
         <div class="divider"></div>
 
-        <label class="field-label">Wat wil je maken?</label>
+        <h2 class="section-heading">Wat wil je maken?</h2>
+        <p class="section-sub">Kies een outputtype en klik op Verwerk.</p>
+
+        <label class="field-label">Kies een type</label>
         <div class="button-grid">
           <button class="output-btn" data-type="summary-actions">
             <span class="btn-number">01</span>
@@ -462,8 +510,8 @@
           </button>
         </div>
 
-        <div id="generateWrap" style="display:none; margin-top: 24px;">
-          <button id="generateBtn" onclick="generate()">Verwerk</button>
+        <div id="generateWrap" style="display:none; margin-top: 28px;">
+          <button id="generateBtn" onclick="generate()">Verwerk →</button>
         </div>
       </div>
 
@@ -620,8 +668,8 @@
       const transcript = ta.value.trim();
       if (!transcript) {
         ta.focus();
-        ta.style.borderColor = '#C0392B';
-        ta.style.boxShadow   = '0 0 0 3px rgba(192,57,43,0.12)';
+        ta.style.borderColor = '#DC2626';
+        ta.style.boxShadow   = '0 0 0 3px rgba(220,38,38,0.12)';
         setTimeout(() => { ta.style.borderColor = ''; ta.style.boxShadow = ''; }, 1200);
         return;
       }
@@ -714,19 +762,16 @@
 
       for (const raw of rawOutput.split('\n')) {
         const line = raw.trim();
-
         if (line === '') { y += 3; continue; }
 
         const headingMatch = line.match(/^\*\*(.+?)\*\*(.*)$/);
         if (headingMatch) {
           const boldPart = headingMatch[1];
           const restPart = headingMatch[2].replace(/^[\s—]+/, '');
-          checkY(8);
-          y += 2;
+          checkY(8); y += 2;
           doc.setFont('helvetica', 'bold');
-          const boldWrapped = doc.splitTextToSize(boldPart + (restPart ? ' — ' + restPart : ''), maxWidth);
-          doc.text(boldWrapped, margin, y);
-          y += boldWrapped.length * 5.5;
+          const bw = doc.splitTextToSize(boldPart + (restPart ? ' — ' + restPart : ''), maxWidth);
+          doc.text(bw, margin, y); y += bw.length * 5.5;
           doc.setFont('helvetica', 'normal');
           continue;
         }
@@ -736,19 +781,17 @@
           const text    = listMatch[1].replace(/\*\*/g, '').replace(/\*/g, '');
           const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 4);
           checkY(wrapped.length * 5);
-          doc.text(wrapped, margin + 4, y);
-          y += wrapped.length * 5;
+          doc.text(wrapped, margin + 4, y); y += wrapped.length * 5;
           continue;
         }
 
         const text    = line.replace(/\*\*/g, '').replace(/\*/g, '');
         const wrapped = doc.splitTextToSize(text, maxWidth);
         checkY(wrapped.length * 5);
-        doc.text(wrapped, margin, y);
-        y += wrapped.length * 5;
+        doc.text(wrapped, margin, y); y += wrapped.length * 5;
       }
 
-      doc.save((title.toLowerCase().replace(/[\s/]+/g, '-')) + '.pdf');
+      doc.save(title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf');
     }
 
     // ── Word download ─────────────────────────────────────────────────────
@@ -787,8 +830,7 @@
           const runs = parseInlineRuns(listMatch[1], 20);
           paragraphs.push(new docx.Paragraph({
             children: [new docx.TextRun({ text: '• ', size: 20 }), ...runs],
-            indent: { left: 360 },
-            spacing: { after: 60 }
+            indent: { left: 360 }, spacing: { after: 60 }
           }));
           continue;
         }
