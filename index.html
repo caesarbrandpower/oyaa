@@ -293,6 +293,34 @@
       margin: 16px 0;
     }
 
+    /* Generate button */
+    #generateBtn {
+      background: #1a1a1a;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 28px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    #generateBtn:hover {
+      background: #333;
+    }
+
+    #generateBtn:active {
+      transform: scale(0.98);
+    }
+
+    #generateBtn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     /* Error */
     .error-msg {
       font-size: 13px;
@@ -345,6 +373,10 @@
           Projectplanning aanzet
         </button>
       </div>
+
+      <div id="generateWrap" style="display:none; margin-top: 20px;">
+        <button id="generateBtn" onclick="generate()">Genereer output</button>
+      </div>
     </div>
 
     <div class="card output-card" id="outputCard">
@@ -373,66 +405,73 @@
     };
 
     let rawOutput = '';
+    let selectedType = null;
 
-    // ── Button click handlers ──────────────────────────────────────────────
+    // ── Step 1: select output type ────────────────────────────────────────
 
     document.querySelectorAll('.output-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const transcript = document.getElementById('transcript').value.trim();
-        if (!transcript) {
-          document.getElementById('transcript').focus();
-          document.getElementById('transcript').style.borderColor = '#d0392b';
-          setTimeout(() => {
-            document.getElementById('transcript').style.borderColor = '';
-          }, 1200);
-          return;
-        }
+        selectedType = btn.dataset.type;
 
-        const outputType = btn.dataset.type;
-
-        // Active state
         document.querySelectorAll('.output-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
-        // Show card with spinner
-        const card   = document.getElementById('outputCard');
-        const body   = document.getElementById('outputBody');
-        const title  = document.getElementById('outputTitle');
-        const copyBtn = document.getElementById('copyBtn');
-
-        title.textContent = OUTPUT_TITLES[outputType];
-        body.innerHTML = `
-          <div class="spinner-wrapper">
-            <div class="spinner"></div>
-            <span>Bezig met verwerken…</span>
-          </div>`;
-        copyBtn.style.display = 'none';
-        rawOutput = '';
-
-        card.classList.add('visible');
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-        // API call
-        fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcript, outputType })
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.error) {
-              body.innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
-            } else {
-              rawOutput = data.result;
-              body.innerHTML = `<div class="output-content">${renderMarkdown(data.result)}</div>`;
-              copyBtn.style.display = '';
-            }
-          })
-          .catch(() => {
-            body.innerHTML = `<div class="error-msg">Er is een fout opgetreden. Controleer je verbinding en probeer het opnieuw.</div>`;
-          });
+        document.getElementById('generateWrap').style.display = 'block';
       });
     });
+
+    // ── Step 2: generate ──────────────────────────────────────────────────
+
+    function generate() {
+      const transcript = document.getElementById('transcript').value.trim();
+      if (!transcript) {
+        const ta = document.getElementById('transcript');
+        ta.focus();
+        ta.style.borderColor = '#d0392b';
+        setTimeout(() => { ta.style.borderColor = ''; }, 1200);
+        return;
+      }
+
+      const card    = document.getElementById('outputCard');
+      const body    = document.getElementById('outputBody');
+      const title   = document.getElementById('outputTitle');
+      const copyBtn = document.getElementById('copyBtn');
+      const genBtn  = document.getElementById('generateBtn');
+
+      title.textContent = OUTPUT_TITLES[selectedType];
+      body.innerHTML = `
+        <div class="spinner-wrapper">
+          <div class="spinner"></div>
+          <span>Bezig met verwerken…</span>
+        </div>`;
+      copyBtn.style.display = 'none';
+      rawOutput = '';
+      genBtn.disabled = true;
+
+      card.classList.add('visible');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, outputType: selectedType })
+      })
+        .then(res => res.json())
+        .then(data => {
+          genBtn.disabled = false;
+          if (data.error) {
+            body.innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
+          } else {
+            rawOutput = data.result;
+            body.innerHTML = `<div class="output-content">${renderMarkdown(data.result)}</div>`;
+            copyBtn.style.display = '';
+          }
+        })
+        .catch(() => {
+          genBtn.disabled = false;
+          body.innerHTML = `<div class="error-msg">Er is een fout opgetreden. Controleer je verbinding en probeer het opnieuw.</div>`;
+        });
+    }
 
     // ── Copy ──────────────────────────────────────────────────────────────
 
