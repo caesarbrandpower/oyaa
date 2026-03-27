@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { PROMPTS } from '@/lib/prompts';
-import { createClient } from '@/lib/supabase-server';
 
 export async function POST(request) {
   const { transcript, outputType, projectId } = await request.json();
@@ -12,10 +11,6 @@ export async function POST(request) {
 
   if (!outputType || !PROMPTS[outputType]) {
     return Response.json({ error: 'Ongeldig outputType.' }, { status: 400 });
-  }
-
-  if (!projectId) {
-    return Response.json({ error: 'Project ID is verplicht.' }, { status: 400 });
   }
 
   try {
@@ -38,14 +33,21 @@ export async function POST(request) {
     const rawOutput = message.content[0].text;
     const finalOutput = deanonymize(rawOutput, map);
 
-    // Save output to database
-    const supabase = await createClient();
-    await supabase.from('outputs').insert({
-      project_id: projectId,
-      output_type: outputType,
-      input_transcript: trimmed,
-      result: finalOutput,
-    });
+    // Save to database only if projectId is provided and Supabase is configured
+    if (projectId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_url') {
+      try {
+        const { createClient } = await import('@/lib/supabase-server');
+        const supabase = await createClient();
+        await supabase.from('outputs').insert({
+          project_id: projectId,
+          output_type: outputType,
+          input_transcript: trimmed,
+          result: finalOutput,
+        });
+      } catch (dbError) {
+        console.error('Database save error (non-fatal):', dbError);
+      }
+    }
 
     return Response.json({ result: finalOutput });
   } catch (error) {

@@ -1,8 +1,28 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
+const supabaseConfigured =
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your_supabase_url' &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'your_supabase_anon_key';
+
 export async function middleware(request) {
-  let supabaseResponse = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
+
+  // Skip auth entirely if Supabase is not configured
+  if (!supabaseConfigured) {
+    // Block /projects routes without Supabase
+    if (request.nextUrl.pathname.startsWith('/projects')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
+  // Supabase is configured — handle auth
+  let supabaseResponse = response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -28,10 +48,10 @@ export async function middleware(request) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isAuthPage = request.nextUrl.pathname === '/login';
-  const isPrivacyPage = request.nextUrl.pathname === '/privacy';
+  const isPublicPage = request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/privacy';
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
 
-  if (isPrivacyPage || isApiRoute) {
+  if (isPublicPage || isApiRoute) {
     return supabaseResponse;
   }
 
