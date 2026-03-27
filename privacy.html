@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy & data — Oyaa.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange:       #FF4800;
+      --orange-hover: #E03E00;
+      --orange-light: #FFF0EB;
+      --orange-mid:   #FFD6C4;
+      --hero-bg:      #FFF4F0;
+      --white:        #FFFFFF;
+      --text:         #1F1F1F;
+      --text-sec:     #6B7280;
+      --text-muted:   #9CA3AF;
+      --border:       #E5E7EB;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--hero-bg);
+      padding: 88px 0 64px;
+      border-bottom: 1px solid var(--orange-mid);
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 20px;
+    }
+
+    .hero-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      flex-shrink: 0;
+    }
+
+    .hero-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-sec);
+      line-height: 1.55;
+      max-width: 520px;
+    }
+
+    /* ── Content ── */
+    .privacy-content {
+      padding: 56px 0 96px;
+    }
+
+    .privacy-content p {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-sec);
+      margin-bottom: 16px;
+    }
+
+    .privacy-content p.intro {
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    .privacy-content h2 {
+      font-family: 'Lexend', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 48px;
+      margin-bottom: 20px;
+    }
+
+    .privacy-content h3 {
+      font-family: 'Lexend', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 28px;
+      margin-bottom: 8px;
+    }
+
+    .privacy-content ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 16px;
+    }
+
+    .privacy-content ul li {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-sec);
+      padding-left: 20px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .privacy-content ul li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--text-muted);
+    }
+
+    .privacy-content a {
+      color: var(--orange);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .privacy-content a:hover {
+      color: var(--orange-hover);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 48px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: var(--orange); }
+
+    /* ── Footer ── */
+    .site-footer {
+      background: #1F1F1F;
+      color: rgba(255, 255, 255, 0.55);
+      padding: 28px 0;
+      font-size: 13px;
+    }
+
+    .site-footer .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer .footer-left { color: rgba(255, 255, 255, 0.55); }
+    .site-footer .footer-left strong { color: #FFFFFF; font-weight: 500; }
+    .site-footer .footer-right { color: rgba(255, 255, 255, 0.3); letter-spacing: 0.02em; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 56px 0 44px; }
+      .hero-title { font-size: 30px; }
+      .container { padding: 0 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        Privacy & data
+      </div>
+      <h1 class="hero-title">Zo gaan we om met jouw klantdata</h1>
+      <p class="hero-subtitle">Helder. Geen kleine lettertjes.</p>
+    </div>
+  </section>
+
+  <div class="privacy-content">
+    <div class="container">
+
+      <a href="/" class="back-link">← Terug naar Oyaa</a>
+
+      <p class="intro">
+        Je werkt met gevoelige informatie. Transcripten van klantgesprekken, campagnebriefings,
+        strategische plannen. Informatie die je niet zomaar ergens wil laten rondslingeren.
+        Hier staat precies wat Oyaa doet — en wat we bewust niet doen.
+      </p>
+
+      <h2>Wat we doen</h2>
+
+      <h3>We anonimiseren vóór we verwerken</h3>
+      <p>
+        Voordat jouw input naar de AI gaat, worden namen, bedrijfsnamen, budgetten en andere
+        identificerende informatie vervangen door tijdelijke codes. De AI ziet geen
+        "Erik van Vandaag &amp; Morgen" — die ziet "[PERSOON_1] van [BEDRIJF_1]".
+        Na verwerking zetten we alles terug. Jij ziet de volledige output.
+        De AI heeft de namen nooit gezien.
+      </p>
+
+      <h3>Die anonimisering gebeurt lokaal, in Europa</h3>
+      <p>
+        De stap waarbij we namen herkennen en vervangen, vindt plaats op onze eigen server
+        in Duitsland. Identificerende informatie verlaat de EU nooit.
+      </p>
+
+      <h3>We slaan niets op</h3>
+      <p>
+        Wat je invoert wordt verwerkt en weggegooid. Geen database, geen logbestanden,
+        geen geschiedenis. Zodra je output ziet, bestaat de originele input nergens
+        meer in ons systeem.
+      </p>
+
+      <h2>Wat we niet doen</h2>
+      <ul>
+        <li>We gebruiken jouw input niet om AI-modellen te trainen</li>
+        <li>We verkopen geen data aan derden</li>
+        <li>We bewaren geen transcripten of documenten</li>
+        <li>We geven geen toegang aan andere bureaus of partijen</li>
+      </ul>
+
+      <h2>De AI-laag</h2>
+      <p>
+        Oyaa gebruikt de Anthropic API. Via de API wordt content niet gebruikt voor
+        modeltraining en niet bewaard na verwerking. Anthropic heeft een
+        verwerkersovereenkomst beschikbaar die AVG-compliant is.
+        <a href="https://anthropic.com/privacy" target="_blank" rel="noopener noreferrer">
+          Lees het privacybeleid van Anthropic →
+        </a>
+      </p>
+
+      <h2>Vergelijk het met wat je nu gebruikt</h2>
+      <p>
+        Slack, Google Workspace, Notion — tools die bureaus dagelijks gebruiken voor
+        dezelfde gevoelige informatie — slaan data permanent op in de VS. WeTransfer
+        probeerde in 2025 creatief werk te gebruiken voor AI-training, wat leidde tot
+        een brede boycot in de creatieve industrie.
+      </p>
+      <p>
+        Oyaa anonimiseert actief, slaat niets op en gebruikt jouw werk nooit voor
+        iets anders dan de output die je vraagt.
+      </p>
+
+      <h2>Verwerkersovereenkomst</h2>
+      <p>
+        Werk je voor klanten waarmee je een NDA hebt getekend? Dan kunnen we een
+        verwerkersovereenkomst opstellen die vastlegt hoe Oyaa omgaat met data
+        in jouw specifieke context. Mail naar
+        <a href="mailto:privacy@oyaa.app">privacy@oyaa.app</a>
+      </p>
+
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="footer-left">© 2026 <strong>Oyaa</strong> — Made for agency people</span>
+      <span class="footer-right">oyaa.nl</span>
+    </div>
+  </footer>
+
+</body>
+</html>
