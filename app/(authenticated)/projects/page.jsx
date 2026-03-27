@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import ProjectCard from '@/components/ProjectCard';
 import NewProjectForm from '@/components/NewProjectForm';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Projecten — Oyaa.',
 };
