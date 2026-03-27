@@ -11,7 +11,7 @@ export async function middleware(request) {
     supabaseKey &&
     supabaseKey !== 'your_supabase_anon_key';
 
-  // No Supabase — just block /projects and let everything else through
+  // No Supabase — block /projects and /login, let everything else through
   if (!supabaseConfigured) {
     if (request.nextUrl.pathname.startsWith('/projects') || request.nextUrl.pathname === '/login') {
       const url = request.nextUrl.clone();
@@ -21,55 +21,31 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  // Supabase is configured — dynamic import to avoid edge runtime issues
-  const { createServerClient } = await import('@supabase/ssr');
-
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
+  // Supabase is configured — check auth via cookie presence
+  // Full auth validation happens at the page/API level via supabase-server
+  const hasAuthCookie = request.cookies.getAll().some(c => c.name.startsWith('sb-'));
 
   const isAuthPage = request.nextUrl.pathname === '/login';
   const isPublicPage = request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/privacy';
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
 
   if (isPublicPage || isApiRoute) {
-    return supabaseResponse;
+    return NextResponse.next();
   }
 
-  if (!user && !isAuthPage) {
+  if (!hasAuthCookie && !isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPage) {
+  if (hasAuthCookie && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/projects';
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
