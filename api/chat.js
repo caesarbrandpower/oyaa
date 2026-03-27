@@ -1,4 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { anonymize, deanonymize } = require('../lib/anonymize');
 
 const PROMPTS = {
   'summary-actions': (transcript) =>
@@ -126,18 +127,25 @@ module.exports = async function handler(req, res) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    // Anonimiseer input voordat het naar de API gaat
+    const { anonymized, map } = anonymize(transcript.trim());
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [
         {
           role: 'user',
-          content: PROMPTS[outputType](transcript.trim())
+          content: PROMPTS[outputType](anonymized)
         }
       ]
     });
 
-    return res.status(200).json({ result: message.content[0].text });
+    // De-anonimiseer de output zodat de gebruiker de originele namen ziet
+    const rawOutput = message.content[0].text;
+    const finalOutput = deanonymize(rawOutput, map);
+
+    return res.status(200).json({ result: finalOutput });
   } catch (error) {
     console.error('Anthropic API error:', error);
     return res.status(500).json({ error: 'Er is een fout opgetreden bij het verwerken van je verzoek.' });

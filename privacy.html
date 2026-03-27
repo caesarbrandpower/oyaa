@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy & data — Oyaa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange:       #FF4800;
+      --orange-hover: #E03E00;
+      --white:        #FFFFFF;
+      --text:         #1F1F1F;
+      --text-sec:     #6B7280;
+      --text-muted:   #9CA3AF;
+      --border:       #E5E7EB;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .site-header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'Lexend', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--orange); }
+
+    .back-link {
+      font-size: 14px;
+      color: var(--text-sec);
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: var(--text); }
+
+    /* ── Content ── */
+    .privacy-content {
+      padding: 64px 0 80px;
+    }
+
+    .privacy-content h1 {
+      font-family: 'Lexend', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .privacy-content .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    .privacy-content .intro {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 48px;
+    }
+
+    .privacy-content h2 {
+      font-family: 'Lexend', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      margin-top: 48px;
+    }
+
+    .privacy-content h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .privacy-content p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-sec);
+      margin-bottom: 24px;
+    }
+
+    .privacy-content ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .privacy-content ul li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-sec);
+      margin-bottom: 8px;
+    }
+
+    .privacy-content a {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .privacy-content a:hover {
+      color: var(--orange);
+    }
+
+    /* ── Footer ── */
+    .site-footer {
+      background: #1F1F1F;
+      color: rgba(255, 255, 255, 0.55);
+      padding: 28px 0;
+      font-size: 13px;
+    }
+
+    .site-footer .container {
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer .footer-left { color: rgba(255, 255, 255, 0.55); }
+    .site-footer .footer-left strong { color: #fff; font-weight: 500; }
+    .site-footer .footer-right { color: rgba(255, 255, 255, 0.3); letter-spacing: 0.02em; }
+    .site-footer a { color: rgba(255, 255, 255, 0.55); text-decoration: none; }
+    .site-footer a:hover { color: rgba(255, 255, 255, 0.8); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container" style="max-width: 800px;">
+      <a href="/" class="logo">Oyaa<span>.</span></a>
+      <a href="/" class="back-link">&larr; Terug naar Oyaa</a>
+    </div>
+  </header>
+
+  <main class="privacy-content">
+    <div class="container">
+      <h1>Zo gaan we om met jouw klantdata</h1>
+      <p class="subtitle">Helder. Geen kleine lettertjes.</p>
+
+      <p class="intro">
+        Je werkt met gevoelige informatie. Transcripten van klantgesprekken, campagnebriefings,
+        strategische plannen. Informatie die je niet zomaar ergens wil laten rondslingeren.
+        Hier staat precies wat Oyaa doet — en wat we bewust niet doen.
+      </p>
+
+      <h2>Wat we doen</h2>
+
+      <h3>We anonimiseren vóór we verwerken</h3>
+      <p>
+        Voordat jouw input naar de AI gaat, worden namen, bedrijfsnamen, budgetten en andere
+        identificerende informatie vervangen door tijdelijke codes. De AI ziet geen
+        "Erik van Vandaag &amp; Morgen" — die ziet "[PERSOON_1] van [BEDRIJF_1]".
+        Na verwerking zetten we alles terug. Jij ziet de volledige output.
+        De AI heeft de namen nooit gezien.
+      </p>
+
+      <h3>Die anonimisering gebeurt lokaal, in Europa</h3>
+      <p>
+        De stap waarbij we namen herkennen en vervangen, vindt plaats op onze eigen server
+        in Duitsland. Identificerende informatie verlaat de EU nooit.
+      </p>
+
+      <h3>We slaan niets op</h3>
+      <p>
+        Wat je invoert wordt verwerkt en weggegooid. Geen database, geen logbestanden,
+        geen geschiedenis. Zodra je output ziet, bestaat de originele input nergens
+        meer in ons systeem.
+      </p>
+
+      <h2>Wat we niet doen</h2>
+      <ul>
+        <li>— We gebruiken jouw input niet om AI-modellen te trainen</li>
+        <li>— We verkopen geen data aan derden</li>
+        <li>— We bewaren geen transcripten of documenten</li>
+        <li>— We geven geen toegang aan andere bureaus of partijen</li>
+      </ul>
+
+      <h2>De AI-laag</h2>
+      <p>
+        Oyaa gebruikt de Anthropic API. Via de API wordt content niet gebruikt voor
+        modeltraining en niet bewaard na verwerking. Anthropic heeft een
+        verwerkersovereenkomst beschikbaar die AVG-compliant is.
+        <a href="https://anthropic.com/privacy" target="_blank" rel="noopener noreferrer">
+          Lees het privacybeleid van Anthropic &rarr;
+        </a>
+      </p>
+
+      <h2>Vergelijk het met wat je nu gebruikt</h2>
+      <p>
+        Slack, Google Workspace, Notion — tools die bureaus dagelijks gebruiken voor
+        dezelfde gevoelige informatie — slaan data permanent op in de VS. WeTransfer
+        probeerde in 2025 creatief werk te gebruiken voor AI-training, wat leidde tot
+        een brede boycot in de creatieve industrie.
+      </p>
+      <p>
+        Oyaa anonimiseert actief, slaat niets op en gebruikt jouw werk nooit voor
+        iets anders dan de output die je vraagt.
+      </p>
+
+      <h2>Verwerkersovereenkomst</h2>
+      <p>
+        Werk je voor klanten waarmee je een NDA hebt getekend? Dan kunnen we een
+        verwerkersovereenkomst opstellen die vastlegt hoe Oyaa omgaat met data
+        in jouw specifieke context. Mail naar
+        <a href="mailto:privacy@oyaa.app">privacy@oyaa.app</a>
+      </p>
+
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 64px;">Oyaa — gebouwd door NoRobot</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="footer-left">© 2026 <strong>Oyaa</strong> — Made for agency people</span>
+      <span class="footer-right"><a href="/privacy">Privacy & data</a></span>
+    </div>
+  </footer>
+
+</body>
+</html>
