@@ -6,7 +6,7 @@ import NewProjectForm from '@/components/NewProjectForm';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Projecten — Oyaa.',
+  title: 'Projecten \u2014 Waybetter.',
 };
 
 export default async function ProjectsPage() {

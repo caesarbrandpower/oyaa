@@ -16,7 +16,7 @@ export default function Home() {
           <div className="animate-hero-1">
             <div className="inline-flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange mb-8 font-[family-name:var(--font-outfit)]">
               <span className="w-1.5 h-1.5 rounded-full bg-orange" />
-              Voor accountmanagers bij bureaus
+              Made for agency people
             </div>
           </div>
 
@@ -28,8 +28,8 @@ export default function Home() {
             <span className="text-orange">In seconden.</span>
           </h1>
 
-          <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[520px] font-[family-name:var(--font-outfit)]">
-            Oyaa verwerkt transcripten, notities en documenten naar direct bruikbare bureau-output. In jouw format, in jouw toon.
+          <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
+            Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.
           </p>
         </div>
       </section>

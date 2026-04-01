@@ -16,7 +16,7 @@ export async function generateMetadata({ params }) {
     .single();
 
   return {
-    title: project ? `${project.name} — Oyaa.` : 'Project — Oyaa.',
+    title: project ? `${project.name} \u2014 Waybetter.` : 'Project \u2014 Waybetter.',
   };
 }
 
@@ -61,7 +61,7 @@ export default async function ProjectDetailPage({ params }) {
 
       {outputs && outputs.length > 0 && (
         <div className="mt-10 space-y-6">
-          <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text">Eerdere outputs</h2>
+          <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text">Eerdere resultaten</h2>
           {outputs.map((output) => (
             <OutputCard key={output.id} output={output} />
           ))}

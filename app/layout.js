@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Oyaa.',
+  title: 'Waybetter.',
   description: 'Van aantekeningen naar briefing. In seconden.',
 };
 

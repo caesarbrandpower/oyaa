@@ -17,7 +17,7 @@ export default function Header() {
     <header className="border-b border-border bg-white">
       <div className="max-w-[800px] mx-auto px-8 h-14 flex items-center justify-between">
         <a href="/projects" className="font-[family-name:var(--font-lexend)] text-xl font-bold text-text">
-          Oyaa<span className="text-orange">.</span>
+          Waybetter<span className="text-orange">.</span>
         </a>
         <button
           onClick={handleLogout}

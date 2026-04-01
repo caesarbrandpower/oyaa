@@ -3,7 +3,8 @@ export default function Footer() {
     <footer className="bg-dark text-white/35 py-8 text-[13px] font-[family-name:var(--font-outfit)]">
       <div className="max-w-[900px] mx-auto px-8 flex justify-between items-center gap-4 flex-wrap">
         <span>
-          Gemaakt door{' '}
+          <strong className="text-white/55 font-medium">Waybetter</strong>
+          {' '}&mdash; gemaakt door{' '}
           <a
             href="https://newfound.agency"
             target="_blank"

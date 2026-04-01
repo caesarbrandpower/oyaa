@@ -12,6 +12,24 @@ const OUTPUT_TYPES = [
   { key: 'project-planning', label: 'Projectplanning', desc: 'Van gesprek naar planning', num: '06' },
 ];
 
+const STEPS = [
+  {
+    num: '01',
+    title: 'Gooi er alles in',
+    desc: 'Aantekeningen, een opgenomen gesprek, een e-mail of een bestand. Alles werkt.',
+  },
+  {
+    num: '02',
+    title: 'Kies wat je nodig hebt',
+    desc: 'Briefing, samenvatting, actiepunten. Jij bepaalt het resultaat.',
+  },
+  {
+    num: '03',
+    title: 'Klaar voor gebruik',
+    desc: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.',
+  },
+];
+
 export default function PublicTranscriptForm() {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
@@ -122,6 +140,22 @@ export default function PublicTranscriptForm() {
 
   return (
     <>
+      {/* Privacy badge */}
+      <div className="bg-dark border-t border-dark-border">
+        <div className="max-w-[900px] mx-auto px-8 py-5">
+          <div className="inline-flex items-center gap-2.5 text-[13px] text-white/40 font-[family-name:var(--font-outfit)]">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-orange/70 shrink-0">
+              <rect x="2" y="7" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span>
+              Klantgegevens worden geanonimiseerd voor verwerking.
+              <span className="text-white/25 ml-1">Veilig voor vertrouwelijke bureauinformatie.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Output types showcase */}
       <section className="bg-dark border-t border-dark-border animate-hero-4">
         <div className="max-w-[1000px] mx-auto px-8 py-14">
@@ -155,6 +189,27 @@ export default function PublicTranscriptForm() {
         </div>
       </section>
 
+      {/* How it works */}
+      <section className="bg-dark border-t border-dark-border">
+        <div className="max-w-[1000px] mx-auto px-8 py-16">
+          <div className="grid grid-cols-3 gap-8 max-[680px]:grid-cols-1 max-[680px]:gap-10">
+            {STEPS.map(({ num, title, desc }) => (
+              <div key={num} className="relative">
+                <div className="text-[11px] font-semibold tracking-[0.2em] text-orange mb-3 font-[family-name:var(--font-outfit)]">
+                  {num}
+                </div>
+                <h3 className="font-[family-name:var(--font-lexend)] text-[17px] font-semibold text-white/90 mb-2">
+                  {title}
+                </h3>
+                <p className="text-[14px] text-white/35 leading-[1.6] font-[family-name:var(--font-outfit)]">
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Tool section */}
       <section ref={toolRef} className="bg-warm scroll-mt-4" id="tool">
         <div className="max-w-[800px] mx-auto px-8 py-16">
@@ -172,7 +227,7 @@ export default function PublicTranscriptForm() {
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
               onDrop={handleDrop}
-              placeholder="Sleep een PDF, Word of TXT bestand hierin &#8212; of typ je aantekeningen."
+              placeholder="Plak je aantekeningen, typ wat je hebt opgeschreven, of sleep een bestand hierin."
               spellCheck={false}
               className={`w-full min-h-[200px] border-[1.5px] rounded-xl px-5 py-4 text-sm text-text leading-[1.75] resize-y outline-none transition-all font-[family-name:var(--font-outfit)] ${
                 dragOver

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import AuthForm from '@/components/AuthForm';
 
 export const metadata = {
-  title: 'Inloggen — Oyaa.',
+  title: 'Inloggen \u2014 Waybetter.',
 };
 
 export default function LoginPage() {
@@ -12,10 +12,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-10">
           <h1 className="font-[family-name:var(--font-lexend)] text-5xl font-bold text-text">
-            Oyaa<span className="text-orange">.</span>
+            Waybetter<span className="text-orange">.</span>
           </h1>
           <p className="text-text-sec text-base mt-3">
-            Van gesprek naar geregeld, in minuten.
+            Van aantekeningen naar briefing, in seconden.
           </p>
         </div>
         <AuthForm />
