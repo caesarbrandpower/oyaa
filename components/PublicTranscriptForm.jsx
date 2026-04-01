@@ -4,12 +4,15 @@ import { useState, useRef } from 'react';
 import OutputCard from '@/components/OutputCard';
 
 const OUTPUT_TYPES = [
-  { key: 'summary-actions', label: 'Samenvatting', desc: 'Kernpunten en acties in een overzicht', num: '01' },
-  { key: 'internal-briefing', label: 'Interne briefing', desc: 'Direct bruikbaar voor je team', num: '02' },
-  { key: 'external-debrief', label: 'Externe debrief', desc: 'Professioneel naar de klant', num: '03' },
-  { key: 'internal-actions', label: 'Actiepunten intern', desc: 'Wie doet wat, wanneer', num: '04' },
-  { key: 'external-actions', label: 'Actiepunten extern', desc: 'Helder voor de klant', num: '05' },
-  { key: 'project-planning', label: 'Projectplanning', desc: 'Van gesprek naar planning', num: '06' },
+  { key: 'summary-actions', label: 'Samenvatting', desc: 'De kern van het gesprek in een oogopslag', num: '01' },
+  { key: 'internal-briefing', label: 'Interne briefing', desc: 'Alles wat je team moet weten om te beginnen', num: '02' },
+  { key: 'external-debrief', label: 'Externe debrief', desc: 'Een nette terugkoppeling voor je klant', num: '03' },
+  { key: 'internal-actions', label: 'Actiepunten intern', desc: 'Wie doet wat, en wanneer', num: '04' },
+  { key: 'external-actions', label: 'Actiepunten extern', desc: 'Wat de klant van jullie kan verwachten', num: '05' },
+  { key: 'project-planning', label: 'Projectplanning', desc: 'Van gesprek naar overzichtelijke planning', num: '06' },
+  { key: 'supplier-briefing', label: 'Leveranciersbriefing', desc: 'Voor wie je iets uitbesteedt', num: '07' },
+  { key: 'staff-planning', label: 'Personeelsplanning', desc: 'Wie wordt waar ingepland', num: '08' },
+  { key: 'client-status', label: 'Statusupdate klant', desc: 'Korte update over voortgang', num: '09' },
 ];
 
 const STEPS = [
