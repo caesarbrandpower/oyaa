@@ -15,14 +15,14 @@ export default function Home() {
         <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
           <div className="animate-hero-1">
             <div className="inline-flex items-center gap-2.5 mb-8">
-              <span className="font-[family-name:var(--font-lexend)] text-[14px] tracking-[0.06em] font-bold text-white uppercase">Waybetter</span>
+              <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
               <span className="text-orange text-[14px]">&middot;</span>
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
             </div>
           </div>
 
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
-            Van aantekeningen{'\u00A0'}
+            Van aantekening{'\u00A0'}
             <br className="max-[640px]:hidden" />
             naar briefing.
             <br />
