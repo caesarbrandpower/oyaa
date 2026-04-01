@@ -4,24 +4,37 @@ import PublicTranscriptForm from '@/components/PublicTranscriptForm';
 export default function Home() {
   return (
     <>
-      <section className="bg-hero py-[88px] pb-20 border-b border-orange-mid">
-        <div className="max-w-[800px] mx-auto px-8">
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-orange mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange" />
-            Voor accountmanagers bij reclamebureaus
+      {/* Hero */}
+      <section className="relative bg-dark overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] rounded-full bg-orange/[0.05] blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[15%] w-[400px] h-[400px] rounded-full bg-orange/[0.03] blur-[100px]" />
+        </div>
+
+        <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
+          <div className="animate-hero-1">
+            <div className="inline-flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange mb-8 font-[family-name:var(--font-outfit)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange" />
+              Voor accountmanagers bij bureaus
+            </div>
           </div>
-          <h1 className="font-[family-name:var(--font-lexend)] text-[64px] font-bold leading-[1.05] tracking-tight text-text mb-5">
-            Oyaa<span className="text-orange">.</span>
+
+          <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
+            Van aantekeningen{'\u00A0'}
+            <br className="max-[640px]:hidden" />
+            naar briefing.
+            <br />
+            <span className="text-orange">In seconden.</span>
           </h1>
-          <p className="text-xl text-text-sec leading-relaxed max-w-[520px]">
-            Van gesprek naar geregeld, in minuten. Stop met uitwerken, begin met doen.
+
+          <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[520px] font-[family-name:var(--font-outfit)]">
+            Oyaa verwerkt transcripten, notities en documenten naar direct bruikbare bureau-output. In jouw format, in jouw toon.
           </p>
         </div>
       </section>
 
-      <div className="max-w-[800px] mx-auto px-8 py-14">
-        <PublicTranscriptForm />
-      </div>
+      <PublicTranscriptForm />
 
       <Footer />
     </>

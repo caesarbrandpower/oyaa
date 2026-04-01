@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import OutputCard from '@/components/OutputCard';
 
 const OUTPUT_TYPES = [
-  { key: 'summary-actions', label: 'Samenvatting met actiepunten', num: '01' },
-  { key: 'internal-briefing', label: 'Interne briefing', num: '02' },
-  { key: 'external-debrief', label: 'Externe debrief naar klant', num: '03' },
-  { key: 'internal-actions', label: 'Actiepunten intern', num: '04' },
-  { key: 'external-actions', label: 'Actiepunten extern', num: '05' },
-  { key: 'project-planning', label: 'Projectplanning aanzet', num: '06' },
+  { key: 'summary-actions', label: 'Samenvatting', desc: 'Kernpunten en acties in een overzicht', num: '01' },
+  { key: 'internal-briefing', label: 'Interne briefing', desc: 'Direct bruikbaar voor je team', num: '02' },
+  { key: 'external-debrief', label: 'Externe debrief', desc: 'Professioneel naar de klant', num: '03' },
+  { key: 'internal-actions', label: 'Actiepunten intern', desc: 'Wie doet wat, wanneer', num: '04' },
+  { key: 'external-actions', label: 'Actiepunten extern', desc: 'Helder voor de klant', num: '05' },
+  { key: 'project-planning', label: 'Projectplanning', desc: 'Van gesprek naar planning', num: '06' },
 ];
 
 export default function PublicTranscriptForm() {
@@ -20,6 +20,14 @@ export default function PublicTranscriptForm() {
   const [result, setResult] = useState(null);
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const toolRef = useRef(null);
+
+  function selectAndScroll(key) {
+    setSelectedType(key);
+    setTimeout(() => {
+      toolRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
 
   async function handleGenerate() {
     if (!transcript.trim() || !selectedType) return;
@@ -30,14 +38,9 @@ export default function PublicTranscriptForm() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transcript,
-          outputType: selectedType,
-        }),
+        body: JSON.stringify({ transcript, outputType: selectedType }),
       });
-
       const data = await res.json();
-
       if (data.error) {
         setError(data.error);
       } else {
@@ -48,49 +51,49 @@ export default function PublicTranscriptForm() {
         });
       }
     } catch {
-      setError('Er is een fout opgetreden. Controleer je verbinding en probeer het opnieuw.');
+      setError('Er is een fout opgetreden. Probeer het opnieuw.');
     } finally {
       setLoading(false);
     }
   }
 
+  function handleFile(file) {
+    if (!file) return;
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    const supported = ['.txt', '.pdf', '.doc', '.docx'];
+    if (!supported.includes(ext)) {
+      setFileStatus({ msg: `"${ext}" wordt niet ondersteund.`, type: 'error' });
+      return;
+    }
+    setFileStatus({ msg: 'Bestand wordt ingelezen...', type: 'loading' });
+    if (ext === '.txt') readTxt(file);
+    else if (ext === '.pdf') readPdf(file);
+    else readDocx(file);
+  }
+
   function handleDrop(e) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    handleFile(e.dataTransfer.files[0]);
+  }
 
-    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
-    const supported = ['.txt', '.pdf', '.doc', '.docx'];
-
-    if (!supported.includes(ext)) {
-      setFileStatus({ msg: `Bestandstype "${ext}" wordt niet ondersteund.`, type: 'error' });
-      return;
-    }
-
-    setFileStatus({ msg: 'Bestand wordt ingelezen...', type: 'loading' });
-
-    if (ext === '.txt') {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setTranscript(ev.target.result);
-        setFileStatus({ msg: `"${file.name}" ingeladen.`, type: 'success' });
-      };
-      reader.onerror = () => setFileStatus({ msg: 'Fout bij inlezen.', type: 'error' });
-      reader.readAsText(file);
-    } else if (ext === '.pdf') {
-      readPdf(file);
-    } else {
-      readDocx(file);
-    }
+  function readTxt(file) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setTranscript(ev.target.result);
+      setFileStatus({ msg: `"${file.name}" ingeladen.`, type: 'success' });
+    };
+    reader.onerror = () => setFileStatus({ msg: 'Fout bij inlezen.', type: 'error' });
+    reader.readAsText(file);
   }
 
   async function readPdf(file) {
     try {
       const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
       let text = '';
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
@@ -99,7 +102,8 @@ export default function PublicTranscriptForm() {
       }
       setTranscript(text.trim());
       setFileStatus({ msg: `"${file.name}" ingeladen (${pdf.numPages} pagina's).`, type: 'success' });
-    } catch {
+    } catch (err) {
+      console.error('PDF parse error:', err);
       setFileStatus({ msg: 'Fout bij het uitlezen van de PDF.', type: 'error' });
     }
   }
@@ -116,84 +120,150 @@ export default function PublicTranscriptForm() {
     }
   }
 
-  const statusColor = fileStatus?.type === 'error' ? 'text-red-600' : fileStatus?.type === 'success' ? 'text-green-600' : 'text-text-muted';
-
   return (
     <>
-      <div className="border border-border rounded-xl p-9 shadow-sm">
-        <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">Jouw notities</h2>
-        <p className="text-[15px] text-text-sec mb-5">Zet je notities neer of sleep een bestand. Wij doen de rest.</p>
-
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
-          onDrop={handleDrop}
-          placeholder="Sleep een bestand hierin, of typ je aantekeningen."
-          spellCheck={false}
-          className={`w-full min-h-[220px] border-[1.5px] rounded-lg px-[18px] py-4 text-sm text-text leading-[1.7] resize-y outline-none transition-all ${
-            dragOver
-              ? 'border-orange border-dashed bg-orange-light shadow-[0_0_0_3px_rgba(255,72,0,0.1)]'
-              : 'border-border bg-white focus:border-orange focus:shadow-[0_0_0_3px_rgba(255,72,0,0.1)]'
-          }`}
-        />
-
-        {fileStatus && <p className={`text-xs mt-2 ${statusColor}`}>{fileStatus.msg}</p>}
-
-        <div className="h-px bg-border my-8" />
-
-        <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">Wat wil je maken?</h2>
-        <p className="text-[15px] text-text-sec mb-5">Kies een outputtype en klik op Verwerk.</p>
-
-        <label className="block text-[11px] font-semibold text-text-muted mb-2.5 uppercase tracking-wider">
-          Kies een type
-        </label>
-
-        <div className="grid grid-cols-3 gap-2.5 max-[580px]:grid-cols-2 max-[380px]:grid-cols-1">
-          {OUTPUT_TYPES.map(({ key, label, num }) => (
-            <button
-              key={key}
-              onClick={() => setSelectedType(key)}
-              className={`text-left border-[1.5px] rounded-lg p-3.5 text-[15px] font-medium leading-[1.4] transition-all active:scale-[0.98] cursor-pointer ${
-                selectedType === key
-                  ? 'border-orange text-orange bg-orange-light shadow-[0_0_0_1px_#FF4800]'
-                  : 'border-border text-text-sec hover:border-orange hover:text-orange hover:bg-orange-light'
-              }`}
-            >
-              <span className={`block text-xs font-semibold mb-1.5 tracking-wide ${
-                selectedType === key ? 'text-orange-mid' : 'text-border'
-              }`}>
-                {num}
-              </span>
-              {label}
-            </button>
-          ))}
+      {/* Output types showcase */}
+      <section className="bg-dark border-t border-dark-border animate-hero-4">
+        <div className="max-w-[1000px] mx-auto px-8 py-14">
+          <div className="grid grid-cols-3 gap-3 max-[680px]:grid-cols-2 max-[420px]:grid-cols-1">
+            {OUTPUT_TYPES.map(({ key, label, desc, num }) => (
+              <button
+                key={key}
+                onClick={() => selectAndScroll(key)}
+                className={`group text-left rounded-xl p-5 transition-all duration-200 cursor-pointer border ${
+                  selectedType === key
+                    ? 'bg-orange/10 border-orange/40 shadow-[0_0_24px_rgba(255,72,0,0.1)]'
+                    : 'bg-dark-card border-dark-border hover:border-orange/30 hover:bg-orange/[0.04]'
+                }`}
+              >
+                <span className={`block text-[11px] font-semibold tracking-[0.15em] mb-2 transition-colors font-[family-name:var(--font-outfit)] ${
+                  selectedType === key ? 'text-orange' : 'text-white/20 group-hover:text-orange/50'
+                }`}>
+                  {num}
+                </span>
+                <span className={`block text-[15px] font-semibold mb-1 transition-colors font-[family-name:var(--font-outfit)] ${
+                  selectedType === key ? 'text-orange' : 'text-white/85 group-hover:text-white'
+                }`}>
+                  {label}
+                </span>
+                <span className="block text-[13px] text-white/30 leading-snug font-[family-name:var(--font-outfit)]">
+                  {desc}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {selectedType && (
-          <div className="mt-7">
-            <button
-              onClick={handleGenerate}
-              disabled={loading || !transcript.trim()}
-              className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-[0_2px_8px_rgba(255,72,0,0.32)] hover:shadow-[0_4px_14px_rgba(255,72,0,0.38)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer"
-            >
-              {loading ? 'Bezig met verwerken...' : 'Verwerk →'}
-            </button>
-          </div>
-        )}
+      {/* Tool section */}
+      <section ref={toolRef} className="bg-warm scroll-mt-4" id="tool">
+        <div className="max-w-[800px] mx-auto px-8 py-16">
+          <div className="border border-border rounded-2xl p-8 max-[480px]:p-5 bg-white shadow-sm">
+            <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">
+              Jouw notities
+            </h2>
+            <p className="text-[15px] text-text-sec mb-5 font-[family-name:var(--font-outfit)]">
+              Plak tekst, typ je aantekeningen of sleep een bestand.
+            </p>
 
-        {error && (
-          <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-5 py-4">
-            {error}
+            <textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+              onDrop={handleDrop}
+              placeholder="Sleep een PDF, Word of TXT bestand hierin &#8212; of typ je aantekeningen."
+              spellCheck={false}
+              className={`w-full min-h-[200px] border-[1.5px] rounded-xl px-5 py-4 text-sm text-text leading-[1.75] resize-y outline-none transition-all font-[family-name:var(--font-outfit)] ${
+                dragOver
+                  ? 'border-orange border-dashed bg-orange-light shadow-[0_0_0_3px_rgba(255,72,0,0.1)]'
+                  : 'border-border bg-warm focus:border-orange focus:shadow-[0_0_0_3px_rgba(255,72,0,0.08)]'
+              }`}
+            />
+
+            {/* File upload + status */}
+            <div className="flex items-center gap-3 mt-3">
+              <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                  <polyline points="5,6 8,3 11,6" />
+                  <line x1="8" y1="3" x2="8" y2="10" />
+                </svg>
+                Upload bestand
+                <input
+                  type="file"
+                  accept=".txt,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files[0])}
+                />
+              </label>
+              {fileStatus && (
+                <span className={`text-xs font-[family-name:var(--font-outfit)] ${
+                  fileStatus.type === 'error' ? 'text-red-500' :
+                  fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
+                }`}>
+                  {fileStatus.msg}
+                </span>
+              )}
+            </div>
+
+            <div className="h-px bg-border my-7" />
+
+            <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">
+              Wat wil je maken?
+            </h2>
+            <p className="text-[15px] text-text-sec mb-4 font-[family-name:var(--font-outfit)]">
+              Kies een type en klik op Verwerk.
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 max-[580px]:grid-cols-2 max-[380px]:grid-cols-1">
+              {OUTPUT_TYPES.map(({ key, label, num }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedType(key)}
+                  className={`text-left border-[1.5px] rounded-lg p-3 text-[14px] font-medium leading-[1.4] transition-all active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)] ${
+                    selectedType === key
+                      ? 'border-orange text-orange bg-orange-light shadow-[0_0_0_1px_#FF4800]'
+                      : 'border-border text-text-sec hover:border-orange hover:text-orange hover:bg-orange-light'
+                  }`}
+                >
+                  <span className={`block text-[10px] font-semibold mb-1 tracking-wider ${
+                    selectedType === key ? 'text-orange/50' : 'text-border'
+                  }`}>
+                    {num}
+                  </span>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {selectedType && (
+              <div className="mt-7">
+                <button
+                  onClick={handleGenerate}
+                  disabled={loading || !transcript.trim()}
+                  className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer font-[family-name:var(--font-outfit)]"
+                >
+                  {loading ? 'Bezig met verwerken...' : 'Verwerk \u2192'}
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-5 py-4 font-[family-name:var(--font-outfit)]">
+                {error}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      </section>
 
       {result && (
-        <div className="mt-6">
-          <OutputCard output={result} />
-        </div>
+        <section className="bg-warm pb-16">
+          <div className="max-w-[800px] mx-auto px-8">
+            <OutputCard output={result} />
+          </div>
+        </section>
       )}
     </>
   );
