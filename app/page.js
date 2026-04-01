@@ -14,10 +14,10 @@ export default function Home() {
 
         <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
           <div className="animate-hero-1">
-            <div className="inline-flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange mb-8 font-[family-name:var(--font-outfit)]">
-              <span className="font-[family-name:var(--font-lexend)] text-[13px] tracking-[0.08em] font-bold">Waybetter</span>
-              <span className="text-orange/40">&middot;</span>
-              Made for agency people
+            <div className="inline-flex items-center gap-2.5 mb-8">
+              <span className="font-[family-name:var(--font-lexend)] text-[14px] tracking-[0.06em] font-bold text-white uppercase">Waybetter</span>
+              <span className="text-orange text-[14px]">&middot;</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
             </div>
           </div>
 

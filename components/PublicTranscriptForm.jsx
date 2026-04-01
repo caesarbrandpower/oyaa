@@ -43,6 +43,14 @@ export default function PublicTranscriptForm() {
   const [dragOver, setDragOver] = useState(false);
   const toolRef = useRef(null);
 
+  function handleReset() {
+    setTranscript('');
+    setSelectedType(null);
+    setResult(null);
+    setError(null);
+    setFileStatus(null);
+  }
+
   function selectAndScroll(key) {
     setSelectedType(key);
     setTimeout(() => {
@@ -162,6 +170,7 @@ export default function PublicTranscriptForm() {
       {/* Output types showcase */}
       <section className="bg-dark border-t border-dark-border animate-hero-4">
         <div className="max-w-[1000px] mx-auto px-8 py-14">
+          <p className="text-[13px] text-white/30 font-[family-name:var(--font-outfit)] mb-5">Wat wil je vandaag maken?</p>
           <div className="grid grid-cols-3 gap-3 max-[680px]:grid-cols-2 max-[420px]:grid-cols-1">
             {OUTPUT_TYPES.map(({ key, label, desc, num }) => (
               <button
@@ -296,13 +305,19 @@ export default function PublicTranscriptForm() {
             </div>
 
             {selectedType && (
-              <div className="mt-7">
+              <div className="mt-7 flex items-center gap-3">
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !transcript.trim()}
                   className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer font-[family-name:var(--font-outfit)]"
                 >
                   {loading ? 'Bezig met verwerken...' : 'Verwerk \u2192'}
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="h-12 px-5 border-[1.5px] border-border text-text-sec rounded-lg text-sm font-medium transition-all hover:border-text-muted hover:text-text active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)]"
+                >
+                  Nieuw bestand
                 </button>
               </div>
             )}
