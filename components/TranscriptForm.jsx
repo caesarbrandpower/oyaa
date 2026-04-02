@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { isAudioFile, useAudioTranscription } from '@/lib/use-audio';
 
 const OUTPUT_TYPES = [
   { key: 'summary-actions', label: 'Samenvatting met actiepunten', num: '01' },
@@ -20,7 +21,14 @@ export default function TranscriptForm({ projectId, onResult }) {
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const router = useRouter();
+
+  const { transcribing, recording, transcribeFile, toggleRecording } = useAudioTranscription({
+    onTranscript: (text) => setTranscript(text),
+    onStatus: (msg) => setFileStatus({ msg, type: 'success' }),
+    onError: (msg) => setFileStatus({ msg, type: 'error' }),
+  });
 
   async function handleGenerate() {
     if (!transcript.trim() || !selectedType) return;
@@ -53,11 +61,15 @@ export default function TranscriptForm({ projectId, onResult }) {
     }
   }
 
-  function handleDrop(e) {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
+  function handleFile(file) {
     if (!file) return;
+
+    // Audio files go to Whisper
+    if (isAudioFile(file)) {
+      setFileStatus({ msg: 'Je opname wordt verwerkt...', type: 'loading' });
+      transcribeFile(file);
+      return;
+    }
 
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
     const supported = ['.txt', '.pdf', '.doc', '.docx'];
@@ -82,6 +94,17 @@ export default function TranscriptForm({ projectId, onResult }) {
     } else {
       readDocx(file);
     }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    handleFile(e.dataTransfer.files[0]);
+  }
+
+  function handleFileInput(e) {
+    handleFile(e.target.files[0]);
+    e.target.value = '';
   }
 
   async function readPdf(file) {
@@ -139,6 +162,44 @@ export default function TranscriptForm({ projectId, onResult }) {
       />
 
       {fileStatus && <p className={`text-xs mt-2 ${statusColor}`}>{fileStatus.msg}</p>}
+
+      {/* Upload + Record buttons */}
+      <div className="flex items-center gap-3 mt-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".txt,.pdf,.doc,.docx,.mp3,.m4a,.mp4,.wav,.ogg,.webm"
+          onChange={handleFileInput}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={transcribing}
+          className="h-9 px-4 border border-border rounded-lg text-xs font-medium text-text-sec transition-all hover:border-orange hover:text-orange hover:bg-orange-light active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <span className="mr-1.5">📎</span>
+          Upload bestand
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleRecording}
+          disabled={transcribing}
+          className={`h-9 px-4 border rounded-lg text-xs font-medium transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            recording
+              ? 'border-red-400 text-red-600 bg-red-50 animate-pulse'
+              : 'border-border text-text-sec hover:border-orange hover:text-orange hover:bg-orange-light'
+          }`}
+        >
+          <span className="mr-1.5">{recording ? '⏹️' : '🎙️'}</span>
+          {recording ? 'Stop opname' : 'Opnemen'}
+        </button>
+      </div>
+
+      <p className="text-[11px] text-text-muted mt-2">
+        Upload tekst, Word, PDF of een audiobestand — wij doen de rest.
+      </p>
 
       <div className="h-px bg-border my-8" />
 
