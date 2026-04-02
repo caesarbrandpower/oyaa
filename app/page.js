@@ -5,6 +5,8 @@ import ChaseBadge from '@/components/ChaseBadge';
 export default function Home() {
   return (
     <>
+      <ChaseBadge />
+
       {/* Hero */}
       <section className="relative bg-dark overflow-hidden">
         {/* Ambient glow */}
@@ -15,13 +17,10 @@ export default function Home() {
 
         <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
           <div className="animate-hero-1">
-            <div className="flex items-center justify-between mb-8">
-              <div className="inline-flex items-center gap-2.5">
-                <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
-                <span className="text-orange text-[14px]">&middot;</span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
-              </div>
-              <ChaseBadge />
+            <div className="inline-flex items-center gap-2.5 mb-8">
+              <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
+              <span className="text-orange text-[14px]">&middot;</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
             </div>
           </div>
 
