@@ -49,6 +49,7 @@ export default function PublicTranscriptForm() {
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
+  const [summaryVariant, setSummaryVariant] = useState('internal');
   const toolRef = useRef(null);
 
   const {
@@ -90,10 +91,13 @@ export default function PublicTranscriptForm() {
     setError(null);
 
     try {
+      const effectiveType = selectedType === 'summary-actions'
+        ? `summary-actions-${summaryVariant}`
+        : selectedType;
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, outputType: selectedType }),
+        body: JSON.stringify({ transcript, outputType: effectiveType }),
       });
       const data = await res.json();
       if (data.error) {
@@ -101,7 +105,7 @@ export default function PublicTranscriptForm() {
       } else {
         setResult({
           result: data.result,
-          output_type: selectedType,
+          output_type: effectiveType,
           created_at: new Date().toISOString(),
         });
       }
@@ -469,6 +473,32 @@ export default function PublicTranscriptForm() {
                 </button>
               ))}
             </div>
+
+            {selectedType === 'summary-actions' && (
+              <div className="mt-5 flex items-center gap-2">
+                <span className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)] mr-1">Voor wie?</span>
+                {[
+                  { key: 'internal', label: 'Intern' },
+                  { key: 'external', label: 'Extern' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSummaryVariant(key)}
+                    className={`h-8 px-4 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)] ${
+                      summaryVariant === key
+                        ? 'bg-orange text-white shadow-[0_2px_8px_rgba(255,72,0,0.25)]'
+                        : 'border-[1.5px] border-border text-text-sec hover:border-orange hover:text-orange'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <span className="text-[11px] text-text-muted font-[family-name:var(--font-outfit)] ml-2">
+                  {summaryVariant === 'external' ? 'Geen interne namen of jargon' : 'Met namen en details'}
+                </span>
+              </div>
+            )}
 
             {selectedType && (
               <div className="mt-7 flex items-center gap-3">
