@@ -33,7 +33,7 @@ export default function Home() {
           </h1>
 
           <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
-            Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.
+            Work waybetter. Van aantekening naar briefing, van gesprek naar document. Alles op één plek, in jouw format, in jouw toon.
           </p>
         </div>
       </section>

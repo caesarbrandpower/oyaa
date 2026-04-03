@@ -34,6 +34,12 @@ const STEPS = [
   },
 ];
 
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
 export default function PublicTranscriptForm() {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
@@ -44,9 +50,21 @@ export default function PublicTranscriptForm() {
   const [dragOver, setDragOver] = useState(false);
   const toolRef = useRef(null);
 
-  const { transcribing, recording, transcribeFile, toggleRecording } = useAudioTranscription({
+  const {
+    transcribing,
+    recording,
+    paused,
+    elapsed,
+    lastRecordingUrl,
+    transcribeFile,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    discardRecording,
+  } = useAudioTranscription({
     onTranscript: (text) => setTranscript(text),
-    onStatus: (msg) => setFileStatus({ msg, type: 'success' }),
+    onStatus: (msg) => msg ? setFileStatus({ msg, type: 'success' }) : setFileStatus(null),
     onError: (msg) => setFileStatus({ msg, type: 'error' }),
   });
 
@@ -168,7 +186,7 @@ export default function PublicTranscriptForm() {
     <>
       {/* Privacy badge */}
       <div className="bg-dark border-t border-dark-border">
-        <div className="max-w-[900px] mx-auto px-8 py-5">
+        <div className="max-w-[1000px] mx-auto px-8 py-5">
           <div className="inline-flex items-center gap-2.5 text-[13px] text-white/40 font-[family-name:var(--font-outfit)]">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-orange/70 shrink-0">
               <rect x="2" y="7" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
@@ -181,6 +199,20 @@ export default function PublicTranscriptForm() {
           </div>
         </div>
       </div>
+
+      {/* Alles op één plek */}
+      <section className="bg-dark border-t border-dark-border">
+        <div className="max-w-[1000px] mx-auto px-8 py-16">
+          <p className="text-[11px] font-semibold tracking-[0.2em] text-orange uppercase mb-5 font-[family-name:var(--font-outfit)]">
+            Alles op één plek
+          </p>
+          <p className="text-[17px] text-white/50 leading-[1.7] max-w-[560px] font-[family-name:var(--font-outfit)]">
+            Van het eerste gesprek met een klant tot de definitieve briefing.{' '}
+            Waybetter brengt alles samen — opnemen, verwerken, documenteren.{' '}
+            Zonder tools te wisselen, zonder bestanden te kopiëren.
+          </p>
+        </div>
+      </section>
 
       {/* Output types showcase */}
       <section className="bg-dark border-t border-dark-border animate-hero-4">
@@ -239,7 +271,7 @@ export default function PublicTranscriptForm() {
 
       {/* Tool section */}
       <section ref={toolRef} className="bg-warm scroll-mt-4" id="tool">
-        <div className="max-w-[800px] mx-auto px-8 py-16">
+        <div className="max-w-[1000px] mx-auto px-8 py-16">
           <div className="border border-border rounded-2xl p-8 max-[480px]:p-5 bg-white shadow-sm">
             <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">
               Jouw notities
@@ -263,50 +295,108 @@ export default function PublicTranscriptForm() {
               }`}
             />
 
-            {/* File upload + record + status */}
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
-              <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
-                  <polyline points="5,6 8,3 11,6" />
-                  <line x1="8" y1="3" x2="8" y2="10" />
-                </svg>
-                Upload bestand
-                <input
-                  type="file"
-                  accept=".txt,.pdf,.doc,.docx,.mp3,.m4a,.mp4,.wav,.ogg,.webm"
-                  className="hidden"
-                  onChange={(e) => { handleFile(e.target.files[0]); e.target.value = ''; }}
-                />
-              </label>
+            {/* Recording UI */}
+            {recording ? (
+              <div className="mt-4 border border-red-200 bg-red-50/60 rounded-xl px-5 py-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                  </span>
+                  <span className="text-[14px] font-semibold text-red-600 font-[family-name:var(--font-outfit)]">
+                    {paused ? 'Opname gepauzeerd' : 'Opname bezig...'}
+                  </span>
+                  <span className="text-[15px] font-mono font-semibold text-red-500 tabular-nums">
+                    {formatTime(elapsed)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={paused ? resumeRecording : pauseRecording}
+                    className="h-9 px-4 border border-red-200 rounded-lg text-[13px] font-medium text-red-600 bg-white transition-all hover:bg-red-50 hover:border-red-300 active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)]"
+                  >
+                    {paused ? 'Hervatten' : 'Pauzeren'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="h-9 px-4 bg-red-500 text-white rounded-lg text-[13px] font-semibold transition-all hover:bg-red-600 active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)]"
+                  >
+                    Stoppen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardRecording}
+                    className="h-9 px-4 border border-border rounded-lg text-[13px] font-medium text-text-muted transition-all hover:border-red-200 hover:text-red-500 active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)]"
+                  >
+                    Verwijderen
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* File upload + record + status */}
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                  <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                      <polyline points="5,6 8,3 11,6" />
+                      <line x1="8" y1="3" x2="8" y2="10" />
+                    </svg>
+                    Upload bestand
+                    <input
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx,.mp3,.m4a,.mp4,.wav,.ogg,.webm"
+                      className="hidden"
+                      onChange={(e) => { handleFile(e.target.files[0]); e.target.value = ''; }}
+                    />
+                  </label>
 
-              <button
-                type="button"
-                onClick={toggleRecording}
-                disabled={transcribing}
-                className={`inline-flex items-center gap-1.5 text-[13px] font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)] ${
-                  recording
-                    ? 'text-red-500 animate-pulse'
-                    : 'text-text-sec hover:text-orange'
-                }`}
-              >
-                {recording ? '⏹️' : '🎙️'}
-                {recording ? 'Stop opname' : 'Opnemen'}
-              </button>
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    disabled={transcribing}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)]"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <rect x="5" y="1" width="6" height="10" rx="3" />
+                      <path d="M13 7a5 5 0 0 1-10 0" />
+                      <line x1="8" y1="12" x2="8" y2="15" />
+                      <line x1="5.5" y1="15" x2="10.5" y2="15" />
+                    </svg>
+                    Opnemen
+                  </button>
 
-              {fileStatus && (
-                <span className={`text-xs font-[family-name:var(--font-outfit)] ${
-                  fileStatus.type === 'error' ? 'text-red-500' :
-                  fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
-                }`}>
-                  {fileStatus.msg}
-                </span>
-              )}
-            </div>
+                  {fileStatus && (
+                    <span className={`text-xs font-[family-name:var(--font-outfit)] ${
+                      fileStatus.type === 'error' ? 'text-red-500' :
+                      fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
+                    }`}>
+                      {fileStatus.msg}
+                      {fileStatus.type === 'success' && lastRecordingUrl && (
+                        <a
+                          href={lastRecordingUrl}
+                          download="opname.webm"
+                          className="inline-flex items-center gap-1 ml-2 text-orange hover:text-orange-hover transition-colors"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                            <polyline points="5,10 8,13 11,10" />
+                            <line x1="8" y1="13" x2="8" y2="3" />
+                          </svg>
+                          Download audio
+                        </a>
+                      )}
+                    </span>
+                  )}
+                </div>
 
-            <p className="text-[11px] text-text-muted mt-2 font-[family-name:var(--font-outfit)]">
-              Upload tekst, Word, PDF of een audiobestand — wij doen de rest.
-            </p>
+                <p className="text-[11px] text-text-muted mt-2 font-[family-name:var(--font-outfit)]">
+                  Upload tekst, Word, PDF of een audiobestand — wij doen de rest.
+                </p>
+              </>
+            )}
 
             <div className="h-px bg-border my-7" />
 
@@ -367,7 +457,7 @@ export default function PublicTranscriptForm() {
 
       {result && (
         <section className="bg-warm pb-16">
-          <div className="max-w-[800px] mx-auto px-8">
+          <div className="max-w-[1000px] mx-auto px-8">
             <OutputCard output={result} />
           </div>
         </section>
