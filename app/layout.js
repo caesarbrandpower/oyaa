@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Waybetter.',
+  title: 'Waybetter. Made for agency people',
   description: 'Van aantekeningen naar briefing. In seconden.',
 };
 
