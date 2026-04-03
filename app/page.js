@@ -1,6 +1,14 @@
+export const dynamic = 'force-dynamic';
+
+import nextDynamic from 'next/dynamic';
 import Footer from '@/components/Footer';
-import PublicTranscriptForm from '@/components/PublicTranscriptForm';
+import AuthNav from '@/components/AuthNav';
 import ChaseBadge from '@/components/ChaseBadge';
+
+const PublicTranscriptForm = nextDynamic(
+  () => import('@/components/PublicTranscriptForm'),
+  { loading: () => <div className="bg-dark min-h-[400px]" /> }
+);
 
 export default function Home() {
   return (
@@ -9,6 +17,8 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative bg-dark overflow-hidden">
+        <AuthNav />
+
         {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] rounded-full bg-orange/[0.05] blur-[120px]" />
