@@ -274,7 +274,7 @@ export default function PublicTranscriptForm() {
         <div className="max-w-[900px] mx-auto px-8 py-16">
           <div className="border border-border rounded-2xl p-8 max-[480px]:p-5 bg-white shadow-sm">
             <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">
-              Jouw notities
+              Jouw start
             </h2>
             <p className="text-[15px] text-text-sec mb-5 font-[family-name:var(--font-outfit)]">
               Plak tekst, typ je aantekeningen of sleep een bestand.

@@ -41,9 +41,20 @@ export default function OutputCard({ output, transcript }) {
   function copyTranscript() {
     if (!transcript) return;
     navigator.clipboard.writeText(transcript).then(() => {
-      setCopyTranscriptLabel('Gekopieerd');
+      setCopyTranscriptLabel('Gekopieerd \u2713');
       setTimeout(() => setCopyTranscriptLabel('Kopieer transcript'), 2200);
     });
+  }
+
+  function downloadTranscript() {
+    if (!transcript) return;
+    const blob = new Blob([transcript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'transcript.txt';
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   async function downloadPDF() {
@@ -170,9 +181,14 @@ export default function OutputCard({ output, transcript }) {
             Word
           </button>
           {transcript && (
-            <button onClick={copyTranscript} className="border-[1.5px] border-border rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-text-sec hover:border-orange hover:text-orange transition-colors cursor-pointer">
-              {copyTranscriptLabel}
-            </button>
+            <>
+              <button onClick={copyTranscript} className="border-[1.5px] border-orange rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-orange hover:bg-orange hover:text-white transition-colors cursor-pointer">
+                {copyTranscriptLabel}
+              </button>
+              <button onClick={downloadTranscript} className="border-[1.5px] border-orange rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-orange hover:bg-orange hover:text-white transition-colors cursor-pointer">
+                Download transcript
+              </button>
+            </>
           )}
         </div>
       </div>
