@@ -186,7 +186,7 @@ export default function PublicTranscriptForm() {
     <>
       {/* Privacy badge */}
       <div className="bg-dark border-t border-dark-border">
-        <div className="max-w-[1000px] mx-auto px-8 py-5">
+        <div className="max-w-[900px] mx-auto px-8 py-5">
           <div className="inline-flex items-center gap-2.5 text-[13px] text-white/40 font-[family-name:var(--font-outfit)]">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-orange/70 shrink-0">
               <rect x="2" y="7" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
@@ -202,7 +202,7 @@ export default function PublicTranscriptForm() {
 
       {/* Alles op één plek */}
       <section className="bg-dark border-t border-dark-border">
-        <div className="max-w-[1000px] mx-auto px-8 py-16">
+        <div className="max-w-[900px] mx-auto px-8 py-16">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-orange uppercase mb-5 font-[family-name:var(--font-outfit)]">
             Alles op één plek
           </p>
@@ -216,7 +216,7 @@ export default function PublicTranscriptForm() {
 
       {/* Output types showcase */}
       <section className="bg-dark border-t border-dark-border animate-hero-4">
-        <div className="max-w-[1000px] mx-auto px-8 py-14">
+        <div className="max-w-[900px] mx-auto px-8 py-14">
           <p className="text-[13px] text-white/30 font-[family-name:var(--font-outfit)] mb-5">Wat wil je vandaag maken?</p>
           <div className="grid grid-cols-3 gap-3 max-[680px]:grid-cols-2 max-[420px]:grid-cols-1">
             {OUTPUT_TYPES.map(({ key, label, desc, num }) => (
@@ -250,7 +250,7 @@ export default function PublicTranscriptForm() {
 
       {/* How it works */}
       <section className="bg-dark border-t border-dark-border">
-        <div className="max-w-[1000px] mx-auto px-8 py-16">
+        <div className="max-w-[900px] mx-auto px-8 py-16">
           <div className="grid grid-cols-3 gap-8 max-[680px]:grid-cols-1 max-[680px]:gap-10">
             {STEPS.map(({ num, title, desc }) => (
               <div key={num} className="relative">
@@ -271,7 +271,7 @@ export default function PublicTranscriptForm() {
 
       {/* Tool section */}
       <section ref={toolRef} className="bg-warm scroll-mt-4" id="tool">
-        <div className="max-w-[1000px] mx-auto px-8 py-16">
+        <div className="max-w-[900px] mx-auto px-8 py-16">
           <div className="border border-border rounded-2xl p-8 max-[480px]:p-5 bg-white shadow-sm">
             <h2 className="font-[family-name:var(--font-lexend)] text-lg font-semibold text-text mb-1">
               Jouw notities
@@ -457,7 +457,7 @@ export default function PublicTranscriptForm() {
 
       {result && (
         <section className="bg-warm pb-16">
-          <div className="max-w-[1000px] mx-auto px-8">
+          <div className="max-w-[900px] mx-auto px-8">
             <OutputCard output={result} />
           </div>
         </section>
