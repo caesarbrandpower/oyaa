@@ -208,7 +208,7 @@ export default function PublicTranscriptForm() {
           </p>
           <p className="text-[17px] text-white/50 leading-[1.7] max-w-[560px] font-[family-name:var(--font-outfit)]">
             Van het eerste gesprek met een klant tot de definitieve briefing.{' '}
-            Waybetter brengt alles samen — opnemen, verwerken, documenteren.{' '}
+            Waybetter brengt alles samen: opnemen, verwerken, documenteren.{' '}
             Zonder tools te wisselen, zonder bestanden te kopiëren.
           </p>
         </div>
