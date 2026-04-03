@@ -48,6 +48,7 @@ export default function PublicTranscriptForm() {
   const [result, setResult] = useState(null);
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
   const toolRef = useRef(null);
 
   const {
@@ -367,6 +368,47 @@ export default function PublicTranscriptForm() {
                     </svg>
                     Opnemen
                   </button>
+
+                  {transcript.trim() && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(transcript).then(() => {
+                            setCopyTranscriptLabel('Gekopieerd \u2713');
+                            setTimeout(() => setCopyTranscriptLabel('Kopieer transcript'), 2200);
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <rect x="6" y="6" width="8" height="8" rx="1.5" />
+                          <path d="M10 6V3.5A1.5 1.5 0 0 0 8.5 2h-5A1.5 1.5 0 0 0 2 3.5v5A1.5 1.5 0 0 0 3.5 10H6" />
+                        </svg>
+                        {copyTranscriptLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const blob = new Blob([transcript], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'transcript.txt';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                          <polyline points="5,10 8,13 11,10" />
+                          <line x1="8" y1="13" x2="8" y2="3" />
+                        </svg>
+                        Download transcript
+                      </button>
+                    </>
+                  )}
 
                   {fileStatus && (
                     <span className={`text-xs font-[family-name:var(--font-outfit)] ${
