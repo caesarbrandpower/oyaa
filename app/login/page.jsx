@@ -17,11 +17,14 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-[380px]">
         <div className="mb-10 text-center">
-          <h1 className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.25em] font-semibold text-orange uppercase mb-4">
+          <h1 className="font-[family-name:var(--font-lexend)] text-3xl tracking-[0.15em] font-bold text-orange uppercase mb-3">
             Waybetter
           </h1>
-          <p className="text-[15px] text-white/40 font-[family-name:var(--font-outfit)]">
+          <p className="text-[15px] text-white/40 font-[family-name:var(--font-outfit)] mb-2">
             Jouw bureau cockpit
+          </p>
+          <p className="text-[11px] tracking-[0.2em] font-semibold text-orange/60 uppercase font-[family-name:var(--font-outfit)]">
+            Made for agency people
           </p>
         </div>
         <AuthForm />
