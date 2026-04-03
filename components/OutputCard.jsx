@@ -17,8 +17,9 @@ function parseInlineRuns(text, size, docx) {
     );
 }
 
-export default function OutputCard({ output }) {
+export default function OutputCard({ output, transcript }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
+  const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
   const title = OUTPUT_TITLES[output.output_type] || 'Output';
   const result = output.result;
   const date = output.created_at
@@ -34,6 +35,14 @@ export default function OutputCard({ output }) {
     navigator.clipboard.writeText(result).then(() => {
       setCopyLabel('Gekopieerd');
       setTimeout(() => setCopyLabel('Kopiëren'), 2200);
+    });
+  }
+
+  function copyTranscript() {
+    if (!transcript) return;
+    navigator.clipboard.writeText(transcript).then(() => {
+      setCopyTranscriptLabel('Gekopieerd');
+      setTimeout(() => setCopyTranscriptLabel('Kopieer transcript'), 2200);
     });
   }
 
@@ -160,6 +169,11 @@ export default function OutputCard({ output }) {
           <button onClick={downloadWord} className="border-[1.5px] border-orange rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-orange hover:bg-orange hover:text-white transition-colors cursor-pointer">
             Word
           </button>
+          {transcript && (
+            <button onClick={copyTranscript} className="border-[1.5px] border-border rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-text-sec hover:border-orange hover:text-orange transition-colors cursor-pointer">
+              {copyTranscriptLabel}
+            </button>
+          )}
         </div>
       </div>
 

@@ -310,7 +310,7 @@ export default function PublicTranscriptForm() {
                     {formatTime(elapsed)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={paused ? resumeRecording : pauseRecording}
@@ -458,7 +458,7 @@ export default function PublicTranscriptForm() {
       {result && (
         <section className="bg-warm pb-16">
           <div className="max-w-[900px] mx-auto px-8">
-            <OutputCard output={result} />
+            <OutputCard output={result} transcript={transcript} />
           </div>
         </section>
       )}
