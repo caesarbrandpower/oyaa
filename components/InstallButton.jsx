@@ -33,6 +33,10 @@ export default function InstallButton() {
       <p className="text-[11px] text-white/20 mt-2.5 font-[family-name:var(--font-outfit)]">
         Voeg Waybetter toe aan je bureaublad voor snelle toegang.
       </p>
+      <p className="text-xs text-white/20 mt-2 font-[family-name:var(--font-outfit)]">
+        Werkt in Chrome, Edge en Safari.<br />
+        Openen in een andere browser? Gebruik de webversie gewoon via waybetter.nl
+      </p>
     </div>
   );
 }
