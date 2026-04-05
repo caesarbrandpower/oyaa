@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function InstallButton() {
+export default function InstallPWA() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
 

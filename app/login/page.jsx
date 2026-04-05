@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import AuthForm from '@/components/AuthForm';
-import InstallButton from '@/components/InstallButton';
+import InstallPWA from '@/components/InstallPWA';
 
 export const metadata = {
   title: 'Inloggen \u2014 Waybetter.',
@@ -26,7 +26,7 @@ export default function LoginPage() {
           </p>
         </div>
         <AuthForm />
-        <InstallButton />
+        <InstallPWA />
         <p className="text-xs tracking-[0.15em] text-white/20 uppercase text-center mt-10 font-[family-name:var(--font-outfit)]">
           Made for agency people
         </p>
