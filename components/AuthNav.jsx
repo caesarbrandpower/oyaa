@@ -21,6 +21,12 @@ export default function AuthNav() {
   if (user) {
     return (
       <div className="absolute top-6 right-8 z-10 flex items-center gap-4 max-[640px]:top-4 max-[640px]:right-4">
+        <Link
+          href="/hoe-werkt-het"
+          className="text-[13px] text-white/30 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline max-[480px]:hidden"
+        >
+          Hoe werkt het?
+        </Link>
         <span className="text-[13px] text-white/30 font-[family-name:var(--font-outfit)] max-[480px]:hidden">
           {user.email}
         </span>
@@ -38,11 +44,19 @@ export default function AuthNav() {
   }
 
   return (
-    <Link
-      href="/login"
-      className="absolute top-6 right-8 z-10 text-[13px] text-white/35 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline max-[640px]:top-4 max-[640px]:right-4"
-    >
-      Inloggen
-    </Link>
+    <div className="absolute top-6 right-8 z-10 flex items-center gap-4 max-[640px]:top-4 max-[640px]:right-4">
+      <Link
+        href="/hoe-werkt-het"
+        className="text-[13px] text-white/30 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline max-[480px]:hidden"
+      >
+        Hoe werkt het?
+      </Link>
+      <Link
+        href="/login"
+        className="text-[13px] text-white/35 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline"
+      >
+        Inloggen
+      </Link>
+    </div>
   );
 }

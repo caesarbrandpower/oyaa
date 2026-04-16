@@ -30,6 +30,14 @@ export default function LoginPage() {
         <p className="text-xs tracking-[0.15em] text-white/20 uppercase text-center mt-10 font-[family-name:var(--font-outfit)]">
           Made for agency people
         </p>
+        <p className="text-center mt-4">
+          <a
+            href="/hoe-werkt-het"
+            className="text-[12px] text-white/25 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline"
+          >
+            Hoe werkt het?
+          </a>
+        </p>
       </div>
     </div>
   );
