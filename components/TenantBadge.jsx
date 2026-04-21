@@ -1,5 +1,4 @@
 export default function TenantBadge({ tenant }) {
-  console.log('[TenantBadge] logo_url:', tenant?.logo_url ?? 'LEEG/NULL');
   if (!tenant?.logo_url) return null;
 
   return (
