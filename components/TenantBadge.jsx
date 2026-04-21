@@ -1,4 +1,4 @@
-export default function TenantBadge({ tenant }) {
+export default function TenantBadge({ tenant, children }) {
   if (!tenant?.logo_url) return null;
 
   return (
@@ -9,9 +9,12 @@ export default function TenantBadge({ tenant }) {
           alt={tenant.name}
           style={{ height: '20px', width: 'auto' }}
         />
-        <span className="text-[10px] tracking-[0.1em] uppercase text-white/40 font-[family-name:var(--font-outfit)]">
-          Powered by Waybetter
-        </span>
+        <div className="flex items-center gap-5">
+          {children}
+          <span className="text-[10px] tracking-[0.1em] uppercase text-white/25 font-[family-name:var(--font-outfit)]">
+            Powered by Waybetter
+          </span>
+        </div>
       </div>
     </div>
   );

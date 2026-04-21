@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 
-export default function AuthNav() {
+export default function AuthNav({ inline = false }) {
   const [user, setUser] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const supabase = createClient();
@@ -18,9 +18,13 @@ export default function AuthNav() {
 
   if (!loaded) return null;
 
+  const containerClass = inline
+    ? 'flex items-center gap-4'
+    : 'absolute top-6 right-8 z-10 flex items-center gap-4 max-[640px]:top-4 max-[640px]:right-4';
+
   if (user) {
     return (
-      <div className="absolute top-6 right-8 z-10 flex items-center gap-4 max-[640px]:top-4 max-[640px]:right-4">
+      <div className={containerClass}>
         <Link
           href="/hoe-werkt-het"
           className="text-[13px] text-white/30 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline max-[480px]:hidden"
@@ -44,7 +48,7 @@ export default function AuthNav() {
   }
 
   return (
-    <div className="absolute top-6 right-8 z-10 flex items-center gap-4 max-[640px]:top-4 max-[640px]:right-4">
+    <div className={containerClass}>
       <Link
         href="/hoe-werkt-het"
         className="text-[13px] text-white/30 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] no-underline max-[480px]:hidden"

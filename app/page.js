@@ -22,11 +22,13 @@ export default async function Home() {
 
   return (
     <>
-      <TenantBadge tenant={tenant} />
+      <TenantBadge tenant={tenant}>
+        {isAllDay && <AuthNav inline />}
+      </TenantBadge>
 
       {/* Hero */}
       <section className="relative bg-dark overflow-hidden">
-        <AuthNav />
+        {!isAllDay && <AuthNav />}
 
         {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
