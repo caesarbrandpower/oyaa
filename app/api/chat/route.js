@@ -3,7 +3,7 @@ import { anonymize, deanonymize } from '@/lib/anonymize';
 import { PROMPTS } from '@/lib/prompts';
 
 export async function POST(request) {
-  const { transcript, outputType, projectId } = await request.json();
+  const { transcript, outputType, projectId, recipient } = await request.json();
 
   if (!transcript || !transcript.trim()) {
     return Response.json({ error: 'Transcript is verplicht.' }, { status: 400 });
@@ -25,7 +25,7 @@ export async function POST(request) {
       messages: [
         {
           role: 'user',
-          content: PROMPTS[outputType](anonymized),
+          content: PROMPTS[outputType](anonymized, recipient),
         },
       ],
     });
