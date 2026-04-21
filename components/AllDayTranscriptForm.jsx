@@ -282,86 +282,92 @@ export default function AllDayTranscriptForm() {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 mt-3 flex-wrap">
-                  <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
-                      <polyline points="5,6 8,3 11,6" />
-                      <line x1="8" y1="3" x2="8" y2="10" />
-                    </svg>
-                    Upload bestand
-                    <input
-                      type="file"
-                      accept=".txt,.pdf,.doc,.docx,.mp3,.m4a,.mp4,.wav,.ogg,.webm"
-                      className="hidden"
-                      onChange={(e) => { handleFile(e.target.files[0]); e.target.value = ''; }}
-                    />
-                  </label>
+                <div className="flex items-center justify-between mt-3 gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                        <polyline points="5,6 8,3 11,6" />
+                        <line x1="8" y1="3" x2="8" y2="10" />
+                      </svg>
+                      Upload bestand
+                      <input
+                        type="file"
+                        accept=".txt,.pdf,.doc,.docx,.mp3,.m4a,.mp4,.wav,.ogg,.webm"
+                        className="hidden"
+                        onChange={(e) => { handleFile(e.target.files[0]); e.target.value = ''; }}
+                      />
+                    </label>
 
-                  <button
-                    type="button"
-                    onClick={startRecording}
-                    disabled={transcribing}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)]"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                      <rect x="5" y="1" width="6" height="10" rx="3" />
-                      <path d="M13 7a5 5 0 0 1-10 0" />
-                      <line x1="8" y1="12" x2="8" y2="15" />
-                      <line x1="5.5" y1="15" x2="10.5" y2="15" />
-                    </svg>
-                    Opnemen
-                  </button>
+                    <button
+                      type="button"
+                      onClick={startRecording}
+                      disabled={transcribing}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)]"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <rect x="5" y="1" width="6" height="10" rx="3" />
+                        <path d="M13 7a5 5 0 0 1-10 0" />
+                        <line x1="8" y1="12" x2="8" y2="15" />
+                        <line x1="5.5" y1="15" x2="10.5" y2="15" />
+                      </svg>
+                      Opnemen
+                    </button>
+
+                  {transcript.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(transcript).then(() => {
+                            setCopyTranscriptLabel('Gekopieerd \u2713');
+                            setTimeout(() => setCopyTranscriptLabel('Kopieer transcript'), 2200);
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <rect x="6" y="6" width="8" height="8" rx="1.5" />
+                          <path d="M10 6V3.5A1.5 1.5 0 0 0 8.5 2h-5A1.5 1.5 0 0 0 2 3.5v5A1.5 1.5 0 0 0 3.5 10H6" />
+                        </svg>
+                        {copyTranscriptLabel}
+                      </button>
+                    )}
+
+                    {fileStatus && (
+                      <span className={`text-xs font-[family-name:var(--font-outfit)] ${
+                        fileStatus.type === 'error' ? 'text-red-500' :
+                        fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
+                      }`}>
+                        {fileStatus.msg}
+                        {fileStatus.type === 'success' && lastRecordingUrl && (
+                          <a
+                            href={lastRecordingUrl}
+                            download={lastRecordingFilename || 'opname.m4a'}
+                            className="inline-flex items-center gap-1 ml-2 text-orange hover:text-orange-hover transition-colors"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                              <polyline points="5,10 8,13 11,10" />
+                              <line x1="8" y1="13" x2="8" y2="3" />
+                            </svg>
+                            Download audio
+                          </a>
+                        )}
+                      </span>
+                    )}
+                  </div>
 
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-muted hover:text-text transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-muted hover:text-text transition-all cursor-pointer shrink-0 font-[family-name:var(--font-outfit)]"
                   >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                      <path d="M21 3v5h-5" />
+                    </svg>
                     Nieuw bestand
                   </button>
-
-                  {transcript.trim() && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(transcript).then(() => {
-                          setCopyTranscriptLabel('Gekopieerd \u2713');
-                          setTimeout(() => setCopyTranscriptLabel('Kopieer transcript'), 2200);
-                        });
-                      }}
-                      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                        <rect x="6" y="6" width="8" height="8" rx="1.5" />
-                        <path d="M10 6V3.5A1.5 1.5 0 0 0 8.5 2h-5A1.5 1.5 0 0 0 2 3.5v5A1.5 1.5 0 0 0 3.5 10H6" />
-                      </svg>
-                      {copyTranscriptLabel}
-                    </button>
-                  )}
-
-                  {fileStatus && (
-                    <span className={`text-xs font-[family-name:var(--font-outfit)] ${
-                      fileStatus.type === 'error' ? 'text-red-500' :
-                      fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
-                    }`}>
-                      {fileStatus.msg}
-                      {fileStatus.type === 'success' && lastRecordingUrl && (
-                        <a
-                          href={lastRecordingUrl}
-                          download={lastRecordingFilename || 'opname.m4a'}
-                          className="inline-flex items-center gap-1 ml-2 text-orange hover:text-orange-hover transition-colors"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
-                            <polyline points="5,10 8,13 11,10" />
-                            <line x1="8" y1="13" x2="8" y2="3" />
-                          </svg>
-                          Download audio
-                        </a>
-                      )}
-                    </span>
-                  )}
                 </div>
 
                 <p className="text-[11px] text-text-muted mt-2 font-[family-name:var(--font-outfit)]">
