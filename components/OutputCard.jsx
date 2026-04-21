@@ -17,7 +17,7 @@ function parseInlineRuns(text, size, docx) {
     );
 }
 
-export default function OutputCard({ output, transcript }) {
+export default function OutputCard({ output, transcript, onReset }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
   const title = OUTPUT_TITLES[output.output_type] || 'Output';
@@ -189,6 +189,11 @@ export default function OutputCard({ output, transcript }) {
                 Download transcript
               </button>
             </>
+          )}
+          {onReset && (
+            <button onClick={onReset} className="border-[1.5px] border-border rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-text-muted hover:border-text-muted hover:text-text transition-colors cursor-pointer">
+              Nieuw bestand
+            </button>
           )}
         </div>
       </div>

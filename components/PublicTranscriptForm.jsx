@@ -58,6 +58,7 @@ export default function PublicTranscriptForm() {
     paused,
     elapsed,
     lastRecordingUrl,
+    lastRecordingFilename,
     transcribeFile,
     startRecording,
     stopRecording,
@@ -423,7 +424,7 @@ export default function PublicTranscriptForm() {
                       {fileStatus.type === 'success' && lastRecordingUrl && (
                         <a
                           href={lastRecordingUrl}
-                          download="opname.webm"
+                          download={lastRecordingFilename || 'opname.m4a'}
                           className="inline-flex items-center gap-1 ml-2 text-orange hover:text-orange-hover transition-colors"
                         >
                           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -530,7 +531,7 @@ export default function PublicTranscriptForm() {
       {result && (
         <section className="bg-warm pb-16">
           <div className="max-w-[900px] mx-auto px-8">
-            <OutputCard output={result} transcript={transcript} />
+            <OutputCard output={result} transcript={transcript} onReset={handleReset} />
           </div>
         </section>
       )}
