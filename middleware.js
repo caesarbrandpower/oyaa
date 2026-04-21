@@ -5,9 +5,14 @@ export function middleware(request) {
   // Strip port voor lokale dev (localhost:3000 -> localhost)
   const hostname = host.replace(/:\d+$/, '');
 
-  const response = NextResponse.next();
-  response.headers.set('x-tenant-hostname', hostname);
-  return response;
+  // Headers moeten op de REQUEST staan — server components lezen via headers()
+  // de incoming request, niet de response
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-tenant-hostname', hostname);
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {
