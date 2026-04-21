@@ -5,9 +5,9 @@ import OutputCard from '@/components/OutputCard';
 import { isAudioFile, useAudioTranscription } from '@/lib/use-audio';
 
 const ALLDAY_TYPES = [
-  { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek in een oogopslag' },
-  { key: 'allday-briefing', label: 'Briefing', desc: 'Klaar om mee aan de slag' },
-  { key: 'allday-debrief', label: 'Debrief', desc: 'Terugkoppeling na afronding' },
+  { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek, direct helder' },
+  { key: 'allday-briefing', label: 'Briefing', desc: 'Een heldere opdracht om mee aan de slag te gaan' },
+  { key: 'allday-debrief', label: 'Debrief', desc: 'Een nette terugkoppeling, klaar om te delen' },
 ];
 
 const RECIPIENTS = [
@@ -223,7 +223,7 @@ export default function AllDayTranscriptForm() {
               Jouw input
             </h2>
             <p className="text-[15px] text-text-sec mb-5 font-[family-name:var(--font-outfit)]">
-              Plak tekst, typ je aantekeningen of sleep een bestand.
+              Plak je aantekeningen, neem een gesprek op of sleep een bestand.
             </p>
 
             <textarea

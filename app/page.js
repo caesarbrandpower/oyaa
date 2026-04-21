@@ -55,7 +55,11 @@ export default async function Home() {
             <span className="text-orange">In seconden.</span>
           </h1>
 
-          {!isAllDay && (
+          {isAllDay ? (
+            <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[560px] font-[family-name:var(--font-outfit)]">
+              Zet gesprekken, aantekeningen en opnames om in bruikbare documenten. Voor je team, je klant, of je leverancier.
+            </p>
+          ) : (
             <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
               Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.
             </p>
@@ -65,7 +69,7 @@ export default async function Home() {
 
       {isAllDay ? <AllDayTranscriptForm /> : <PublicTranscriptForm />}
 
-      <Footer />
+      <Footer allday={isAllDay} />
     </>
   );
 }
