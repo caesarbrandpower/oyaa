@@ -19,6 +19,7 @@ const AllDayTranscriptForm = nextDynamic(
 export default async function Home() {
   const tenant = await getTenant();
   const isAllDay = tenant?.hostname === 'allday.waybetter.nl';
+  console.log('[page] tenant:', JSON.stringify(tenant));
 
   return (
     <>
