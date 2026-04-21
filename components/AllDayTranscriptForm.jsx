@@ -313,6 +313,14 @@ export default function AllDayTranscriptForm() {
                     Opnemen
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-muted hover:text-text transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                  >
+                    Nieuw bestand
+                  </button>
+
                   {transcript.trim() && (
                     <button
                       type="button"
