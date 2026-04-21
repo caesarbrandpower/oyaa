@@ -35,23 +35,15 @@ export default async function Home() {
         </div>
 
         <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
-          <div className="animate-hero-1">
-            <div className="inline-flex items-center gap-2.5 mb-8">
-              {isAllDay ? (
-                <>
-                  <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">{tenant.name}</span>
-                  <span className="text-orange text-[14px]">&middot;</span>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Powered by Waybetter</span>
-                </>
-              ) : (
-                <>
-                  <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
-                  <span className="text-orange text-[14px]">&middot;</span>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
-                </>
-              )}
+          {!isAllDay && (
+            <div className="animate-hero-1">
+              <div className="inline-flex items-center gap-2.5 mb-8">
+                <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
+                <span className="text-orange text-[14px]">&middot;</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
             Van aantekening{'\u00A0'}
@@ -61,11 +53,11 @@ export default async function Home() {
             <span className="text-orange">In seconden.</span>
           </h1>
 
-          <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
-            {isAllDay
-              ? 'Zet gesprekken, aantekeningen en opnamen direct om naar briefings, samenvattingen en debriefs. Op maat voor jouw team of klant.'
-              : 'Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.'}
-          </p>
+          {!isAllDay && (
+            <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
+              Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.
+            </p>
+          )}
         </div>
       </section>
 
