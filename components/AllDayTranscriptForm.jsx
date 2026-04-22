@@ -383,21 +383,22 @@ export default function AllDayTranscriptForm() {
                         fileStatus.type === 'success' ? 'text-emerald-600' : 'text-text-muted'
                       }`}>
                         {fileStatus.msg}
-                        {fileStatus.type === 'success' && lastRecordingUrl && (
-                          <a
-                            href={lastRecordingUrl}
-                            download={lastRecordingFilename || 'opname.m4a'}
-                            className="inline-flex items-center gap-1 ml-2 text-orange hover:text-orange-hover transition-colors"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
-                              <polyline points="5,10 8,13 11,10" />
-                              <line x1="8" y1="13" x2="8" y2="3" />
-                            </svg>
-                            Download audio
-                          </a>
-                        )}
                       </span>
+                    )}
+
+                    {lastRecordingUrl && (
+                      <a
+                        href={lastRecordingUrl}
+                        download={lastRecordingFilename || 'opname.webm'}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all font-[family-name:var(--font-outfit)]"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                          <polyline points="5,10 8,13 11,10" />
+                          <line x1="8" y1="13" x2="8" y2="3" />
+                        </svg>
+                        Download opname
+                      </a>
                     )}
                   </div>
 
