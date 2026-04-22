@@ -3,6 +3,26 @@ import { createServiceClient } from '@/lib/supabase-server';
 
 export const maxDuration = 300;
 
+const HALLUCINATION_PATTERNS = [
+  /ondertiteld door de amara\.org[- ]gemeenschap/i,
+  /ondertitels ingediend door/i,
+  /subtitles by the amara\.org community/i,
+  /thanks for watching/i,
+  /like and subscribe/i,
+  /please subscribe/i,
+  /transcription by eso\.?\s*translated by/i,
+  /dutch subtitles by/i,
+];
+
+function filterHallucinations(text) {
+  if (!text) return text;
+  const lines = text.split('\n').filter((line) => {
+    const t = line.trim();
+    return t && !HALLUCINATION_PATTERNS.some((re) => re.test(t));
+  });
+  return lines.join('\n').trim();
+}
+
 const ALLOWED_TYPES = [
   'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/m4a',
   'audio/x-m4a', 'audio/wav', 'audio/wave', 'audio/ogg',
@@ -63,7 +83,7 @@ async function handleStoragePath(request) {
       model: 'whisper-1',
       language: 'nl',
     });
-    transcript = result.text;
+    transcript = filterHallucinations(result.text);
   } catch (err) {
     console.error('Whisper error:', err);
     // Best-effort cleanup before returning error
@@ -121,7 +141,7 @@ async function handleDirectUpload(request) {
       model: 'whisper-1',
       language: 'nl',
     });
-    return Response.json({ transcript: result.text });
+    return Response.json({ transcript: filterHallucinations(result.text) });
   } catch (err) {
     console.error('Whisper error (direct upload):', err);
     return Response.json(

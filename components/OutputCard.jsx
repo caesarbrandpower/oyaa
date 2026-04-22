@@ -17,7 +17,7 @@ function parseInlineRuns(text, size, docx) {
     );
 }
 
-export default function OutputCard({ output, transcript, onReset }) {
+export default function OutputCard({ output, transcript, onReset, recordingDuration }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
   const title = OUTPUT_TITLES[output.output_type] || 'Output';
@@ -30,6 +30,13 @@ export default function OutputCard({ output, transcript, onReset }) {
         minute: '2-digit',
       })
     : '';
+  const durationLabel = recordingDuration > 0
+    ? (() => {
+        const m = Math.floor(recordingDuration / 60);
+        const s = recordingDuration % 60;
+        return m > 0 ? `${m} min ${s > 0 ? s + ' sec' : ''}opgenomen`.trim() : `${s} sec opgenomen`;
+      })()
+    : null;
 
   function copyOutput() {
     navigator.clipboard.writeText(result).then(() => {
@@ -169,6 +176,7 @@ export default function OutputCard({ output, transcript, onReset }) {
         <div>
           <span className="font-[family-name:var(--font-lexend)] text-[15px] font-semibold text-text">{title}</span>
           {date && <span className="text-xs text-text-muted ml-3">{date}</span>}
+          {durationLabel && <span className="text-xs text-text-muted ml-2">&middot; {durationLabel}</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={copyOutput} className="border-[1.5px] border-orange rounded-[7px] px-3.5 py-[7px] text-xs font-semibold text-orange hover:bg-orange hover:text-white transition-colors cursor-pointer">

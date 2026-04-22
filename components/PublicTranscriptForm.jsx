@@ -59,6 +59,7 @@ export default function PublicTranscriptForm() {
     elapsed,
     lastRecordingUrl,
     lastRecordingFilename,
+    lastRecordingDuration,
     screenRecording,
     screenElapsed,
     transcribeFile,
@@ -575,7 +576,7 @@ export default function PublicTranscriptForm() {
       {result && (
         <section className="bg-warm pb-16">
           <div className="max-w-[900px] mx-auto px-8">
-            <OutputCard output={result} transcript={transcript} onReset={handleReset} />
+            <OutputCard output={result} transcript={transcript} onReset={handleReset} recordingDuration={lastRecordingDuration} />
           </div>
         </section>
       )}
