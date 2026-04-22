@@ -54,6 +54,8 @@ export default function PublicTranscriptForm() {
 
   const {
     transcribing,
+    transcribeProgress,
+    transcribingElapsed,
     recording,
     paused,
     elapsed,
@@ -497,6 +499,37 @@ export default function PublicTranscriptForm() {
                   Upload tekst, Word, PDF of een audiobestand — wij doen de rest.
                 </p>
               </>
+            )}
+
+            {transcribing && (
+              <div className="mt-4 rounded-xl border border-orange/20 bg-orange-light px-5 py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[14px] font-medium text-text font-[family-name:var(--font-outfit)]">
+                    Audio wordt verwerkt...
+                  </span>
+                  {transcribeProgress && transcribeProgress.total > 1 && (
+                    <span className="text-[13px] text-text-sec tabular-nums font-[family-name:var(--font-outfit)]">
+                      {transcribeProgress.current} / {transcribeProgress.total}
+                    </span>
+                  )}
+                </div>
+                {transcribeProgress && transcribeProgress.total > 1 && (
+                  <div className="w-full bg-border rounded-full h-1.5 mb-3">
+                    <div
+                      className="bg-orange h-1.5 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.max(4, Math.round((transcribeProgress.current / transcribeProgress.total) * 100))}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)]">
+                  Je kunt dit tabblad open laten en later terugkomen.
+                </p>
+                {transcribingElapsed >= 120 && (
+                  <p className="text-[12px] text-orange/80 mt-1 font-[family-name:var(--font-outfit)]">
+                    Dit kan 5-15 minuten duren voor langere opnames.
+                  </p>
+                )}
+              </div>
             )}
 
             <div className="h-px bg-border my-7" />
