@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import OutputCard from '@/components/OutputCard';
-import { isAudioFile, useAudioTranscription } from '@/lib/use-audio';
+import { isAudioFile, useAudioTranscription, supportsScreenAudio } from '@/lib/use-audio';
 
 const ALLDAY_TYPES = [
   { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek, direct helder' },
@@ -42,12 +42,16 @@ export default function AllDayTranscriptForm() {
     elapsed,
     lastRecordingUrl,
     lastRecordingFilename,
+    screenRecording,
+    screenElapsed,
     transcribeFile,
     startRecording,
     stopRecording,
     pauseRecording,
     resumeRecording,
     discardRecording,
+    startScreenRecording,
+    stopScreenRecording,
   } = useAudioTranscription({
     onTranscript: (text) => setTranscript(text),
     onStatus: (msg) => msg ? setFileStatus({ msg, type: 'success' }) : setFileStatus(null),
@@ -241,7 +245,32 @@ export default function AllDayTranscriptForm() {
               }`}
             />
 
-            {/* Recording UI */}
+            {/* Screen recording UI */}
+            {screenRecording && (
+              <div className="mt-4 border border-red-200 bg-red-50/60 rounded-xl px-5 py-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                  </span>
+                  <span className="text-[14px] font-semibold text-red-600 font-[family-name:var(--font-outfit)]">
+                    Bezig met opnemen — video-call
+                  </span>
+                  <span className="text-[15px] font-mono font-semibold text-red-500 tabular-nums">
+                    {formatTime(screenElapsed)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={stopScreenRecording}
+                  className="h-9 px-4 bg-red-500 text-white rounded-lg text-[13px] font-semibold transition-all hover:bg-red-600 active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)]"
+                >
+                  Stoppen
+                </button>
+              </div>
+            )}
+
+            {/* Mic recording UI */}
             {recording ? (
               <div className="mt-4 border border-red-200 bg-red-50/60 rounded-xl px-5 py-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -302,7 +331,7 @@ export default function AllDayTranscriptForm() {
                     <button
                       type="button"
                       onClick={startRecording}
-                      disabled={transcribing}
+                      disabled={transcribing || screenRecording}
                       className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)]"
                     >
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -312,6 +341,20 @@ export default function AllDayTranscriptForm() {
                         <line x1="5.5" y1="15" x2="10.5" y2="15" />
                       </svg>
                       Opnemen
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={startScreenRecording}
+                      disabled={transcribing || recording || screenRecording}
+                      title={supportsScreenAudio() ? 'Open je Zoom/Teams/Meet in een browser-tabblad, klik hier en selecteer dat tabblad' : 'Gebruik Chrome of Edge voor video-call opname'}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed font-[family-name:var(--font-outfit)]"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.894L15 14" />
+                        <rect x="2" y="7" width="13" height="10" rx="2" />
+                      </svg>
+                      Video-call opnemen
                     </button>
 
                   {transcript.trim() && (
