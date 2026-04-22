@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import nextDynamic from 'next/dynamic';
+import Link from 'next/link';
 import Footer from '@/components/Footer';
 import AuthNav from '@/components/AuthNav';
 import TenantBadge from '@/components/TenantBadge';
@@ -25,9 +26,9 @@ export default async function Home() {
       {/* Teruglink naar salespagina */}
       <div className="bg-dark border-b border-dark-border">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-          <a href="/" className="text-text-muted text-xs hover:text-white transition-colors">
+          <Link href="/" className="text-text-muted text-xs hover:text-white transition-colors">
             &larr; Terug naar Waybetter
-          </a>
+          </Link>
           <span className="text-text-muted text-xs">Probeer de tool</span>
         </div>
       </div>
