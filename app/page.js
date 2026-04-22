@@ -241,6 +241,83 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* VOOR WIE */}
+      <section className="bg-warm border-t border-border">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-12">
+            Voor bureaus die slim willen werken.
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                title: 'Activatie- en eventbureaus',
+                body: 'Van meeting naar briefing zonder handmatig uitwerken.',
+              },
+              {
+                title: 'Productiebureaus',
+                body: 'Call sheets, backplanningen en leveranciersbriefings in een klik.',
+              },
+              {
+                title: 'Reclame- en brandingbureaus',
+                body: 'Van klantgesprek naar campagne-evaluatie.',
+              },
+              {
+                title: 'PR- en communicatiebureaus',
+                body: 'Persberichten, debriefs en klantrapportages.',
+              },
+            ].map(({ title, body }) => (
+              <div
+                key={title}
+                className="bg-white border border-border rounded-2xl p-6 shadow-sm"
+              >
+                <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1.5">
+                  {title}
+                </h3>
+                <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRIVACY */}
+      <section className="bg-white border-t border-border">
+        <div className="max-w-3xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-5">
+            Je klantgegevens blijven van jou.
+          </h2>
+          <p className="text-text-sec text-base leading-relaxed mb-10">
+            Waybetter filtert namen, merknamen en gevoelige informatie automatisch voordat AI ze ziet. AVG-compliant. Geen gedoe.
+          </p>
+          <div className="bg-warm border border-border rounded-2xl p-6 md:p-8 space-y-5">
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-text-muted mb-2">
+                Jouw input
+              </p>
+              <div className="bg-white border border-border rounded-xl px-4 py-3 text-sm text-text leading-relaxed">
+                Volgende week presenteren we aan Erik van Coca-Cola. Budget is 180.000 euro.
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-text-muted mb-2">
+                Wat AI ziet
+              </p>
+              <div className="bg-white border border-border rounded-xl px-4 py-3 text-sm text-text leading-relaxed">
+                Volgende week presenteren we aan{' '}
+                <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[PERSOON_1]</span>{' '}
+                van{' '}
+                <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[BEDRIJF_1]</span>.
+                {' '}Budget is{' '}
+                <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[BEDRAG_1]</span>.
+              </div>
+            </div>
+            <p className="text-text-muted text-xs">
+              Het AI-model ziet jouw gevoelige informatie nooit. DPA beschikbaar.
+            </p>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
