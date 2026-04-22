@@ -59,7 +59,9 @@ export default function OutputCard({ output, transcript, onReset, recordingDurat
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'transcript.txt';
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    anchor.download = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}_waybetter-transcript.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

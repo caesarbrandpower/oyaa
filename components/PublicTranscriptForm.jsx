@@ -76,6 +76,15 @@ export default function PublicTranscriptForm() {
     onError: (msg) => setFileStatus({ msg, type: 'error' }),
   });
 
+  function transcriptFilename() {
+    if (lastRecordingFilename) {
+      return lastRecordingFilename.replace(/waybetter-opname\.[^.]+$/, 'waybetter-transcript.txt');
+    }
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}_waybetter-transcript.txt`;
+  }
+
   function handleReset() {
     setTranscript('');
     setSelectedType(null);
@@ -444,7 +453,7 @@ export default function PublicTranscriptForm() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = 'transcript.txt';
+                          a.download = transcriptFilename();
                           a.click();
                           URL.revokeObjectURL(url);
                         }}

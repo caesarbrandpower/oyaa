@@ -33,6 +33,15 @@ export default function AllDayTranscriptForm() {
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
+
+  function transcriptFilename() {
+    if (lastRecordingFilename) {
+      return lastRecordingFilename.replace(/waybetter-opname\.[^.]+$/, 'waybetter-transcript.txt');
+    }
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}_waybetter-transcript.txt`;
+  }
   const toolRef = useRef(null);
 
   const {
@@ -359,6 +368,7 @@ export default function AllDayTranscriptForm() {
                     </button>
 
                   {transcript.trim() && (
+                    <>
                       <button
                         type="button"
                         onClick={() => {
@@ -375,7 +385,28 @@ export default function AllDayTranscriptForm() {
                         </svg>
                         {copyTranscriptLabel}
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = transcriptFilename();
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-sec hover:text-orange transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
+                          <polyline points="5,10 8,13 11,10" />
+                          <line x1="8" y1="13" x2="8" y2="3" />
+                        </svg>
+                        Download transcript
+                      </button>
+                    </>
+                  )}
 
                     {fileStatus && (
                       <span className={`text-xs font-[family-name:var(--font-outfit)] ${
