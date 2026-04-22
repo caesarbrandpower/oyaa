@@ -3,7 +3,7 @@ import Link from 'next/link'
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
 export const metadata = {
-  title: 'Waybetter — Van aantekening naar briefing. In seconden.',
+  title: 'Waybetter - Van aantekening naar briefing. In seconden.',
   description: 'Waybetter is een werkwijze voor je hele bureau. Van opname en aantekening tot bruikbaar document. In jullie format, in jullie toon.',
 }
 
