@@ -4,23 +4,67 @@ import { createServiceClient } from '@/lib/supabase-server';
 export const maxDuration = 300;
 
 const HALLUCINATION_PATTERNS = [
+  // Amara.org ondertitels
   /ondertiteld door de amara\.org[- ]gemeenschap/i,
   /ondertitels ingediend door/i,
   /subtitles by the amara\.org community/i,
+  // YouTube engagement
   /thanks for watching/i,
   /like and subscribe/i,
   /please subscribe/i,
+  // ESO / vertaaldiensten
   /transcription by eso\.?\s*translated by/i,
   /dutch subtitles by/i,
+  // Nederlandse regionale en publieke omroepen
+  /tv\s*gelderland/i,
+  /omroep\s*gelderland/i,
+  /nos\s*journaal/i,
+  // NPO ondertiteling
+  /ondertiteling\s*[:\-]?\s*npo/i,
+  /ondertiteld\s*door/i,
+  /ondertitels\s*door/i,
+  // Generieke credits
+  /vertaald\s*door/i,
+  /redactie\s*nederland/i,
+  /made\s*by\s*[:\-]?\s*tv/i,
 ];
+
+// Normalize a line for comparison: lowercase, collapse whitespace, strip punctuation
+function normalizeLine(line) {
+  return line.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+}
 
 function filterHallucinations(text) {
   if (!text) return text;
-  const lines = text.split('\n').filter((line) => {
-    const t = line.trim();
-    return t && !HALLUCINATION_PATTERNS.some((re) => re.test(t));
-  });
-  return lines.join('\n').trim();
+
+  const rawLines = text.split('\n');
+  const filtered = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const t = rawLines[i].trim();
+    if (!t) continue;
+
+    // Pattern-based filter
+    if (HALLUCINATION_PATTERNS.some((re) => re.test(t))) continue;
+
+    // Repetition filter: skip if this line appeared in the previous non-empty line
+    const norm = normalizeLine(t);
+    if (filtered.length > 0) {
+      const prevNorm = normalizeLine(filtered[filtered.length - 1]);
+      if (norm === prevNorm) continue;
+    }
+
+    filtered.push(t);
+  }
+
+  // Second pass: remove any line that appears 2+ consecutive times in the result
+  const deduped = [];
+  for (let i = 0; i < filtered.length; i++) {
+    if (i > 0 && normalizeLine(filtered[i]) === normalizeLine(filtered[i - 1])) continue;
+    deduped.push(filtered[i]);
+  }
+
+  return deduped.join('\n').trim();
 }
 
 const ALLOWED_TYPES = [
