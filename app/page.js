@@ -171,6 +171,76 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ROADMAP */}
+      <section className="bg-white border-t border-border">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-12">
+            Wat Waybetter nu doet,<br />en wat er komt.
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="bg-orange px-5 py-3">
+                <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-white">
+                  Nu live
+                </span>
+              </div>
+              <ul className="divide-y divide-border">
+                {[
+                  'Opnemen: audio, video-calls, bestanden uploaden',
+                  'Samenvatting, briefing, debrief voor team, klant, leverancier of directie',
+                  'Eigen omgeving met jullie logo en branding',
+                  'Eigen subdomein (bureau.waybetter.nl)',
+                  'Privacy-filter: gevoelige informatie wordt geanonimiseerd voor AI-verwerking',
+                ].map((item) => (
+                  <li key={item} className="px-5 py-3 text-sm text-text leading-snug">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="bg-warm px-5 py-3">
+                <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-text-muted">
+                  Komt eraan
+                </span>
+              </div>
+              <ul className="divide-y divide-border">
+                {[
+                  'Bureau-eigen documenttypes (call sheets, persberichten, backplanningen)',
+                  'Automatische detectie van meetings (desktop-app)',
+                  'Synchronisatie met Google Drive, Dropbox en SharePoint',
+                  'Mobiele opname via app',
+                ].map((item) => (
+                  <li key={item} className="px-5 py-3 text-sm text-text-sec leading-snug">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="bg-warm px-5 py-3">
+                <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-text-muted">
+                  Later dit jaar
+                </span>
+              </div>
+              <ul className="divide-y divide-border">
+                {[
+                  'Strategische tools binnen Waybetter: marktscan, hookfinder, merkcheck',
+                  'Integraties met jullie bestaande systemen (Gmail, Outlook, Notion)',
+                  'Live meeting-bots voor Zoom, Teams en Google Meet',
+                ].map((item) => (
+                  <li key={item} className="px-5 py-3 text-sm text-text-sec leading-snug">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
