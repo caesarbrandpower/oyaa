@@ -318,6 +318,102 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* PRIJS */}
+      <section className="bg-dark border-t border-dark-border">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-white leading-tight tracking-tight mb-10">
+            Een prijs. Alles inbegrepen.
+          </h2>
+          <div className="bg-dark-card border border-dark-border rounded-2xl p-8 md:p-10 max-w-lg">
+            <div className="font-[family-name:var(--font-lexend)] text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-2">
+              249 euro
+            </div>
+            <p className="text-text-muted text-sm mb-8">
+              Per maand. Voor je hele bureau, tot 5 gebruikers. Geen opstartkosten.
+            </p>
+            <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
+              {[
+                'Volledige bureau-omgeving met eigen subdomein',
+                'Eigen logo en branding',
+                'Alle huidige documenttypes (samenvatting, briefing, debrief voor team, klant, leverancier, directie)',
+                'Persoonlijke onboarding waarin we bekijken wat jullie nodig hebben',
+                'Alle toekomstige features inbegrepen',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
+                  <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={CTA_HREF}
+              className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] inline-flex items-center"
+            >
+              Plan een gesprek
+            </a>
+            <p className="mt-5 text-text-muted text-xs italic">
+              Meer dan 5 gebruikers of specifieke aanpassingen voor jullie bureau? Dat bespreken we in een gesprek.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* BEWIJS */}
+      <section className="bg-warm border-t border-border">
+        <div className="max-w-5xl mx-auto px-6 py-16 text-center">
+          <h2 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-extrabold text-text tracking-tight mb-8">
+            Bureaus die al met Waybetter werken.
+          </h2>
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            <span className="font-[family-name:var(--font-lexend)] text-base font-bold text-text-muted tracking-wide">
+              Chase Amsterdam
+            </span>
+            <span className="text-text-muted text-sm">·</span>
+            <span className="font-[family-name:var(--font-lexend)] text-base font-bold text-text-muted tracking-wide">
+              All Day Productions
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* SLOT CTA */}
+      <section className="bg-white border-t border-border">
+        <div className="max-w-3xl mx-auto px-6 py-24 text-center">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-5">
+            Benieuwd hoe Waybetter bij jullie werkt?
+          </h2>
+          <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
+            Geen demo-praatje. Gewoon sparren over wat jullie nodig hebben.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href={CTA_HREF}
+              className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] inline-flex items-center justify-center"
+            >
+              Plan een gesprek
+            </a>
+            <Link
+              href="/probeer"
+              className="h-12 px-8 border-[1.5px] border-border text-text-sec rounded-lg text-sm font-semibold transition-all hover:border-text-muted hover:text-text inline-flex items-center justify-center"
+            >
+              Probeer het zelf
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-dark border-t border-dark-border">
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+          <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-white/25">
+            WAYBETTER · MADE FOR AGENCY PEOPLE
+          </span>
+          <Link href="/privacy" className="text-white/25 text-xs hover:text-white/50 transition-colors">
+            Privacy &amp; data
+          </Link>
+        </div>
+      </footer>
     </>
   )
 }
