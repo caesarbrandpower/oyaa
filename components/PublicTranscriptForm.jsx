@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import OutputCard from '@/components/OutputCard';
 import { isAudioFile, useAudioTranscription, supportsScreenAudio } from '@/lib/use-audio';
+import { useSoundToggle } from '@/lib/use-sounds';
 
 const OUTPUT_TYPES = [
   { key: 'summary-actions', label: 'Samenvatting', desc: 'De kern van het gesprek in een oogopslag', num: '01' },
@@ -49,6 +50,7 @@ export default function PublicTranscriptForm() {
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
+  const { soundsEnabled, toggleSounds } = useSoundToggle();
   const [summaryVariant, setSummaryVariant] = useState('internal');
   const toolRef = useRef(null);
 
@@ -493,6 +495,27 @@ export default function PublicTranscriptForm() {
                       )}
                     </span>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={toggleSounds}
+                    title={soundsEnabled ? 'Geluid uitschakelen' : 'Geluid inschakelen'}
+                    className="inline-flex items-center text-text-muted hover:text-text transition-all cursor-pointer shrink-0 ml-auto"
+                  >
+                    {soundsEnabled ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <line x1="23" y1="9" x2="17" y2="15" />
+                        <line x1="17" y1="9" x2="23" y2="15" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
 
                 <p className="text-[11px] text-text-muted mt-2 font-[family-name:var(--font-outfit)]">
