@@ -437,38 +437,40 @@ export default function AllDayTranscriptForm() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={toggleSounds}
-                    title={soundsEnabled ? 'Geluid uitschakelen' : 'Geluid inschakelen'}
-                    className="inline-flex items-center text-text-muted hover:text-text transition-all cursor-pointer shrink-0"
-                  >
-                    {soundsEnabled ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                      </svg>
-                    ) : (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                        <line x1="23" y1="9" x2="17" y2="15" />
-                        <line x1="17" y1="9" x2="23" y2="15" />
-                      </svg>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={toggleSounds}
+                      title={soundsEnabled ? 'Geluid uitschakelen' : 'Geluid inschakelen'}
+                      className="inline-flex items-center text-text-muted hover:text-text transition-all cursor-pointer"
+                    >
+                      {soundsEnabled ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                      ) : (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                          <line x1="23" y1="9" x2="17" y2="15" />
+                          <line x1="17" y1="9" x2="23" y2="15" />
+                        </svg>
+                      )}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-muted hover:text-text transition-all cursor-pointer shrink-0 font-[family-name:var(--font-outfit)]"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                      <path d="M21 3v5h-5" />
-                    </svg>
-                    Nieuw bestand
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-muted hover:text-text transition-all cursor-pointer font-[family-name:var(--font-outfit)]"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                        <path d="M21 3v5h-5" />
+                      </svg>
+                      Nieuw bestand
+                    </button>
+                  </div>
                 </div>
 
                 <p className="text-[11px] text-text-muted mt-2 font-[family-name:var(--font-outfit)]">
@@ -498,7 +500,7 @@ export default function AllDayTranscriptForm() {
                   </div>
                 )}
                 <p className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)]">
-                  Je kunt dit tabblad open laten en later terugkomen.
+                  De opname wordt verwerkt. Houd dit tabblad open en kom later terug wanneer het klaar is.
                 </p>
                 {transcribingElapsed >= 120 && (
                   <p className="text-[12px] text-orange/80 mt-1 font-[family-name:var(--font-outfit)]">

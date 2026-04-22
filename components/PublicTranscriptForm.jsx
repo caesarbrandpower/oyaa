@@ -386,7 +386,8 @@ export default function PublicTranscriptForm() {
             ) : (
               <>
                 {/* File upload + record + status */}
-                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                <div className="flex items-center justify-between gap-3 mt-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <label className="inline-flex items-center gap-2 text-[13px] text-text-sec hover:text-orange transition-colors cursor-pointer font-[family-name:var(--font-outfit)]">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 10v2.667A1.334 1.334 0 0 1 12.667 14H3.333A1.334 1.334 0 0 1 2 12.667V10" />
@@ -496,11 +497,13 @@ export default function PublicTranscriptForm() {
                     </span>
                   )}
 
+                </div>
+
                   <button
                     type="button"
                     onClick={toggleSounds}
                     title={soundsEnabled ? 'Geluid uitschakelen' : 'Geluid inschakelen'}
-                    className="inline-flex items-center text-text-muted hover:text-text transition-all cursor-pointer shrink-0 ml-auto"
+                    className="inline-flex items-center text-text-muted hover:text-text transition-all cursor-pointer shrink-0"
                   >
                     {soundsEnabled ? (
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -545,7 +548,7 @@ export default function PublicTranscriptForm() {
                   </div>
                 )}
                 <p className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)]">
-                  Je kunt dit tabblad open laten en later terugkomen.
+                  De opname wordt verwerkt. Houd dit tabblad open en kom later terug wanneer het klaar is.
                 </p>
                 {transcribingElapsed >= 120 && (
                   <p className="text-[12px] text-orange/80 mt-1 font-[family-name:var(--font-outfit)]">
