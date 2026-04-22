@@ -130,6 +130,47 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* OP MAAT */}
+      <section className="bg-warm border-t border-border">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-5">
+            Waybetter past zich aan jullie werk aan. Niet andersom.
+          </h2>
+          <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-12">
+            Elk bureau werkt anders. Een productiebureau heeft call sheets. Een reclamebureau werkt met campagne-evaluaties. Een PR-bureau schrijft persberichten in een vaste toon. Waybetter is geen tool waar je omheen moet werken. Het wordt gebouwd op jullie manier.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                title: 'Jullie documenttypes.',
+                body: 'Van call sheet tot campagne-evaluatie. Wij bouwen de formats die jullie elke week opnieuw maken.',
+              },
+              {
+                title: 'Jullie toon.',
+                body: 'Waybetter schrijft zoals jullie schrijven. Helder, menselijk, of juist strak en formeel. Jullie stijl.',
+              },
+              {
+                title: 'Jullie werkwijze.',
+                body: 'Van intake tot debrief. Waybetter past zich aan het proces van jullie bureau aan.',
+              },
+            ].map(({ title, body }) => (
+              <div
+                key={title}
+                className="bg-white border border-border rounded-2xl p-6 shadow-sm"
+              >
+                <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2">
+                  {title}
+                </h3>
+                <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-8 text-text-muted text-sm italic">
+            We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
+          </p>
+        </div>
+      </section>
     </>
   )
 }
