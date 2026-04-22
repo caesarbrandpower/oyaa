@@ -127,7 +127,9 @@ async function handleStoragePath(request) {
       model: 'whisper-1',
       language: 'nl',
     });
+    console.log('[whisper/storage] raw length:', result.text?.length ?? 'null', '| preview:', result.text?.slice(0, 120));
     transcript = filterHallucinations(result.text);
+    console.log('[whisper/storage] filtered length:', transcript?.length ?? 'null');
   } catch (err) {
     console.error('Whisper error:', err);
     // Best-effort cleanup before returning error
@@ -185,7 +187,11 @@ async function handleDirectUpload(request) {
       model: 'whisper-1',
       language: 'nl',
     });
-    return Response.json({ transcript: filterHallucinations(result.text) });
+    const raw = result.text;
+    console.log('[whisper/direct] raw length:', raw?.length ?? 'null', '| preview:', raw?.slice(0, 120));
+    const filtered = filterHallucinations(raw);
+    console.log('[whisper/direct] filtered length:', filtered?.length ?? 'null');
+    return Response.json({ transcript: filtered });
   } catch (err) {
     console.error('Whisper error (direct upload):', err);
     return Response.json(
