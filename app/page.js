@@ -86,6 +86,50 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ALLES OP EEN PLEK */}
+      <section className="bg-dark border-t border-dark-border">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-white leading-tight tracking-tight mb-4">
+            Alles op een plek.
+          </h2>
+          <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl mb-12">
+            Van het eerste gesprek met een klant tot de definitieve briefing. Waybetter brengt alles samen: opnemen, verwerken, documenteren. Zonder tools te wisselen, zonder bestanden te kopiëren.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                nr: '01',
+                title: 'Gooi er alles in.',
+                body: 'Aantekeningen, een opgenomen gesprek, een video call, een bestand. Alles werkt.',
+              },
+              {
+                nr: '02',
+                title: 'Kies wat je nodig hebt.',
+                body: 'Briefing, samenvatting, actiepunten. Jij bepaalt het resultaat.',
+              },
+              {
+                nr: '03',
+                title: 'Klaar voor gebruik.',
+                body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.',
+              },
+            ].map(({ nr, title, body }) => (
+              <div
+                key={nr}
+                className="bg-dark-card border border-dark-border rounded-2xl p-7"
+              >
+                <div className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.1em] text-orange mb-4">
+                  {nr}
+                </div>
+                <h3 className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-2 leading-snug">
+                  {title}
+                </h3>
+                <p className="text-text-muted text-sm leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   )
 }
