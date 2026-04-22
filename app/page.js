@@ -1,5 +1,10 @@
-import Link from 'next/link'
+export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
+import TryToolPage from '@/components/TryToolPage'
+import { getTenant } from '@/lib/get-tenant'
+
+const DEFAULT_HOSTNAME = 'waybetter.nl'
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
 export const metadata = {
@@ -7,7 +12,14 @@ export const metadata = {
   description: 'Waybetter is een werkwijze voor je hele bureau. Van opname en aantekening tot bruikbaar document. In jullie format, in jullie toon.',
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const tenant = await getTenant()
+  const isDefaultTenant = !tenant || tenant.hostname === DEFAULT_HOSTNAME
+
+  if (!isDefaultTenant) {
+    return <TryToolPage tenant={tenant} />
+  }
+
   return (
     <>
       {/* HEADER */}
