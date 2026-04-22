@@ -1,75 +1,67 @@
-export const dynamic = 'force-dynamic';
+import Link from 'next/link'
 
-import nextDynamic from 'next/dynamic';
-import Footer from '@/components/Footer';
-import AuthNav from '@/components/AuthNav';
-import TenantBadge from '@/components/TenantBadge';
-import { getTenant } from '@/lib/get-tenant';
+const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
-const PublicTranscriptForm = nextDynamic(
-  () => import('@/components/PublicTranscriptForm'),
-  { loading: () => <div className="bg-dark min-h-[400px]" /> }
-);
+export const metadata = {
+  title: 'Waybetter — Van aantekening naar briefing. In seconden.',
+  description: 'Waybetter is een werkwijze voor je hele bureau. Van opname en aantekening tot bruikbaar document. In jullie format, in jullie toon.',
+}
 
-const AllDayTranscriptForm = nextDynamic(
-  () => import('@/components/AllDayTranscriptForm'),
-  { loading: () => <div className="bg-dark min-h-[400px]" /> }
-);
-
-export default async function Home() {
-  const tenant = await getTenant();
-  const isAllDay = tenant?.hostname === 'allday.waybetter.nl';
-
+export default function HomePage() {
   return (
     <>
-      <TenantBadge tenant={tenant}>
-        {isAllDay && <AuthNav inline />}
-      </TenantBadge>
-
-      {/* Hero */}
-      <section className="relative bg-dark overflow-hidden">
-        {!isAllDay && <AuthNav />}
-
-        {/* Ambient glow */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] rounded-full bg-orange/[0.05] blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[15%] w-[400px] h-[400px] rounded-full bg-orange/[0.03] blur-[100px]" />
+      {/* HEADER */}
+      <header className="bg-dark border-b border-dark-border sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+            WAYBETTER
+          </span>
+          <div className="flex items-center gap-4">
+            <Link href="/probeer" className="text-text-muted text-sm hover:text-white transition-colors">
+              Probeer gratis
+            </Link>
+            <a
+              href={CTA_HREF}
+              className="h-9 px-5 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center"
+            >
+              Plan een gesprek
+            </a>
+          </div>
         </div>
+      </header>
 
-        <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
-          {!isAllDay && (
-            <div className="animate-hero-1">
-              <div className="inline-flex items-center gap-2.5 mb-8">
-                <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
-                <span className="text-orange text-[14px]">&middot;</span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange font-[family-name:var(--font-outfit)]">Made for agency people</span>
-              </div>
-            </div>
-          )}
-
-          <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
-            Van aantekening{'\u00A0'}
-            <br className="max-[640px]:hidden" />
-            naar briefing.
-            <br />
-            <span className="text-orange">In seconden.</span>
+      {/* HERO */}
+      <section className="bg-dark relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full bg-orange-glow blur-[80px]" />
+          <div className="absolute bottom-[-80px] right-[-100px] w-[400px] h-[400px] rounded-full bg-orange-glow opacity-60 blur-[80px]" />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-24 md:py-32 text-center">
+          <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-6">
+            Voor bureaus
+          </span>
+          <h1 className="font-[family-name:var(--font-lexend)] text-5xl md:text-7xl font-extrabold text-white leading-[1.0] tracking-tight mb-6">
+            Van aantekening<br />naar briefing.<br />In seconden.
           </h1>
-
-          {isAllDay ? (
-            <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[560px] font-[family-name:var(--font-outfit)]">
-              Zet gesprekken, aantekeningen en opnames om in bruikbare documenten. Voor je team, je klant, of je leverancier.
-            </p>
-          ) : (
-            <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[540px] font-[family-name:var(--font-outfit)]">
-              Waybetter verwerkt je aantekeningen, opgenomen gesprekken en bestanden naar direct bruikbare documenten voor je team of klant. In jouw format, in jouw toon.
-            </p>
-          )}
+          <p className="text-text-muted text-lg md:text-xl max-w-xl mx-auto mb-10 leading-relaxed">
+            Waybetter is een werkwijze voor je hele bureau. Van opname en aantekening tot bruikbaar document. In jullie format, in jullie toon.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href={CTA_HREF}
+              className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] inline-flex items-center justify-center"
+            >
+              Plan een gesprek
+            </a>
+            <Link
+              href="/probeer"
+              className="h-12 px-8 border-[1.5px] border-white/20 text-white/70 rounded-lg text-sm font-semibold transition-all hover:border-white/50 hover:text-white inline-flex items-center justify-center"
+            >
+              Probeer het zelf
+            </Link>
+          </div>
         </div>
       </section>
-
-      {isAllDay ? <AllDayTranscriptForm /> : <PublicTranscriptForm />}
-
-      <Footer allday={isAllDay} />
     </>
-  );
+  )
 }
