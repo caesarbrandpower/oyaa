@@ -62,6 +62,30 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* PROBLEEM */}
+      <section className="bg-warm border-t border-border">
+        <div className="max-w-3xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-5">
+            Iedereen werkt met AI.<br />Niemand op dezelfde manier.
+          </h2>
+          <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+            Op ieder bureau gebruikt iedereen AI op zijn eigen manier. De een plakt een prompt in ChatGPT, de ander gebruikt Fireflies, een derde werkt handmatig. Het werkt, maar het is geen aanpak. Je team verliest kwaliteit, snelheid en consistentie. Precies waar jullie op draaien.
+          </p>
+        </div>
+      </section>
+
+      {/* OPLOSSING */}
+      <section className="bg-white border-t border-border">
+        <div className="max-w-3xl mx-auto px-6 py-20">
+          <h2 className="font-[family-name:var(--font-lexend)] text-3xl md:text-4xl font-extrabold text-text leading-tight tracking-tight mb-5">
+            Een aanpak voor<br />het hele bureau.
+          </h2>
+          <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+            Waybetter is de manier waarop jullie samen met AI werken. Een plek waar opnames, aantekeningen en bestanden binnenkomen. Een plek waar bruikbare documenten uit rollen. In jullie toon, in jullie format. Iedereen bij jullie gebruikt dezelfde werkwijze.
+          </p>
+        </div>
+      </section>
     </>
   )
 }
