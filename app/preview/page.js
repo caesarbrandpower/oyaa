@@ -326,44 +326,46 @@ export default function PreviewPage() {
             <div className="reveal mt-16">
               <div className="mb-8">
                 <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-3">
-                  Geen briefing meer waar later gaten in zitten.
+                  Geen briefing meer waar gaten in zitten.
                 </span>
-                <p className="text-text-sec text-sm leading-relaxed max-w-xl">
-                  Waybetter wijst aan wat nog ontbreekt voordat het werk begint. Met labels die laten zien wat afgestemd, uitgezocht of nagevraagd moet worden.
-                </p>
               </div>
-              <div className="relative rounded-2xl overflow-hidden">
-                {/* Achtergrond: donker met subtiele radiale glow */}
-                <div className="absolute inset-0 bg-[#0f0f0f]" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,72,0,0.07)_0%,transparent_70%)]" />
-                <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
-                <div className="relative p-7 md:p-10">
-                  <p className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-white/30 mb-7">
+              <div className="relative bg-white border border-border rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-orange" />
+                <div className="px-8 md:px-10 py-8">
+                  <p className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-text-muted mb-7">
                     Nog te doen voor een complete briefing
                   </p>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                  <ol className="space-y-5">
                     {[
-                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is het exacte budget voor deze campagne?' },
-                      { tag: 'NOG NIET CONCREET GENOEG', type: 'amber', text: '"We willen meer awareness". Welke KPI\'s meten we?' },
-                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wie is de hoofddoelgroep en wat is hun pijn?' },
-                      { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren van de huidige campagne-uitingen.' },
-                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is de gewenste opleverdatum?' },
-                      { tag: 'NAVRAGEN BIJ LEVERANCIER', type: 'red', text: 'Beschikbaarheid mediabureau voor productie eind oktober.' },
-                    ].map(({ tag, type, text }, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className={`shrink-0 mt-0.5 inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-bold tracking-[0.12em] uppercase whitespace-nowrap shadow-sm ${
-                          type === 'red'
-                            ? 'bg-orange/10 text-orange ring-1 ring-orange/25 shadow-[0_0_8px_rgba(255,72,0,0.15)]'
-                            : 'bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/25 shadow-[0_0_8px_rgba(251,191,36,0.12)]'
-                        }`}>
-                          {tag}
+                      { nr: 1, tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is het exacte budget voor deze campagne?' },
+                      { nr: 2, tag: 'NOG NIET CONCREET GENOEG', type: 'amber', text: '"We willen meer awareness". Welke KPI\'s meten we?' },
+                      { nr: 3, tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wie is de hoofddoelgroep en wat is hun pijn?' },
+                      { nr: 4, tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren van de huidige campagne-uitingen.' },
+                      { nr: 5, tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is de gewenste opleverdatum?' },
+                      { nr: 6, tag: 'NAVRAGEN BIJ LEVERANCIER', type: 'red', text: 'Beschikbaarheid mediabureau eind oktober?' },
+                    ].map(({ nr, tag, type, text }) => (
+                      <li key={nr} className="flex items-start gap-4">
+                        <span className="shrink-0 w-5 h-5 rounded-full border border-border flex items-center justify-center mt-0.5">
+                          <span className="font-[family-name:var(--font-lexend)] text-[9px] font-bold text-text-muted leading-none">{nr}</span>
                         </span>
-                        <span className="text-white/60 text-sm leading-snug">{text}</span>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-bold tracking-[0.12em] uppercase whitespace-nowrap ${
+                            type === 'red'
+                              ? 'bg-orange/10 text-orange ring-1 ring-orange/25'
+                              : 'bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/25'
+                          }`}>
+                            {tag}
+                          </span>
+                          <span className="text-text-sec text-sm leading-snug">{text}</span>
+                        </div>
                       </li>
                     ))}
-                  </ul>
+                  </ol>
                 </div>
               </div>
+              <p className="mt-3 text-text-muted text-xs">
+                Waybetter wijst aan wat ontbreekt. Aanvullen doe je zelf.
+              </p>
             </div>
           </div>
         </section>
