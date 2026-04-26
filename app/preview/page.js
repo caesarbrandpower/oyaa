@@ -140,16 +140,30 @@ export default function PreviewPage() {
       <ScrollReveal>
         <section className="bg-white border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
-            <div className="reveal max-w-3xl">
-              <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-4">
-                De oplossing
-              </span>
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-5">
-                Een aanpak voor<br />het hele bureau.
-              </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed">
-                Waybetter is de manier waarop jullie samen met AI werken. Een plek waar opnames, aantekeningen en bestanden binnenkomen. Een plek waar bruikbare documenten uit rollen. In jullie toon, in jullie format. Iedereen bij jullie gebruikt dezelfde werkwijze.
-              </p>
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div>
+                <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-4">
+                  De oplossing
+                </span>
+                <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-5">
+                  Een aanpak voor<br />het hele bureau.
+                </h2>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed">
+                  Waybetter is de manier waarop jullie samen met AI werken. Een plek waar opnames, aantekeningen en bestanden binnenkomen. Een plek waar bruikbare documenten uit rollen. In jullie toon, in jullie format. Iedereen bij jullie gebruikt dezelfde werkwijze.
+                </p>
+              </div>
+              <div>
+                <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
+                  <img
+                    src="/screenshots/screenshot-allday-homepage.png"
+                    alt="De bureau-omgeving van All Day Productions"
+                    className="w-full h-auto block"
+                  />
+                </div>
+                <p className="mt-3 text-text-muted text-xs leading-relaxed">
+                  De bureau-omgeving van All Day Productions. Eigen logo, eigen subdomein, eigen werkwijze.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -213,6 +227,19 @@ export default function PreviewPage() {
                   <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
+            </div>
+            {/* Screenshot input-flow */}
+            <div className="reveal mt-10">
+              <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
+                <img
+                  src="/screenshots/screenshot-input-flow.png"
+                  alt="Input-flow: drie outputs, bureau-eigen formats"
+                  className="w-full h-auto block"
+                />
+              </div>
+              <p className="mt-3 text-text-muted text-xs">
+                Drie outputs. Bureau-eigen formats. Allemaal op een plek.
+              </p>
             </div>
             <p className="reveal mt-8 text-text-muted text-sm italic">
               We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
@@ -349,29 +376,17 @@ export default function PreviewPage() {
                 Waybetter filtert namen, merknamen en gevoelige informatie automatisch voordat AI ze ziet. AVG-compliant. Geen gedoe.
               </p>
             </div>
-            <div className="reveal bg-warm border border-border rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
-                <div className="p-6">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-text-muted mb-4">Jouw input</p>
-                  <div className="bg-white border border-border rounded-xl px-4 py-3 text-sm text-text leading-relaxed">
-                    Volgende week presenteren we aan Erik van Coca-Cola. Budget is 180.000 euro.
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-text-muted mb-4">Wat AI ziet</p>
-                  <div className="bg-white border border-border rounded-xl px-4 py-3 text-sm text-text leading-relaxed">
-                    Volgende week presenteren we aan{' '}
-                    <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[PERSOON_1]</span>{' '}
-                    van{' '}
-                    <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[BEDRIJF_1]</span>.
-                    {' '}Budget is{' '}
-                    <span className="bg-orange text-white rounded px-1.5 py-0.5 text-[11px] font-semibold">[BEDRAG_1]</span>.
-                  </div>
-                </div>
+            <div className="reveal">
+              <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
+                <img
+                  src="/screenshots/screenshot-privacy-block.png"
+                  alt="Anonimisering: gevoelige data wordt verborgen voor het AI-model"
+                  className="w-full h-auto block"
+                />
               </div>
-              <div className="px-6 py-3 border-t border-border">
-                <p className="text-text-muted text-xs">Het AI-model ziet jouw gevoelige informatie nooit. DPA beschikbaar.</p>
-              </div>
+              <p className="mt-3 text-text-muted text-xs">
+                Het AI-model ziet jouw gevoelige informatie nooit. DPA beschikbaar.
+              </p>
             </div>
           </div>
         </section>
