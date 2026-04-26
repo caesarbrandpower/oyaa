@@ -362,40 +362,58 @@ export default function PreviewPage() {
       <ScrollReveal>
         <section className="bg-white border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
-            <div className="reveal mb-12">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight">
-                Wat Waybetter nu doet,<br />en wat er komt.
+            <div className="reveal mb-14">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+                Waybetter groeit met je mee.
               </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                Wat je vandaag krijgt blijft werken. Desktop-app, integraties en slimme tools komen erbij, zonder extra kosten.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="reveal reveal-delay-1 border border-border rounded-2xl overflow-hidden">
-                <div className="bg-orange px-5 py-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-white">Nu live</span>
-                </div>
-                <ul className="divide-y divide-border">
-                  {['Opnemen: audio, video-calls, bestanden uploaden','Samenvatting, briefing, debrief voor team, klant, leverancier of directie','Eigen omgeving met jullie logo en branding','Eigen subdomein (bureau.waybetter.nl)','Privacy-filter: gevoelige informatie wordt geanonimiseerd voor AI-verwerking'].map((item) => (
-                    <li key={item} className="px-5 py-3 text-sm text-text leading-snug">{item}</li>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
+              <div className="reveal reveal-delay-1">
+                <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.16em] uppercase text-orange mb-8">
+                  Wat je nu krijgt
+                </p>
+                <ul className="space-y-7">
+                  {[
+                    { Icon: Mic, title: 'Opnemen en transcriberen', body: 'Audio, video-calls, bestanden uploaden.' },
+                    { Icon: FileText, title: 'Briefings, debriefs en samenvattingen', body: 'Met labels die laten zien wat nog ontbreekt.' },
+                    { Icon: Building2, title: 'Jullie eigen omgeving', body: 'Eigen subdomein, logo en toon.' },
+                    { Icon: Shield, title: 'Privacy en AVG', body: 'Gevoelige info wordt gefilterd voordat AI hem ziet.' },
+                  ].map(({ Icon, title, body }) => (
+                    <li key={title} className="flex items-start gap-4">
+                      <div className="shrink-0 w-8 h-8 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center mt-0.5">
+                        <Icon className="w-4 h-4 text-orange" strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1">{title}</p>
+                        <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                      </div>
+                    </li>
                   ))}
                 </ul>
               </div>
-              <div className="reveal reveal-delay-2 border border-border rounded-2xl overflow-hidden">
-                <div className="bg-warm px-5 py-3">
-                  <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-text-muted">Komt eraan</span>
-                </div>
-                <ul className="divide-y divide-border">
-                  {['Bureau-eigen documenttypes (call sheets, persberichten, backplanningen)','Automatische detectie van meetings (desktop-app)','Synchronisatie met Google Drive, Dropbox en SharePoint','Mobiele opname via app'].map((item) => (
-                    <li key={item} className="px-5 py-3 text-sm text-text-sec leading-snug">{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="reveal reveal-delay-3 border border-border rounded-2xl overflow-hidden">
-                <div className="bg-warm px-5 py-3">
-                  <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.14em] uppercase text-text-muted">Later dit jaar</span>
-                </div>
-                <ul className="divide-y divide-border">
-                  {['Strategische tools binnen Waybetter: marktscan, hookfinder, merkcheck','Integraties met jullie bestaande systemen (Gmail, Outlook, Notion)','Live meeting-bots voor Zoom, Teams en Google Meet'].map((item) => (
-                    <li key={item} className="px-5 py-3 text-sm text-text-sec leading-snug">{item}</li>
+              <div className="reveal reveal-delay-2">
+                <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.16em] uppercase text-text-muted mb-8">
+                  Wat er bij komt
+                </p>
+                <ul className="space-y-7">
+                  {[
+                    { Icon: LayoutTemplate, title: 'Bureau-eigen documenttypes', body: 'Call sheets, persberichten, eigen formats.' },
+                    { Icon: MonitorPlay, title: 'Desktop-app met meeting-detectie', body: 'Automatisch opnemen wanneer een meeting begint.' },
+                    { Icon: HardDrive, title: 'Koppelingen met Drive en SharePoint', body: 'Documenten landen waar je ze nodig hebt.' },
+                    { Icon: Sparkles, title: 'Strategische tools binnen Waybetter', body: 'Marktscan, hookfinder, merkcheck.' },
+                  ].map(({ Icon, title, body }) => (
+                    <li key={title} className="flex items-start gap-4">
+                      <div className="shrink-0 w-8 h-8 rounded-lg bg-warm border border-border flex items-center justify-center mt-0.5">
+                        <Icon className="w-4 h-4 text-text-muted" strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text-sec mb-1">{title}</p>
+                        <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                      </div>
+                    </li>
                   ))}
                 </ul>
               </div>
