@@ -55,7 +55,7 @@ export default function PreviewPage() {
             <span className="text-orange italic">In seconden.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-lg mb-12 leading-relaxed">
-            Waybetter is een werkwijze voor je hele bureau. Van opname en aantekening tot bruikbaar document. In jullie format, in jullie toon.
+            Waybetter zet gesprekken om in briefings, debriefs, notulen en samenvattingen. Helder vastgelegd, intern en extern. In jullie format, in jullie toon.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
