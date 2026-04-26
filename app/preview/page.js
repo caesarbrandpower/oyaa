@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import ScrollReveal from '@/components/ScrollReveal'
 import CountUp from '@/components/CountUp'
-import { CheckCircle, MessageSquare, FileText, ListChecks, Building2, Shield, Mic, LayoutTemplate, MonitorPlay, HardDrive, Sparkles } from 'lucide-react'
+import { FileText, Building2, Shield, Mic, LayoutTemplate, MonitorPlay, HardDrive, Sparkles, Workflow } from 'lucide-react'
 
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
@@ -172,24 +172,26 @@ export default function PreviewPage() {
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,72,0,0.09)_0%,transparent_70%)]" />
               <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
               <div className="relative p-8 md:p-12">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   {[
-                    { Icon: CheckCircle, label: 'Briefings die nooit gaten hebben' },
-                    { Icon: MessageSquare, label: 'Debriefs naar de klant' },
-                    { Icon: FileText, label: 'Notulen na elke meeting' },
-                    { Icon: ListChecks, label: 'Samenvattingen met actiepunten' },
-                    { Icon: Building2, label: 'Eigen omgeving per bureau' },
-                    { Icon: Shield, label: 'Privacy en AVG-compliant' },
-                  ].map(({ Icon, label }) => (
+                    { Icon: FileText, title: 'Documenten', body: 'Briefings, debriefs, notulen, samenvattingen. En wat jullie bureau verder nodig heeft.' },
+                    { Icon: Shield, title: 'Privacy', body: 'Klantgegevens worden gefilterd voordat AI ze ziet. AVG-compliant.' },
+                    { Icon: Building2, title: 'Eigen omgeving', body: 'Eigen subdomein, logo en toon. Voelt als jullie eigen tool.' },
+                    { Icon: Workflow, title: 'Op maat', body: 'Bureau-eigen workflows, integraties, formats. Gebouwd op jullie manier.' },
+                  ].map(({ Icon, title, body }) => (
                     <div
-                      key={label}
-                      className="flex items-center gap-3 bg-white/[0.03] border border-orange/20 rounded-xl px-4 py-3.5 shadow-[0_0_12px_rgba(255,72,0,0.06)]"
+                      key={title}
+                      className="bg-white/[0.03] border border-orange/20 rounded-xl px-5 py-5 shadow-[0_0_12px_rgba(255,72,0,0.06)]"
                     >
-                      <Icon className="shrink-0 w-4 h-4 text-orange" strokeWidth={2} />
-                      <span className="text-white/80 text-sm font-medium leading-snug">{label}</span>
+                      <Icon className="w-4 h-4 text-orange mb-3" strokeWidth={2} />
+                      <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">{title}</p>
+                      <p className="text-white/50 text-sm leading-relaxed">{body}</p>
                     </div>
                   ))}
                 </div>
+                <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-lg">
+                  En dat is nog maar het begin. We bouwen Waybetter samen met jullie tot wat jullie bureau echt nodig heeft.
+                </p>
                 <div className="text-center">
                   <a
                     href={CTA_HREF}
