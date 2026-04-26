@@ -52,7 +52,7 @@ export default function PreviewPage() {
           <div className="animate-hero-1 flex items-center gap-3 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-orange animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
-              Een werkwijze, geen tool
+              Voor bureaus die structureel beter willen werken
             </span>
           </div>
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(48px,8vw,100px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
@@ -92,7 +92,7 @@ export default function PreviewPage() {
                 <span className="text-orange">slechte briefings.</span>
               </h2>
               <p className="mt-6 text-text-muted text-base md:text-lg max-w-2xl leading-relaxed">
-                Wereldwijd onderzoek onder 1.700 marketeers en bureaus laat het zien. Een derde van elk budget wordt verspild door briefings die onduidelijk, incompleet of dubbelzinnig zijn.
+                Internationaal onderzoek onder marketeers en bureaus laat het zien. Een derde van elk budget wordt verspild door briefings die onduidelijk, incompleet of dubbelzinnig zijn.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 border border-dark-border rounded-2xl overflow-hidden">
@@ -114,10 +114,10 @@ export default function PreviewPage() {
             </div>
             <div className="reveal reveal-delay-2 mt-10">
               <p className="text-white/80 text-base md:text-lg max-w-2xl leading-relaxed">
-                Dat is geen briefingprobleem. Dat is een aanvang-probleem. Waybetter lost het op door elke briefing compleet en helder te maken, voordat het werk begint.
+                Het probleem zit aan het begin, niet aan het einde. Waybetter lost het op door elke briefing compleet en helder te maken, voordat het werk begint.
               </p>
               <p className="mt-4 text-text-muted text-xs">
-                Bron: BetterBriefs Project, 2021. Onderzoek onder 1.700 marketeers en bureaus in 70 landen.
+                Bron: BetterBriefs Project, internationaal onderzoek onder marketeers en bureaus.
               </p>
             </div>
           </div>
