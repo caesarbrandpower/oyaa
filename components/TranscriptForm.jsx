@@ -244,14 +244,14 @@ export default function TranscriptForm({ projectId, onResult }) {
           <button
             onClick={handleGenerate}
             disabled={loading || !transcript.trim()}
-            className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-[0_2px_8px_rgba(255,72,0,0.32)] hover:shadow-[0_4px_14px_rgba(255,72,0,0.38)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer"
+            className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-[background-color,box-shadow] hover:bg-orange-hover shadow-[0_2px_8px_rgba(255,72,0,0.32)] hover:shadow-[0_4px_14px_rgba(255,72,0,0.38)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
                 <span className="inline-flex items-center gap-2">
                   <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
-                  {'Bezig met verwerken' + '.'.repeat(dots)}
+                  Bezig met verwerken<span className="inline-block w-[1.5ch] text-left">{'.'.repeat(dots)}</span>
                 </span>
               ) : 'Verwerk →'}
           </button>
