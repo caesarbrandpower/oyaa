@@ -307,12 +307,12 @@ export default function PreviewPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: 'Jullie documenttypes.', body: 'Van call sheet tot campagne-evaluatie. Wij bouwen de formats die jullie elke week opnieuw maken.' },
-                { title: 'Jullie toon.', body: 'Waybetter schrijft zoals jullie schrijven. Helder, menselijk, of juist strak en formeel. Jullie stijl.' },
-                { title: 'Jullie werkwijze.', body: 'Van intake tot debrief. Waybetter past zich aan het proces van jullie bureau aan.' },
-              ].map(({ title, body }, i) => (
+                { Icon: FileText, title: 'Jullie documenttypes.', body: 'Van call sheet tot campagne-evaluatie. Wij bouwen de formats die jullie elke week opnieuw maken.' },
+                { Icon: Mic, title: 'Jullie toon.', body: 'Waybetter schrijft zoals jullie schrijven. Helder, menselijk, of juist strak en formeel. Jullie stijl.' },
+                { Icon: Workflow, title: 'Jullie werkwijze.', body: 'Van intake tot debrief. Waybetter past zich aan het proces van jullie bureau aan.' },
+              ].map(({ Icon, title, body }, i) => (
                 <div key={title} className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-2xl p-6`}>
-                  <div className="w-1 h-8 bg-orange rounded-full mb-4" />
+                  <Icon className="w-5 h-5 text-orange mb-4" strokeWidth={2} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2">{title}</h3>
                   <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                 </div>
