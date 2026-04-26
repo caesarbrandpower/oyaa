@@ -318,19 +318,7 @@ export default function PreviewPage() {
                 </div>
               ))}
             </div>
-            {/* Screenshot input-flow */}
-            <div className="reveal mt-10">
-              <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
-                <img
-                  src="/screenshots/screenshot-input-flow.png"
-                  alt="Input-flow: drie outputs, bureau-eigen formats"
-                  className="w-full h-auto block"
-                />
-              </div>
-              <p className="mt-3 text-text-muted text-xs">
-                Drie outputs. Bureau-eigen formats. Allemaal op een plek.
-              </p>
-            </div>
+
             <p className="reveal mt-8 text-text-muted text-sm italic">
               We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
             </p>
@@ -451,15 +439,15 @@ export default function PreviewPage() {
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
-                Voor bureaus die slim willen werken.
+                Voor elk type bureau.
               </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
-                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings in een klik.' },
                 { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
+                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
                 { title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
+                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings in een klik.' },
               ].map(({ title, body }, i) => (
                 <div
                   key={title}
