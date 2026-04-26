@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import ScrollReveal from '@/components/ScrollReveal'
 import CountUp from '@/components/CountUp'
+import { CheckCircle, MessageSquare, FileText, ListChecks, Building2, Shield, Mic, LayoutTemplate, MonitorPlay, HardDrive, Sparkles } from 'lucide-react'
 
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
