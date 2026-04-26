@@ -18,9 +18,15 @@ export default function PreviewPage() {
       {/* HEADER */}
       <header className="bg-dark border-b border-dark-border sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-            WAYBETTER
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+              WAYBETTER
+            </span>
+            <span className="text-white/25 text-[11px]">&#183;</span>
+            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-white/40">
+              MADE FOR AGENCY PEOPLE
+            </span>
+          </div>
           <div className="flex items-center gap-4">
             <Link href="/probeer" className="text-text-muted text-sm hover:text-white transition-colors">
               Probeer gratis
@@ -46,7 +52,7 @@ export default function PreviewPage() {
           <div className="animate-hero-1 flex items-center gap-3 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-orange animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
-              Voor bureaus
+              Een werkwijze, geen tool
             </span>
           </div>
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(48px,8vw,100px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
@@ -130,7 +136,7 @@ export default function PreviewPage() {
                 Het klinkt vanzelfsprekend. Maar bij veel bureaus gaat het elke week mis. Een meeting waar beide partijen met een ander verhaal weglopen. Een briefing die niet helemaal volledig is. Een dubbelcheck die uiteindelijk niet wordt gedaan.
               </p>
               <p className="text-text-sec text-base md:text-lg leading-relaxed">
-                Met Waybetter staan afspraken helder vastgelegd voordat het werk begint. Geen herwerk halverwege. Geen scope-discussies aan het einde. Geen "ik dacht dat we hadden afgesproken dat...".
+                Met Waybetter staan afspraken helder vastgelegd voordat het werk begint. Geen herwerk halverwege. Geen scope-discussies aan het einde. Geen &ldquo;ik dacht dat we hadden afgesproken dat...&rdquo;.
               </p>
             </div>
           </div>
