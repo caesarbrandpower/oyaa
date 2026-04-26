@@ -128,7 +128,7 @@ export default function PreviewPage() {
                   Iedereen werkt met AI.<br />Niemand op dezelfde manier.
                 </h2>
                 <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                  Op ieder bureau gebruikt iedereen AI op zijn eigen manier. De een plakt een prompt in ChatGPT, de ander gebruikt Fireflies, een derde werkt handmatig. Het werkt, maar het is geen aanpak. Je team verliest kwaliteit, snelheid en consistentie. Precies waar jullie op draaien.
+                  Op ieder bureau gebruikt iedereen AI op eigen wijze. De een plakt prompts in ChatGPT, de ander gebruikt Fireflies, een derde werkt handmatig. Het werkt, maar het is geen aanpak. Je team verliest kwaliteit, snelheid en consistentie.
                 </p>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function PreviewPage() {
                 Alles op een plek.
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-xl">
-                Van het eerste gesprek met een klant tot de definitieve briefing. Waybetter brengt alles samen: opnemen, verwerken, documenteren. Zonder tools te wisselen, zonder bestanden te kopiëren.
+                Van het eerste klantgesprek tot de definitieve briefing. Opnemen, verwerken, documenteren. Zonder tools te wisselen of bestanden te kopiëren.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -217,6 +217,43 @@ export default function PreviewPage() {
             <p className="reveal mt-8 text-text-muted text-sm italic">
               We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
             </p>
+            {/* NOG TE DOEN BLOK */}
+            <div className="reveal mt-12">
+              <div className="mb-6">
+                <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-3">
+                  Geen briefing meer waar later gaten in zitten.
+                </span>
+                <p className="text-text-sec text-sm leading-relaxed max-w-xl">
+                  Waybetter wijst aan wat nog ontbreekt voordat het werk begint. Met labels die laten zien wat afgestemd, uitgezocht of nagevraagd moet worden.
+                </p>
+              </div>
+              <div className="bg-dark border border-dark-border rounded-2xl p-6 md:p-8">
+                <p className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.18em] uppercase text-text-muted mb-5">
+                  Nog te doen voor een complete briefing
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is het exacte budget voor deze campagne?' },
+                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wie is de hoofddoelgroep en wat is hun pijn?' },
+                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is de gewenste opleverdatum?' },
+                    { tag: 'NOG NIET CONCREET GENOEG', type: 'amber', text: '"We willen meer awareness". Welke KPI\'s meten we?' },
+                    { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren van de huidige campagne-uitingen.' },
+                    { tag: 'NAVRAGEN BIJ LEVERANCIER', type: 'red', text: 'Beschikbaarheid mediabureau voor productie eind oktober.' },
+                  ].map(({ tag, type, text }, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className={`shrink-0 mt-0.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide whitespace-nowrap ${
+                        type === 'red'
+                          ? 'bg-orange/15 text-orange'
+                          : 'bg-amber-400/15 text-amber-400'
+                      }`}>
+                        {tag}
+                      </span>
+                      <span className="text-white/70 text-sm leading-snug">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
       </ScrollReveal>
@@ -364,10 +401,9 @@ export default function PreviewPage() {
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
-                    'Volledige bureau-omgeving met eigen subdomein',
-                    'Eigen logo en branding',
-                    'Alle huidige documenttypes (samenvatting, briefing, debrief voor team, klant, leverancier, directie)',
-                    'Persoonlijke onboarding waarin we bekijken wat jullie nodig hebben',
+                    'Volledige bureau-omgeving met eigen subdomein en branding',
+                    'Alle huidige documenttypes (samenvatting, briefing, debrief)',
+                    'Persoonlijke onboarding op maat van jullie werkwijze',
                     'Alle toekomstige features inbegrepen',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
