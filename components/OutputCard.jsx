@@ -376,8 +376,50 @@ export default function OutputCard({ output, transcript, onReset, recordingDurat
       }));
     }
 
+    // Build Word header
+    let logoImageRun = null;
+    if (logoUrl) {
+      try {
+        const logoData = await fetchLogoAsDataUrl(logoUrl);
+        if (logoData) {
+          const response = await fetch(logoData.dataUrl);
+          const buffer = await (await response.blob()).arrayBuffer();
+          const maxH = 30; // points (~8mm)
+          const logoW = Math.round(maxH * (logoData.width / logoData.height));
+          logoImageRun = new docx.ImageRun({
+            data: buffer,
+            transformation: { width: logoW, height: maxH },
+          });
+        }
+      } catch { /* skip logo on error */ }
+    }
+
+    const blackShading = { type: docx.ShadingType.SOLID, color: '000000', fill: '000000' };
+
+    const headerParagraph = logoImageRun
+      ? new docx.Paragraph({
+          children: [
+            logoImageRun,
+            new docx.TextRun({ text: '    POWERED BY WAYBETTER', bold: true, size: 14, color: 'AAAAAA' }),
+          ],
+          shading: blackShading,
+          spacing: { before: 80, after: 80 },
+        })
+      : new docx.Paragraph({
+          children: [
+            new docx.TextRun({ text: 'WAYBETTER \u00B7 MADE FOR AGENCY PEOPLE', bold: true, size: 14, color: 'CCCCCC' }),
+          ],
+          alignment: docx.AlignmentType.CENTER,
+          shading: blackShading,
+          spacing: { before: 80, after: 80 },
+        });
+
     const wordDoc = new docx.Document({
-      sections: [{ properties: {}, children: paragraphs }],
+      sections: [{
+        properties: {},
+        headers: { default: new docx.Header({ children: [headerParagraph] }) },
+        children: paragraphs,
+      }],
     });
 
     const blob = await docx.Packer.toBlob(wordDoc);
