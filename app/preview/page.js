@@ -499,25 +499,29 @@ export default function PreviewPage() {
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
-                Een prijs. Alles inbegrepen.
+                Kies wat bij jullie bureau past.
               </h2>
             </div>
-            <div className="reveal max-w-lg">
-              <div className="relative bg-dark-card border border-orange/20 rounded-2xl p-8 md:p-10 shadow-[0_0_60px_rgba(255,72,0,0.08)]">
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Pakket 1: Waybetter Start */}
+              <div className="relative bg-dark-card border border-orange/20 rounded-2xl p-8 shadow-[0_0_60px_rgba(255,72,0,0.08)]">
                 <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
                 <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
                   <span className="w-1 h-1 rounded-full bg-orange" />
                   <span className="text-orange text-[11px] font-semibold tracking-wide">Geen verrassingen</span>
                 </div>
-                <div className="font-[family-name:var(--font-lexend)] text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-2">
+                <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
+                  Waybetter Start
+                </p>
+                <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
                   249 euro
                 </div>
                 <p className="text-text-muted text-sm mb-8">
-                  Per maand. Voor je hele bureau, tot 5 gebruikers. Geen opstartkosten.
+                  Per maand. Voor je hele bureau, tot 5 gebruikers. Geen opstartkosten. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
-                    'Volledige bureau-omgeving met eigen subdomein en branding',
+                    'Volledige bureau-omgeving met eigen subdomein en inlog',
                     'Alle huidige documenttypes (samenvatting, briefing, debrief)',
                     'Persoonlijke onboarding op maat van jullie werkwijze',
                     'Alle toekomstige features inbegrepen',
@@ -535,10 +539,53 @@ export default function PreviewPage() {
                   Plan een gesprek
                   <span className="arrow-icon inline-block">&#8594;</span>
                 </a>
-                <p className="mt-5 text-text-muted text-xs italic">
-                  Meer dan 5 gebruikers of specifieke aanpassingen voor jullie bureau? Dat bespreken we in een gesprek.
-                </p>
               </div>
+              {/* Pakket 2: Waybetter Custom */}
+              <div className="relative bg-[#0f0f0f] border border-white/[0.08] rounded-2xl p-8 shadow-[0_0_80px_rgba(255,72,0,0.05)] overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.06)_0%,transparent_70%)] pointer-events-none" />
+                <div className="relative">
+                  <div className="inline-flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.10] rounded-full px-3 py-1 mb-6">
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="text-white/60 text-[11px] font-semibold tracking-wide">Volledig op maat</span>
+                  </div>
+                  <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
+                    Waybetter Custom
+                  </p>
+                  <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
+                    vanaf 499 euro
+                  </div>
+                  <p className="text-text-muted text-sm mb-8">
+                    Setup in overleg. Maandelijks opzegbaar.
+                  </p>
+                  <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
+                    {[
+                      'Alles van Waybetter Start',
+                      'Bureau-eigen documenttypes (call sheets, persberichten, eigen formats)',
+                      'Tone-of-voice training op jullie schrijfstijl',
+                      'Workflow-integraties (Drive, SharePoint, Notion)',
+                      'Strategische tools (marktscan, hookfinder, merkcheck) inbegrepen',
+                      'Eigen Waybetter-strateeg als contactpersoon',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
+                        <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={CTA_HREF}
+                    className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
+                  >
+                    Plan een gesprek
+                    <span className="arrow-icon inline-block">&#8594;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="reveal reveal-delay-2 mt-8">
+              <p className="text-text-muted text-xs italic max-w-2xl">
+                De setup-fee voor Custom hangt af van wat we voor jullie bouwen. We bespreken het in een gesprek voor je beslist. Meer dan 5 gebruikers? Dat bespreken we ook.
+              </p>
             </div>
           </div>
         </section>
@@ -570,7 +617,7 @@ export default function PreviewPage() {
                 Benieuwd hoe Waybetter<br />bij jullie werkt?
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
-                Geen demo-praatje. Gewoon sparren over wat jullie nodig hebben.
+                We sparren graag over wat jullie nodig hebben. Waybetter is gemaakt voor en door bureau-mensen. We kennen jullie wereld en weten waar jullie tegenaan lopen.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
