@@ -22,7 +22,7 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
-export default function AllDayTranscriptForm() {
+export default function AllDayTranscriptForm({ logoUrl = null }) {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
   const [selectedRecipient, setSelectedRecipient] = useState('team');
@@ -608,7 +608,7 @@ export default function AllDayTranscriptForm() {
       {result && (
         <section className="bg-warm pb-16">
           <div className="max-w-[900px] mx-auto px-8">
-            <OutputCard output={result} transcript={transcript} onReset={handleReset} recordingDuration={lastRecordingDuration} />
+            <OutputCard output={result} transcript={transcript} onReset={handleReset} recordingDuration={lastRecordingDuration} logoUrl={logoUrl} />
           </div>
         </section>
       )}

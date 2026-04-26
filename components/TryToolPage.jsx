@@ -63,7 +63,7 @@ export default function TryToolPage({ tenant }) {
         </div>
       </section>
 
-      {isAllDay ? <AllDayTranscriptForm /> : <PublicTranscriptForm />}
+      {isAllDay ? <AllDayTranscriptForm logoUrl={tenant?.logo_url || null} /> : <PublicTranscriptForm logoUrl={tenant?.logo_url || null} />}
 
       <Footer allday={isAllDay} />
     </>

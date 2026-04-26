@@ -48,7 +48,7 @@ function parseInlineRuns(text, size, docx) {
     });
 }
 
-export default function OutputCard({ output, transcript, onReset, recordingDuration }) {
+export default function OutputCard({ output, transcript, onReset, recordingDuration, logoUrl = null }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const title = OUTPUT_TITLES[output.output_type] || 'Output';
   const result = output.result;

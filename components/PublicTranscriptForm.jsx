@@ -41,7 +41,7 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
-export default function PublicTranscriptForm() {
+export default function PublicTranscriptForm({ logoUrl = null }) {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -659,7 +659,7 @@ export default function PublicTranscriptForm() {
       {result && (
         <section className="bg-warm pb-16">
           <div className="max-w-[900px] mx-auto px-8">
-            <OutputCard output={result} transcript={transcript} onReset={handleReset} recordingDuration={lastRecordingDuration} />
+            <OutputCard output={result} transcript={transcript} onReset={handleReset} recordingDuration={lastRecordingDuration} logoUrl={logoUrl} />
           </div>
         </section>
       )}
