@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAudioFile, useAudioTranscription } from '@/lib/use-audio';
 
@@ -17,7 +17,15 @@ export default function TranscriptForm({ projectId, onResult }) {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dots, setDots] = useState(1);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!loading) return;
+    setDots(1);
+    const id = setInterval(() => setDots((d) => (d % 3) + 1), 500);
+    return () => clearInterval(id);
+  }, [loading]);
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef(null);
@@ -238,7 +246,14 @@ export default function TranscriptForm({ projectId, onResult }) {
             disabled={loading || !transcript.trim()}
             className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-[0_2px_8px_rgba(255,72,0,0.32)] hover:shadow-[0_4px_14px_rgba(255,72,0,0.38)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer"
           >
-            {loading ? 'Bezig met verwerken...' : 'Verwerk →'}
+            {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  {'Bezig met verwerken' + '.'.repeat(dots)}
+                </span>
+              ) : 'Verwerk →'}
           </button>
         </div>
       )}

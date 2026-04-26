@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import OutputCard from '@/components/OutputCard';
 import { isAudioFile, useAudioTranscription, supportsScreenAudio } from '@/lib/use-audio';
 import { useSoundToggle } from '@/lib/use-sounds';
@@ -45,8 +45,16 @@ export default function PublicTranscriptForm() {
   const [transcript, setTranscript] = useState('');
   const [selectedType, setSelectedType] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dots, setDots] = useState(1);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!loading) return;
+    setDots(1);
+    const id = setInterval(() => setDots((d) => (d % 3) + 1), 500);
+    return () => clearInterval(id);
+  }, [loading]);
   const [fileStatus, setFileStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [copyTranscriptLabel, setCopyTranscriptLabel] = useState('Kopieer transcript');
@@ -621,7 +629,14 @@ export default function PublicTranscriptForm() {
                   disabled={loading || !transcript.trim()}
                   className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer font-[family-name:var(--font-outfit)]"
                 >
-                  {loading ? 'Bezig met verwerken...' : 'Verwerk \u2192'}
+                  {loading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                      </svg>
+                      {'Bezig met verwerken' + '.'.repeat(dots)}
+                    </span>
+                  ) : 'Verwerk \u2192'}
                 </button>
                 <button
                   onClick={handleReset}
