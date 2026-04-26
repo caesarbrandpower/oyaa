@@ -137,6 +137,53 @@ export default function PreviewPage() {
         </section>
       </ScrollReveal>
 
+      {/* USP STATEMENT BLOK */}
+      <ScrollReveal>
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
+            <div className="reveal mb-10 text-center">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
+                Wat krijgt jullie bureau<br />met Waybetter?
+              </h2>
+            </div>
+            <div className="reveal relative rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-[#0f0f0f]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,72,0,0.09)_0%,transparent_70%)]" />
+              <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
+              <div className="relative p-8 md:p-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+                  {[
+                    { Icon: CheckCircle, label: 'Briefings die nooit gaten hebben' },
+                    { Icon: MessageSquare, label: 'Debriefs naar de klant' },
+                    { Icon: FileText, label: 'Notulen na elke meeting' },
+                    { Icon: ListChecks, label: 'Samenvattingen met actiepunten' },
+                    { Icon: Building2, label: 'Eigen omgeving per bureau' },
+                    { Icon: Shield, label: 'Privacy en AVG-compliant' },
+                  ].map(({ Icon, label }) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 bg-white/[0.03] border border-orange/20 rounded-xl px-4 py-3.5 shadow-[0_0_12px_rgba(255,72,0,0.06)]"
+                    >
+                      <Icon className="shrink-0 w-4 h-4 text-orange" strokeWidth={2} />
+                      <span className="text-white/80 text-sm font-medium leading-snug">{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <a
+                    href={CTA_HREF}
+                    className="group h-12 px-10 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+                  >
+                    Plan een gesprek
+                    <span className="arrow-icon inline-block">&#8594;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
       {/* PROBLEEM */}
       <ScrollReveal>
         <section className="bg-warm border-t border-border">
