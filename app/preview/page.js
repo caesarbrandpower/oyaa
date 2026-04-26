@@ -245,8 +245,8 @@ export default function PreviewPage() {
               We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
             </p>
             {/* NOG TE DOEN BLOK */}
-            <div className="reveal mt-12">
-              <div className="mb-6">
+            <div className="reveal mt-16">
+              <div className="mb-8">
                 <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-3">
                   Geen briefing meer waar later gaten in zitten.
                 </span>
@@ -254,31 +254,37 @@ export default function PreviewPage() {
                   Waybetter wijst aan wat nog ontbreekt voordat het werk begint. Met labels die laten zien wat afgestemd, uitgezocht of nagevraagd moet worden.
                 </p>
               </div>
-              <div className="bg-dark border border-dark-border rounded-2xl p-6 md:p-8">
-                <p className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.18em] uppercase text-text-muted mb-5">
-                  Nog te doen voor een complete briefing
-                </p>
-                <ul className="space-y-3">
-                  {[
-                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is het exacte budget voor deze campagne?' },
-                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wie is de hoofddoelgroep en wat is hun pijn?' },
-                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is de gewenste opleverdatum?' },
-                    { tag: 'NOG NIET CONCREET GENOEG', type: 'amber', text: '"We willen meer awareness". Welke KPI\'s meten we?' },
-                    { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren van de huidige campagne-uitingen.' },
-                    { tag: 'NAVRAGEN BIJ LEVERANCIER', type: 'red', text: 'Beschikbaarheid mediabureau voor productie eind oktober.' },
-                  ].map(({ tag, type, text }, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <span className={`shrink-0 mt-0.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide whitespace-nowrap ${
-                        type === 'red'
-                          ? 'bg-orange/15 text-orange'
-                          : 'bg-amber-400/15 text-amber-400'
-                      }`}>
-                        {tag}
-                      </span>
-                      <span className="text-white/70 text-sm leading-snug">{text}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="relative rounded-2xl overflow-hidden">
+                {/* Achtergrond: donker met subtiele radiale glow */}
+                <div className="absolute inset-0 bg-[#0f0f0f]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,72,0,0.07)_0%,transparent_70%)]" />
+                <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
+                <div className="relative p-7 md:p-10">
+                  <p className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-white/30 mb-7">
+                    Nog te doen voor een complete briefing
+                  </p>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                    {[
+                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is het exacte budget voor deze campagne?' },
+                      { tag: 'NOG NIET CONCREET GENOEG', type: 'amber', text: '"We willen meer awareness". Welke KPI\'s meten we?' },
+                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wie is de hoofddoelgroep en wat is hun pijn?' },
+                      { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren van de huidige campagne-uitingen.' },
+                      { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Wat is de gewenste opleverdatum?' },
+                      { tag: 'NAVRAGEN BIJ LEVERANCIER', type: 'red', text: 'Beschikbaarheid mediabureau voor productie eind oktober.' },
+                    ].map(({ tag, type, text }, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span className={`shrink-0 mt-0.5 inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-bold tracking-[0.12em] uppercase whitespace-nowrap shadow-sm ${
+                          type === 'red'
+                            ? 'bg-orange/10 text-orange ring-1 ring-orange/25 shadow-[0_0_8px_rgba(255,72,0,0.15)]'
+                            : 'bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/25 shadow-[0_0_8px_rgba(251,191,36,0.12)]'
+                        }`}>
+                          {tag}
+                        </span>
+                        <span className="text-white/60 text-sm leading-snug">{text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
