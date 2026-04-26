@@ -118,6 +118,25 @@ export default function PreviewPage() {
         </section>
       </ScrollReveal>
 
+      {/* HELDERE AFSPRAKEN */}
+      <ScrollReveal>
+        <section className="bg-white border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-24">
+            <div className="reveal max-w-3xl">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-8">
+                Heldere afspraken,<br />vanaf het begin.
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
+                Het klinkt vanzelfsprekend. Maar bij veel bureaus gaat het elke week mis. Een meeting waar beide partijen met een ander verhaal weglopen. Een briefing die niet helemaal volledig is. Een dubbelcheck die uiteindelijk niet wordt gedaan.
+              </p>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed">
+                Met Waybetter staan afspraken helder vastgelegd voordat het werk begint. Geen herwerk halverwege. Geen scope-discussies aan het einde. Geen "ik dacht dat we hadden afgesproken dat...".
+              </p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
       {/* PROBLEEM */}
       <ScrollReveal>
         <section className="bg-warm border-t border-border">
