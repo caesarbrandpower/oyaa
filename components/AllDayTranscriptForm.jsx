@@ -11,11 +11,9 @@ const ALLDAY_TYPES = [
   { key: 'allday-debrief', label: 'Debrief', desc: 'Een nette terugkoppeling, klaar om te delen' },
 ];
 
-const RECIPIENTS = [
-  { key: 'team', label: 'Team' },
-  { key: 'klant', label: 'Klant' },
+const BRIEFING_RECIPIENTS = [
+  { key: 'team', label: 'Intern team' },
   { key: 'leverancier', label: 'Leverancier' },
-  { key: 'directie', label: 'Directie' },
 ];
 
 function formatTime(seconds) {
@@ -97,7 +95,11 @@ export default function AllDayTranscriptForm() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, outputType: selectedType, recipient: selectedRecipient }),
+        body: JSON.stringify({
+          transcript,
+          outputType: selectedType,
+          recipient: selectedType === 'allday-briefing' ? selectedRecipient : undefined,
+        }),
       });
       const data = await res.json();
       if (data.error) {
@@ -516,7 +518,7 @@ export default function AllDayTranscriptForm() {
               Wat wil je maken?
             </h2>
             <p className="text-[15px] text-text-sec mb-4 font-[family-name:var(--font-outfit)]">
-              Kies een type en een ontvanger.
+              Kies een type. Bij een briefing kies je ook voor wie.
             </p>
 
             {/* Output type selector in form */}
@@ -536,28 +538,30 @@ export default function AllDayTranscriptForm() {
               ))}
             </div>
 
-            {/* Recipient selector */}
-            <div className="mt-5">
-              <span className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)] block mb-2">
-                Voor wie?
-              </span>
-              <div className="flex items-center gap-2 flex-wrap">
-                {RECIPIENTS.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSelectedRecipient(key)}
-                    className={`h-8 px-4 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)] ${
-                      selectedRecipient === key
-                        ? 'bg-orange text-white shadow-[0_2px_8px_rgba(255,72,0,0.25)]'
-                        : 'border-[1.5px] border-border text-text-sec hover:border-orange hover:text-orange'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+            {/* Recipient selector - alleen zichtbaar voor Briefing */}
+            {selectedType === 'allday-briefing' && (
+              <div className="mt-5">
+                <span className="text-[12px] text-text-muted font-[family-name:var(--font-outfit)] block mb-2">
+                  Voor wie is deze briefing?
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {BRIEFING_RECIPIENTS.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedRecipient(key)}
+                      className={`h-8 px-4 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] cursor-pointer font-[family-name:var(--font-outfit)] ${
+                        selectedRecipient === key
+                          ? 'bg-orange text-white shadow-[0_2px_8px_rgba(255,72,0,0.25)]'
+                          : 'border-[1.5px] border-border text-text-sec hover:border-orange hover:text-orange'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {selectedType && (
               <div className="mt-7 flex items-center gap-3">
