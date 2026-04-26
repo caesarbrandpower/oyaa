@@ -369,7 +369,7 @@ export default function OutputCard({ output, transcript, onReset, recordingDurat
 
       <div
         className="prose-oyaa text-sm leading-[1.8] text-text bg-[#FAFAFA] border border-border rounded-lg p-7 [&_h1]:font-[family-name:var(--font-lexend)] [&_h1]:text-[18px] [&_h1]:font-bold [&_h1]:text-text [&_h1]:mt-2 [&_h1]:mb-4 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-border [&_h2]:font-[family-name:var(--font-lexend)] [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:uppercase [&_h2]:tracking-wider [&_h2]:text-text [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:pb-1.5 [&_h2]:border-b [&_h2]:border-border [&_h3]:font-[family-name:var(--font-lexend)] [&_h3]:text-[12px] [&_h3]:font-semibold [&_h3]:text-text-sec [&_h3]:mt-5 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:pl-5 [&_ul]:mb-4 [&_ol]:pl-5 [&_ol]:mb-4 [&_li]:mb-2 [&_li]:leading-[1.7] [&_strong]:font-semibold [&_hr]:border-border [&_hr]:my-6 [&_table]:w-full [&_table]:border-collapse [&_table]:mb-4 [&_table]:text-[13px] [&_th]:border [&_th]:border-border [&_th]:px-3.5 [&_th]:py-2.5 [&_th]:text-left [&_th]:bg-orange-light [&_th]:font-semibold [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide [&_td]:border [&_td]:border-border [&_td]:px-3.5 [&_td]:py-2.5 [&_td]:text-left"
-        dangerouslySetInnerHTML={{ __html: marked.parse(injectLabelHtml(result)) }}
+        dangerouslySetInnerHTML={{ __html: injectLabelHtml(marked.parse(result)) }}
       />
     </div>
   );
