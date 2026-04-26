@@ -75,15 +75,63 @@ export default function OutputCard({ output, transcript, onReset, recordingDurat
     });
   }
 
+  async function fetchLogoAsDataUrl(url) {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      return { dataUrl: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight };
+    } catch {
+      return null;
+    }
+  }
+
   async function downloadPDF() {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const margin = 20;
     const pageWidth = 210;
     const maxWidth = pageWidth - margin * 2;
-    let y = 20;
+    const headerH = 14;
+    let y = headerH + 8;
 
-    const addPage = () => { doc.addPage(); y = 20; };
+    function drawHeader(logoData) {
+      doc.setFillColor(0, 0, 0);
+      doc.rect(0, 0, pageWidth, headerH, 'F');
+      if (logoData) {
+        const maxLogoH = headerH - 4;
+        const logoH = maxLogoH;
+        const logoW = logoH * (logoData.width / logoData.height);
+        doc.addImage(logoData.dataUrl, 'PNG', margin, 2, logoW, logoH);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(160, 160, 160);
+        const label = 'POWERED BY WAYBETTER';
+        const labelW = doc.getTextWidth(label);
+        doc.text(label, pageWidth - margin - labelW, headerH / 2 + 1.5);
+      } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(200, 200, 200);
+        const fallback = 'WAYBETTER \u00B7 MADE FOR AGENCY PEOPLE';
+        const fw = doc.getTextWidth(fallback);
+        doc.text(fallback, (pageWidth - fw) / 2, headerH / 2 + 1.5);
+      }
+      doc.setTextColor(0, 0, 0);
+    }
+
+    const logoData = logoUrl ? await fetchLogoAsDataUrl(logoUrl) : null;
+    drawHeader(logoData);
+
+    const addPage = () => { doc.addPage(); drawHeader(logoData); y = headerH + 8; };
     const checkY = (needed) => { if (y + needed > 280) addPage(); };
 
     function safeWrap(text, width) {
