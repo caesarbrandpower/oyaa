@@ -431,21 +431,18 @@ export default function PreviewPage() {
                 Voor bureaus die slim willen werken.
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { code: 'A', title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
-                { code: 'P', title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings in een klik.' },
-                { code: 'R', title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
-                { code: 'C', title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
-              ].map(({ code, title, body }, i) => (
+                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
+                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings in een klik.' },
+                { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
+                { title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
+              ].map(({ title, body }, i) => (
                 <div
                   key={title}
-                  className={`reveal reveal-delay-${i + 1} group bg-dark-card border border-dark-border rounded-2xl p-6 hover:border-orange/30 transition-colors duration-300`}
+                  className={`reveal reveal-delay-${i + 1} bg-dark-card border border-dark-border rounded-2xl p-5`}
                 >
-                  <div className="font-[family-name:var(--font-lexend)] text-[40px] font-extrabold text-dark-border group-hover:text-orange/20 transition-colors duration-300 leading-none mb-4 select-none">
-                    {code}
-                  </div>
-                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">{title}</h3>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
