@@ -128,16 +128,31 @@ export default function PreviewPage() {
       <ScrollReveal>
         <section className="bg-white border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
-            <div className="reveal max-w-3xl">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-8">
-                Heldere afspraken,<br />vanaf het begin.
-              </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
-                Het klinkt vanzelfsprekend. Maar bij veel bureaus gaat het elke week mis. Een meeting waar beide partijen met een ander verhaal weglopen. Een briefing die niet helemaal volledig is. Een dubbelcheck die uiteindelijk niet wordt gedaan.
-              </p>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed">
-                Met Waybetter staan afspraken helder vastgelegd voordat het werk begint. Geen herwerk halverwege. Geen scope-discussies aan het einde. Geen &ldquo;ik dacht dat we hadden afgesproken dat...&rdquo;.
-              </p>
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
+              <div>
+                <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-6">
+                  Heldere afspraken vanaf het begin. Geen discussies achteraf.
+                </h2>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed">
+                  Het klinkt vanzelfsprekend. Maar bij veel bureaus gaat het elke week mis. Een meeting waar beide partijen met een ander verhaal weglopen. Een briefing die niet helemaal klopt. Een dubbelcheck die er niet komt. Met Waybetter ligt alles helder vast voordat het werk begint.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start gap-4 bg-warm border border-border rounded-xl px-5 py-4">
+                  <div className="shrink-0 w-2 h-2 rounded-full bg-text-muted/40 mt-2" />
+                  <div>
+                    <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-text-muted mb-1">Zonder Waybetter</p>
+                    <p className="text-text-sec text-sm leading-snug">~1 op de 3 budgetten gaat verloren aan onduidelijke of incomplete briefings.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4 bg-orange/[0.04] border border-orange/20 rounded-xl px-5 py-4">
+                  <div className="shrink-0 w-2 h-2 rounded-full bg-orange mt-2" />
+                  <div>
+                    <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-orange mb-1">Met Waybetter</p>
+                    <p className="text-text-sec text-sm leading-snug">Helder vastgelegd vanaf het begin. Geen herwerk. Geen discussies achteraf.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
