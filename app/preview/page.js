@@ -93,7 +93,7 @@ export default function PreviewPage() {
                 Je kent het wel.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De briefing is gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie herwerk-rondes verder.
+                Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De briefing is gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie correctierondes verder.
               </p>
             </div>
 
@@ -113,23 +113,23 @@ export default function PreviewPage() {
                 </p>
               </div>
 
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-2">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-8">
                 <span className="font-semibold text-text">80%</span> van marketeers denkt goed te briefen, maar slechts{' '}
                 <span className="font-semibold text-text">10%</span> van bureaus is het daarmee eens.{' '}
                 <span className="font-semibold text-text">75%</span> van bureaus zegt dat hun laatste drie briefings niet goed genoeg waren.
               </p>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-8">
-                Niet omdat het werk slecht is, maar omdat de start niet helder is.
+
+              <p className="text-text-sec text-sm md:text-base leading-relaxed mb-2">
+                Een Project Manager of Account Manager is gemiddeld 4 uur per week kwijt aan dit soort gedoe. Zonde.
+              </p>
+              <p className="text-text-sec text-sm md:text-base leading-relaxed mb-6">
+                <a href={CTA_HREF} className="text-orange hover:text-orange-hover transition-colors underline underline-offset-2">
+                  Benieuwd wat Waybetter kan besparen? &#8594;
+                </a>
               </p>
 
-              <p className="text-text-muted text-xs mb-6">
+              <p className="text-text-muted text-xs">
                 Bron: BetterBriefs Project, internationaal onderzoek onder marketeers en bureaus.
-              </p>
-              <p className="text-text-sec text-sm md:text-base leading-relaxed">
-                Een PM verliest gemiddeld 4 uur per week aan dit soort herwerk.{' '}
-                <a href={CTA_HREF} className="text-orange hover:text-orange-hover transition-colors underline underline-offset-2">
-                  Reken het door voor jullie bureau &#8594;
-                </a>
               </p>
             </div>
 
@@ -154,19 +154,19 @@ export default function PreviewPage() {
             {/* Zes voordelen in twee kolommen */}
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-12">
               {[
-                { Icon: Mic, title: 'Niets meer hoeven typen na een gesprek', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
-                { Icon: LayoutTemplate, title: 'Eigen omgeving per bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
-                { Icon: FileText, title: 'Documenten die er meteen goed uitzien', body: 'Briefings en debriefs in jullie format, in jullie toon.' },
-                { Icon: Shield, title: 'Klantgegevens beschermd', body: 'Privacy-filtering voor AI. AVG-compliant.' },
-                { Icon: AlertCircle, title: 'Geen briefings meer waar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
-                { Icon: TrendingUp, title: 'Werkt vandaag, groeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
+                { Icon: Mic, title: 'Niets meer\nhoeven typen', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
+                { Icon: LayoutTemplate, title: 'Eigen omgeving\nper bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
+                { Icon: FileText, title: 'Documenten die er\nmeteen goed uitzien', body: 'Briefings en debriefs in jullie format, in jullie toon.' },
+                { Icon: Shield, title: 'Klantgegevens\nbeschermd', body: 'Privacy-filtering voor AI. AVG-compliant.' },
+                { Icon: AlertCircle, title: 'Geen briefings meer\nwaar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
+                { Icon: TrendingUp, title: 'Werkt vandaag,\ngroeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-start gap-4 border border-dark-border rounded-lg p-4 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <div className="shrink-0 mt-0.5">
-                    <Icon className="w-6 h-6 text-orange" strokeWidth={1.75} />
+                <div key={title} className="grid grid-cols-1 md:grid-cols-[96px_1fr] items-start border border-dark-border rounded-lg p-4 md:p-5 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                  <div className="flex items-center justify-start md:justify-center mb-3 md:mb-0">
+                    <Icon className="w-10 h-10 text-orange" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1">{title}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1 whitespace-pre-line">{title}</p>
                     <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                   </div>
                 </div>
@@ -370,8 +370,11 @@ export default function PreviewPage() {
               </div>
             </div>
             <div className="reveal reveal-delay-2 mt-8">
-              <p className="text-text-muted text-xs italic max-w-2xl">
-                De setup-fee voor Custom hangt af van wat we voor jullie bouwen. We bespreken het in een gesprek voor je beslist. Meer dan 5 gebruikers? Dat bespreken we ook.
+              <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl mb-2">
+                Setup-fee voor Custom bespreken we in een gesprek, op basis van wat we voor jullie bouwen.
+              </p>
+              <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl">
+                Meer dan 5 gebruikers? Geen probleem, ook dat bespreken we.
               </p>
             </div>
           </div>
@@ -381,13 +384,13 @@ export default function PreviewPage() {
 
       {/* SLOT CTA */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
+        <section className="bg-warm border-t border-border">
           <div className="max-w-3xl mx-auto px-6 py-28 text-center">
             <div className="reveal">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,5vw,56px)] font-extrabold text-white leading-tight tracking-tight mb-5">
-                Benieuwd hoe Waybetter<br />bij jullie werkt?
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,5vw,56px)] font-extrabold text-text leading-tight tracking-tight mb-5">
+                Wil je beter werken<br />met Waybetter?
               </h2>
-              <p className="text-text-muted text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
                 We kennen jullie wereld en weten waar jullie tegenaan lopen. We sparren graag over wat jullie nodig hebben. Waybetter is gemaakt voor en door bureau-mensen.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -400,7 +403,7 @@ export default function PreviewPage() {
                 </a>
                 <Link
                   href="/probeer"
-                  className="h-12 px-8 border-[1.5px] border-white/20 text-white/70 rounded-lg text-base font-semibold transition-all hover:border-white/50 hover:text-white inline-flex items-center justify-center"
+                  className="h-12 px-8 border-[1.5px] border-border text-text-sec rounded-lg text-base font-semibold transition-all hover:border-text hover:text-text inline-flex items-center justify-center"
                 >
                   Probeer het zelf
                 </Link>
@@ -413,9 +416,12 @@ export default function PreviewPage() {
       {/* FOOTER */}
       <footer className="bg-dark border-t border-dark-border">
         <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-          <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-white/25">
-            WAYBETTER &#183; MADE FOR AGENCY PEOPLE
-          </span>
+          <div className="flex items-center gap-2.5">
+            <img src="/icons/waybetter-icon.svg" alt="" aria-hidden="true" className="h-7 w-7 opacity-25" />
+            <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold tracking-[0.2em] uppercase text-white/25">
+              WAYBETTER &#183; MADE FOR AGENCY PEOPLE
+            </span>
+          </div>
           <Link href="/privacy" className="text-white/25 text-xs hover:text-white/50 transition-colors">
             Privacy &amp; data
           </Link>
