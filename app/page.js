@@ -287,7 +287,7 @@ export default async function HomePage() {
                 Werken al met Waybetter
               </p>
             </div>
-            <div className="reveal flex flex-wrap justify-center items-center gap-10 md:gap-16">
+            <div className="reveal flex flex-wrap justify-center items-center gap-10 md:gap-20 max-w-[600px] mx-auto">
               {[
                 { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
                 { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
@@ -297,7 +297,7 @@ export default async function HomePage() {
                   key={alt}
                   src={src}
                   alt={alt}
-                  className="h-7 w-auto object-contain opacity-50 hover:opacity-90 transition-all duration-300"
+                  className="h-8 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity duration-300"
                 />
               ))}
             </div>
