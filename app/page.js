@@ -254,7 +254,7 @@ export default async function HomePage() {
                 Voor elk type bureau.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Reclame, productie, PR, activatie, communicatie. Elk bureau werkt anders.
+                Reclame, branding, productie, PR, activatie, design. Werk beter met Waybetter.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -308,7 +308,7 @@ export default async function HomePage() {
                   {[
                     'Volledige bureau-omgeving met eigen subdomein en logo',
                     'Drie standaard documenttypes: samenvatting, briefing, debrief',
-                    'Tot 5 gebruikers',
+                    'Inclusief 5 gebruikers',
                     'Onboarding waarin we Waybetter inrichten voor jullie bureau',
                     'Toekomstige updates inbegrepen',
                   ].map((item) => (
@@ -372,7 +372,7 @@ export default async function HomePage() {
                 Setup-fee voor Custom bespreken we in een gesprek, op basis van wat we voor jullie bouwen.
               </p>
               <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl">
-                Meer dan 5 gebruikers? Geen probleem, ook dat bespreken we.
+                Extra gebruikers per maand bij te boeken. Bespreken we in een gesprek.
               </p>
             </div>
           </div>
