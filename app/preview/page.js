@@ -84,48 +84,48 @@ export default function PreviewPage() {
 
       {/* PIJN */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
+        <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
             {/* Bovenste deel — herkenning */}
             <div className="reveal mb-16 md:mb-20">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,64px)] font-extrabold text-white leading-tight tracking-tight mb-6">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,64px)] font-extrabold text-text leading-tight tracking-tight mb-6">
                 Je kent het wel.
               </h2>
-              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
                 Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De briefing is gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie herwerk-rondes verder.
               </p>
             </div>
 
             {/* Onderste deel — cijfer-bevestiging */}
-            <div className="reveal border-t border-dark-border pt-12 md:pt-16">
-              <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.16em] uppercase text-orange mb-3">
+            <div className="reveal border-t border-border pt-12 md:pt-16">
+              <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.16em] uppercase text-orange mb-6">
                 Onderzoek bevestigt het.
               </p>
-              <p className="text-white/80 text-xl md:text-2xl font-semibold max-w-2xl mb-10 leading-snug">
-                33% van je budget gaat verloren aan slechte briefings. Niet omdat het werk slecht is, maar omdat de start niet helder is.
-              </p>
 
-              {/* Drie cijferblokken */}
-              <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-dark-border border border-dark-border rounded-xl overflow-hidden mb-8">
-                {[
-                  { stat: 80, suffix: '%', label: 'van marketeers denkt goed te briefen' },
-                  { stat: 10, suffix: '%', label: 'van bureaus is het daarmee eens' },
-                  { stat: 75, suffix: '%', label: 'zegt dat hun laatste drie briefings niet goed waren' },
-                ].map(({ stat, suffix, label }) => (
-                  <div key={stat} className="bg-dark-card px-6 py-8 md:px-8 md:py-10">
-                    <div className="font-[family-name:var(--font-lexend)] text-[clamp(44px,6vw,68px)] font-extrabold text-orange leading-none tracking-[-0.03em] mb-2">
-                      <CountUp target={stat} suffix={suffix} duration={1400} />
-                    </div>
-                    <p className="text-text-muted text-sm leading-relaxed">{label}</p>
-                  </div>
-                ))}
+              {/* Groot ankercijfer */}
+              <div className="mb-6">
+                <div className="font-[family-name:var(--font-lexend)] text-[clamp(80px,14vw,120px)] font-extrabold text-orange leading-none tracking-[-0.03em]">
+                  33%
+                </div>
+                <p className="text-text text-xl md:text-2xl font-semibold mt-2 max-w-xl leading-snug">
+                  van je budget gaat verloren aan slechte briefings.
+                </p>
               </div>
 
-              <p className="text-white/30 text-xs mb-6">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-2">
+                <span className="font-semibold text-text">80%</span> van marketeers denkt goed te briefen, maar slechts{' '}
+                <span className="font-semibold text-text">10%</span> van bureaus is het daarmee eens.{' '}
+                <span className="font-semibold text-text">75%</span> van bureaus zegt dat hun laatste drie briefings niet goed genoeg waren.
+              </p>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-8">
+                Niet omdat het werk slecht is, maar omdat de start niet helder is.
+              </p>
+
+              <p className="text-text-muted text-xs mb-6">
                 Bron: BetterBriefs Project, internationaal onderzoek onder marketeers en bureaus.
               </p>
-              <p className="text-white/60 text-sm md:text-base leading-relaxed">
+              <p className="text-text-sec text-sm md:text-base leading-relaxed">
                 Een PM verliest gemiddeld 4 uur per week aan dit soort herwerk.{' '}
                 <a href={CTA_HREF} className="text-orange hover:text-orange-hover transition-colors underline underline-offset-2">
                   Reken het door voor jullie bureau &#8594;
@@ -144,7 +144,7 @@ export default function PreviewPage() {
 
             <div className="reveal mb-12">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                Heldere documenten, vanaf de eerste meeting.
+                Heldere afspraken, vanaf de eerste meeting.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
                 Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
@@ -161,7 +161,7 @@ export default function PreviewPage() {
                 { Icon: AlertCircle, title: 'Geen briefings meer waar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
                 { Icon: TrendingUp, title: 'Werkt vandaag, groeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-start gap-4">
+                <div key={title} className="flex items-start gap-4 border border-border rounded-lg p-4 bg-white hover:border-orange/40 transition-colors duration-200">
                   <div className="shrink-0 mt-0.5">
                     <Icon className="w-6 h-6 text-orange" strokeWidth={1.75} />
                   </div>
@@ -283,8 +283,14 @@ export default function PreviewPage() {
 
       {/* PRIJS */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
-          <div className="max-w-5xl mx-auto px-6 py-24">
+        <section className="noise bg-dark border-t border-dark-border relative overflow-hidden">
+          <img
+            src="/icons/waybetter-icon.svg"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute right-[-60px] top-1/2 -translate-y-1/2 w-[380px] opacity-[0.05] select-none"
+          />
+          <div className="relative z-10 max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
                 Kies wat bij jullie bureau past.
@@ -351,8 +357,7 @@ export default function PreviewPage() {
                       'Bureau-eigen documenttypes (call sheets, persberichten, eigen formats)',
                       'Tone-of-voice training op jullie schrijfstijl',
                       'Workflow-integraties (Drive, SharePoint, Notion)',
-                      'Strategische tools (marktscan, hookfinder, merkcheck) inbegrepen',
-                      'Eigen Waybetter-strateeg als contactpersoon',
+                      'Meedenken over wat er nog meer voor jullie bureau mogelijk is',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                         <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30" />
@@ -379,6 +384,7 @@ export default function PreviewPage() {
         </section>
       </ScrollReveal>
 
+
       {/* SLOT CTA */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
@@ -388,7 +394,7 @@ export default function PreviewPage() {
                 Benieuwd hoe Waybetter<br />bij jullie werkt?
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
-                We sparren graag over wat jullie nodig hebben. Waybetter is gemaakt voor en door bureau-mensen. We kennen jullie wereld en weten waar jullie tegenaan lopen.
+                We kennen jullie wereld en weten waar jullie tegenaan lopen. We sparren graag over wat jullie nodig hebben. Waybetter is gemaakt voor en door bureau-mensen.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
