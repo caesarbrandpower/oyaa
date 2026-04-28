@@ -2,6 +2,7 @@ import nextDynamic from 'next/dynamic'
 import Footer from '@/components/Footer'
 import AuthNav from '@/components/AuthNav'
 import TenantBadge from '@/components/TenantBadge'
+import RotatingHero from '@/components/RotatingHero'
 
 const PublicTranscriptForm = nextDynamic(
   () => import('@/components/PublicTranscriptForm'),
@@ -53,13 +54,17 @@ export default function TryToolPage({ tenant }) {
             </div>
           )}
 
-          <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
-            Van aantekening{'\u00A0'}
-            <br className="max-[640px]:hidden" />
-            naar briefing.
-            <br />
-            <span className="text-orange">In seconden.</span>
-          </h1>
+          {isDeWolven ? (
+            <RotatingHero />
+          ) : (
+            <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
+              Van aantekening{'\u00A0'}
+              <br className="max-[640px]:hidden" />
+              naar briefing.
+              <br />
+              <span className="text-orange">In seconden.</span>
+            </h1>
+          )}
 
           {(isAllDay || isDeWolven) ? (
             <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[560px] font-[family-name:var(--font-outfit)]">
@@ -85,7 +90,7 @@ export default function TryToolPage({ tenant }) {
         <PublicTranscriptForm logoUrl={tenant?.logo_url || null} />
       )}
 
-      <Footer allday={isAllDay} />
+      <Footer />
     </>
   )
 }
