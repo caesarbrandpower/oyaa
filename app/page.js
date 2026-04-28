@@ -43,9 +43,9 @@ export default async function HomePage() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/probeer" className="text-text-muted text-sm hover:text-white transition-colors">
+            <a href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag" className="text-text-muted text-sm hover:text-white transition-colors">
               Probeer gratis
-            </Link>
+            </a>
             <a
               href={CTA_HREF}
               className="group h-9 px-5 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center gap-2"
@@ -86,12 +86,12 @@ export default async function HomePage() {
               Plan een gesprek
               <span className="arrow-icon inline-block">&#8594;</span>
             </a>
-            <Link
-              href="/probeer"
+            <a
+              href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag"
               className="h-12 px-8 border-[1.5px] border-white/20 text-white/70 rounded-lg text-sm font-semibold transition-all hover:border-white/50 hover:text-white inline-flex items-center justify-center"
             >
               Probeer het zelf
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -157,16 +157,27 @@ export default async function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
             <div className="reveal mb-12">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
-                Heldere afspraken, vanaf de eerste meeting.
-              </h2>
-              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
-                Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
-              </p>
+              <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-10">
+                <img
+                  src="/icons/waybetter-icon.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="w-20 h-20 md:w-[100px] md:h-[100px] shrink-0 rounded-2xl"
+                />
+                <div>
+                  <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
+                    Heldere afspraken,<br />
+                    vanaf de eerste meeting.
+                  </h2>
+                  <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+                    Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Zes voordelen in twee kolommen */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-12">
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-12">
               {[
                 { Icon: Mic, title: 'Niets meer\nhoeven typen', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
                 { Icon: LayoutTemplate, title: 'Eigen omgeving\nper bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
@@ -175,12 +186,12 @@ export default async function HomePage() {
                 { Icon: AlertCircle, title: 'Geen briefings meer\nwaar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
                 { Icon: TrendingUp, title: 'Werkt vandaag,\ngroeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="grid grid-cols-1 md:grid-cols-[96px_1fr] items-start border border-dark-border rounded-lg p-4 md:p-5 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <div className="flex items-center justify-start md:justify-center mb-3 md:mb-0">
-                    <Icon className="w-10 h-10 text-orange" strokeWidth={1.5} />
+                <div key={title} className="flex items-center gap-5 border border-dark-border rounded-lg p-5 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                  <div className="shrink-0">
+                    <Icon className="w-9 h-9 text-orange" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1 whitespace-pre-line">{title}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1 whitespace-pre-line leading-snug">{title}</p>
                     <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                   </div>
                 </div>
@@ -189,13 +200,13 @@ export default async function HomePage() {
 
             {/* CTA */}
             <div className="reveal">
-              <Link
-                href="/probeer"
+              <a
+                href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag"
                 className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
               >
                 Probeer het zelf
                 <span className="arrow-icon inline-block">&#8594;</span>
-              </Link>
+              </a>
             </div>
 
           </div>
@@ -280,7 +291,6 @@ export default async function HomePage() {
               {[
                 { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
                 { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
-                { src: '/logos/de-wolven.svg', alt: 'De Wolven' },
                 { src: '/logos/newfound.svg', alt: 'Newfound' },
               ].map(({ src, alt }) => (
                 <img
