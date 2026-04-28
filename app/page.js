@@ -302,7 +302,7 @@ export default async function HomePage() {
                   249 euro
                 </div>
                 <p className="text-text-muted text-sm mb-8">
-                  Per maand. Voor je hele bureau, tot 5 gebruikers. Geen opstartkosten. Maandelijks opzegbaar.
+                  Per maand. Inclusief 5 gebruikers. Geen opstartkosten. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
