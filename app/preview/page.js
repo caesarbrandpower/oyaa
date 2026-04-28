@@ -18,7 +18,8 @@ export default function PreviewPage() {
       {/* HEADER */}
       <header className="bg-dark border-b border-dark-border sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img src="/icons/waybetter-icon.svg" alt="Waybetter" className="h-8 w-8 rounded-md shrink-0" />
             <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
               WAYBETTER
             </span>
@@ -81,6 +82,30 @@ export default function PreviewPage() {
         </div>
       </section>
 
+      {/* CLIENT LOGOS */}
+      <section className="bg-dark border-t border-dark-border">
+        <div className="max-w-5xl mx-auto px-6 py-10">
+          <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-white/25 mb-7 text-center">
+            Al in gebruik bij
+          </p>
+          <div className="flex items-center justify-center gap-10 md:gap-16 flex-wrap">
+            {[
+              { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
+              { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
+              { src: '/logos/de-wolven.svg', alt: 'De Wolven' },
+              { src: '/logos/newfound.svg', alt: 'Newfound' },
+            ].map(({ src, alt }) => (
+              <img
+                key={alt}
+                src={src}
+                alt={alt}
+                className="h-7 w-auto grayscale opacity-40 hover:grayscale-0 hover:opacity-80 transition-all duration-300"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CIJFERS */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
@@ -119,6 +144,58 @@ export default function PreviewPage() {
               <p className="mt-4 text-text-muted text-xs">
                 Bron: BetterBriefs Project, internationaal onderzoek onder marketeers en bureaus.
               </p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* ROI BLOK */}
+      <ScrollReveal>
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
+            <div className="reveal relative rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-[#0a0a0a]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,72,0,0.12)_0%,transparent_70%)]" />
+              <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
+              <div className="relative p-8 md:p-12">
+                <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3.5vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-3">
+                  Wat kost dit jullie bureau elke maand?
+                </h2>
+                <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl mb-10">
+                  Een PM verliest gemiddeld 4 uur per week aan briefings opnieuw maken, scope-discussies en herwerk. Reken het door voor jullie bureau.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                  {[
+                    { stat: '4 uur', label: 'Per week verloren, per PM' },
+                    { stat: '80 uur', label: 'Per maand voor 5 PM\'s' },
+                    { stat: '€6.800', label: 'Bij €85 uurtarief per maand' },
+                    { stat: '€81.600', label: 'Op jaarbasis' },
+                  ].map(({ stat, label }) => (
+                    <div
+                      key={stat}
+                      className="bg-white/[0.03] border border-orange/15 rounded-xl px-5 py-6 shadow-[0_0_16px_rgba(255,72,0,0.05)]"
+                    >
+                      <div className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,52px)] font-extrabold text-orange leading-none tracking-tight mb-2">
+                        {stat}
+                      </div>
+                      <p className="text-white/35 text-xs leading-snug">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="font-[family-name:var(--font-lexend)] text-base md:text-lg font-bold text-white/80 mb-6 max-w-xl leading-snug">
+                  Waybetter kost €249 per maand. Eén voorkomen herbriefing verdient hem terug.
+                </p>
+                <a
+                  href={CTA_HREF}
+                  className="group h-11 px-7 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
+                >
+                  Reken het door voor jullie bureau
+                  <span className="arrow-icon inline-block">&#8594;</span>
+                </a>
+                <p className="mt-6 text-white/20 text-xs leading-relaxed max-w-2xl">
+                  Op basis van gemiddelden uit BetterBriefs-onderzoek en bureau-praktijk. We rekenen het samen door voor jullie situatie.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -415,9 +492,9 @@ export default function PreviewPage() {
                   {[
                     { Icon: LayoutTemplate, title: 'Bureau-eigen documenttypes', body: 'Call sheets, persberichten, eigen formats.' },
                     { Icon: MonitorPlay, title: 'Desktop-app met meeting-detectie', body: 'Automatisch opnemen wanneer een meeting begint.' },
-                    { Icon: HardDrive, title: 'Koppelingen met Drive en SharePoint', body: 'Documenten landen waar je ze nodig hebt.' },
+                    { Icon: HardDrive, title: 'Koppelingen met Drive en SharePoint', body: 'Documenten landen waar je ze nodig hebt.', integrations: true },
                     { Icon: Sparkles, title: 'Strategische tools binnen Waybetter', body: 'Marktscan, hookfinder, merkcheck.' },
-                  ].map(({ Icon, title, body }) => (
+                  ].map(({ Icon, title, body, integrations }) => (
                     <li key={title} className="flex items-start gap-4">
                       <div className="shrink-0 w-8 h-8 rounded-lg bg-warm border border-border flex items-center justify-center mt-0.5">
                         <Icon className="w-4 h-4 text-text-muted" strokeWidth={2} />
@@ -425,6 +502,23 @@ export default function PreviewPage() {
                       <div>
                         <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text-sec mb-1">{title}</p>
                         <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                        {integrations && (
+                          <div className="mt-3">
+                            <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-text-muted mb-2">Werkt straks met:</p>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {[
+                                { src: '/logos/integrations/google-drive.svg', alt: 'Google Drive' },
+                                { src: '/logos/integrations/sharepoint.svg', alt: 'SharePoint' },
+                                { src: '/logos/integrations/notion.svg', alt: 'Notion' },
+                                { src: '/logos/integrations/zoom.svg', alt: 'Zoom' },
+                                { src: '/logos/integrations/microsoft-teams.svg', alt: 'Microsoft Teams' },
+                                { src: '/logos/integrations/google-meet.svg', alt: 'Google Meet' },
+                              ].map(({ src, alt }) => (
+                                <img key={alt} src={src} alt={alt} title={alt} className="h-6 w-6 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-200" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -467,27 +561,20 @@ export default function PreviewPage() {
       {/* PRIVACY */}
       <ScrollReveal>
         <section className="bg-white border-t border-border">
-          <div className="max-w-3xl mx-auto px-6 py-24">
-            <div className="reveal mb-10">
-              <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-4">AVG-compliant</span>
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,44px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                Je klantgegevens blijven van jou.
-              </h2>
-              <p className="text-text-sec text-base leading-relaxed">
-                Waybetter filtert namen, merknamen en gevoelige informatie automatisch voordat AI ze ziet. AVG-compliant. Geen gedoe.
-              </p>
-            </div>
-            <div className="reveal">
-              <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
+          <div className="max-w-5xl mx-auto px-6 py-20">
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div className="rounded-xl overflow-hidden shadow-xl ring-1 ring-black/10">
                 <img
                   src="/screenshots/screenshot-privacy-block.png"
                   alt="Anonimisering: gevoelige data wordt verborgen voor het AI-model"
                   className="w-full h-auto block"
                 />
               </div>
-              <p className="mt-3 text-text-muted text-xs">
-                Het AI-model ziet jouw gevoelige informatie nooit. DPA beschikbaar.
-              </p>
+              <div>
+                <p className="text-text-sec text-base leading-relaxed">
+                  Klantgegevens worden gefilterd voordat AI ze ziet. Namen, merknamen en bedragen worden vervangen door placeholders. AVG-compliant. DPA beschikbaar.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -586,23 +673,6 @@ export default function PreviewPage() {
               <p className="text-text-muted text-xs italic max-w-2xl">
                 De setup-fee voor Custom hangt af van wat we voor jullie bouwen. We bespreken het in een gesprek voor je beslist. Meer dan 5 gebruikers? Dat bespreken we ook.
               </p>
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
-      {/* BEWIJS */}
-      <ScrollReveal>
-        <section className="bg-warm border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-16">
-            <div className="reveal flex flex-wrap items-center gap-3 md:gap-6">
-              <span className="font-[family-name:var(--font-lexend)] text-xs font-bold tracking-[0.14em] uppercase text-text-muted">
-                Al in gebruik bij
-              </span>
-              <div className="h-px flex-1 bg-border hidden md:block" />
-              <span className="font-[family-name:var(--font-lexend)] text-base font-bold text-text-sec">Chase Amsterdam</span>
-              <span className="text-border text-sm">&#183;</span>
-              <span className="font-[family-name:var(--font-lexend)] text-base font-bold text-text-sec">All Day Productions</span>
             </div>
           </div>
         </section>

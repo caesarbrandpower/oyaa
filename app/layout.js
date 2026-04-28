@@ -6,6 +6,13 @@ export const metadata = {
   description: 'Van aantekeningen naar briefing. In seconden.',
   manifest: '/manifest.json',
   themeColor: '#0d0d0d',
+  icons: {
+    icon: [
+      { url: '/icons/waybetter-icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
+    ],
+    apple: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
