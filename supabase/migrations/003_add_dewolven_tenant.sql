@@ -3,7 +3,7 @@ insert into public.tenants (hostname, name, logo_url, primary_color, enabled_out
 values (
   'dewolven.waybetter.nl',
   'De Wolven',
-  '/logos/de-wolven.svg',
+  '/logos/tenants/dewolven.svg',
   '#FF4800',
   '["allday-samenvatting","allday-briefing","allday-debrief"]'::jsonb,
   '{"clients":["Algemeen","Woonbond","Patagonia","bol","Museumnacht Amsterdam","Heineken Prizes"]}'::jsonb
