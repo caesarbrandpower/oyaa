@@ -269,11 +269,13 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
             {extraOutputTypes && extraOutputTypes.map(({ key, label, desc }) => (
               <div
                 key={key}
-                className="relative text-left rounded-xl p-6 border bg-dark-card/60 border-dark-border/60 cursor-default h-full"
+                className="flex flex-col text-left rounded-xl p-6 border bg-dark-card/60 border-dark-border/60 cursor-default h-full"
               >
-                <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide text-orange/70 bg-orange/[0.08] border border-orange/20 rounded-full px-2 py-0.5 font-[family-name:var(--font-outfit)]">
-                  In ontwikkeling
-                </span>
+                <div className="flex justify-end mb-3">
+                  <span className="text-[10px] font-semibold tracking-wide text-orange/70 bg-orange/[0.08] border border-orange/20 rounded-full px-2 py-0.5 font-[family-name:var(--font-outfit)]">
+                    In ontwikkeling
+                  </span>
+                </div>
                 <span className="block text-[17px] font-semibold mb-2 text-white/75 font-[family-name:var(--font-outfit)]">
                   {label}
                 </span>
