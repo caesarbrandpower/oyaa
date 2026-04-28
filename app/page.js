@@ -297,7 +297,7 @@ export default async function HomePage() {
                   key={alt}
                   src={src}
                   alt={alt}
-                  className="h-7 w-auto object-contain invert opacity-50 hover:opacity-90 transition-all duration-300"
+                  className="h-7 w-auto object-contain opacity-50 hover:opacity-90 transition-all duration-300"
                 />
               ))}
             </div>
