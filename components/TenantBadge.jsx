@@ -10,17 +10,9 @@ export default function TenantBadge({ tenant, children }) {
             alt={tenant.name}
             style={{ height: '20px', width: 'auto' }}
           />
-          <div className="flex items-center gap-1.5">
-            <img
-              src="/icons/waybetter-icon.svg"
-              alt="Waybetter"
-              style={{ height: '18px', width: '18px' }}
-              className="opacity-40"
-            />
-            <span className="text-[10px] tracking-[0.1em] uppercase text-white/25 font-[family-name:var(--font-outfit)]">
-              Powered by Waybetter
-            </span>
-          </div>
+          <span className="text-[10px] tracking-[0.1em] uppercase text-white/25 font-[family-name:var(--font-outfit)]">
+            Powered by Waybetter
+          </span>
         </div>
         {children}
       </div>
