@@ -22,8 +22,9 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
-export default function AllDayTranscriptForm({ logoUrl = null }) {
+export default function AllDayTranscriptForm({ logoUrl = null, clients = null, extraOutputTypes = null }) {
   const [transcript, setTranscript] = useState('');
+  const [selectedClient, setSelectedClient] = useState(clients ? clients[0] : null);
   const [selectedType, setSelectedType] = useState(null);
   const [selectedRecipient, setSelectedRecipient] = useState('team');
   const [loading, setLoading] = useState(false);
@@ -215,10 +216,34 @@ export default function AllDayTranscriptForm({ logoUrl = null }) {
       {/* Output type showcase */}
       <section className="bg-dark border-t border-dark-border">
         <div className="max-w-[900px] mx-auto px-8 py-14">
+
+          {/* Klant-dropdown — alleen zichtbaar als clients prop aanwezig */}
+          {clients && (
+            <div className="mb-8">
+              <label className="block text-[12px] text-white/30 font-[family-name:var(--font-outfit)] mb-2 tracking-wide uppercase">
+                Voor welke opdrachtgever?
+              </label>
+              <div className="relative inline-block">
+                <select
+                  value={selectedClient}
+                  onChange={(e) => setSelectedClient(e.target.value)}
+                  className="appearance-none bg-dark-card border border-dark-border text-white/70 text-[14px] font-[family-name:var(--font-outfit)] rounded-lg pl-4 pr-10 h-10 cursor-pointer hover:border-orange/40 transition-colors focus:outline-none focus:border-orange/60 min-w-[220px]"
+                >
+                  {clients.map((client) => (
+                    <option key={client} value={client}>{client}</option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/30" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          )}
+
           <p className="text-[13px] text-white/30 font-[family-name:var(--font-outfit)] mb-5">
             Wat wil je vandaag maken?
           </p>
-          <div className="grid grid-cols-3 gap-4 max-[580px]:grid-cols-1">
+          <div className={`grid gap-4 max-[580px]:grid-cols-1 ${extraOutputTypes ? 'grid-cols-3 md:grid-cols-3' : 'grid-cols-3'}`}>
             {ALLDAY_TYPES.map(({ key, label, desc }) => (
               <button
                 key={key}
@@ -238,6 +263,24 @@ export default function AllDayTranscriptForm({ logoUrl = null }) {
                   {desc}
                 </span>
               </button>
+            ))}
+
+            {/* Extra output types met "In ontwikkeling" label */}
+            {extraOutputTypes && extraOutputTypes.map(({ key, label, desc }) => (
+              <div
+                key={key}
+                className="relative group text-left rounded-xl p-6 border bg-dark-card border-dark-border opacity-50 cursor-default"
+              >
+                <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide text-white/30 bg-white/[0.06] rounded-full px-2 py-0.5 font-[family-name:var(--font-outfit)]">
+                  In ontwikkeling
+                </span>
+                <span className="block text-[17px] font-semibold mb-2 text-white/50 font-[family-name:var(--font-outfit)]">
+                  {label}
+                </span>
+                <span className="block text-[13px] text-white/20 leading-snug font-[family-name:var(--font-outfit)]">
+                  {desc}
+                </span>
+              </div>
             ))}
           </div>
         </div>

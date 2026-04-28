@@ -13,18 +13,28 @@ const AllDayTranscriptForm = nextDynamic(
   { loading: () => <div className="bg-dark min-h-[400px]" /> }
 )
 
+const DEWOLVEN_CLIENTS = ['Algemeen', 'Woonbond', 'Patagonia', 'bol', 'Museumnacht Amsterdam', 'Heineken Prizes']
+
+const DEWOLVEN_EXTRA_TYPES = [
+  { key: 'dewolven-persbericht', label: 'Persbericht-aanzet', desc: 'Een eerste versie van een persbericht op basis van briefing of interview.' },
+  { key: 'dewolven-artikel', label: 'Interview \u2192 artikel', desc: 'Van opgenomen interview naar artikel met opbouw en kernpunten.' },
+  { key: 'dewolven-klantdebrief', label: 'Klantdebrief', desc: 'Terugkoppeling na campagne of project, in heldere structuur.' },
+  { key: 'dewolven-vertaling', label: 'Vertaling NL \u2192 EN', desc: 'Van Nederlandse tekst naar Engelse versie, in jullie toon.' },
+]
+
 export default function TryToolPage({ tenant }) {
   const isAllDay = tenant?.hostname === 'allday.waybetter.nl'
+  const isDeWolven = tenant?.hostname === 'dewolven.waybetter.nl'
 
   return (
     <>
       <TenantBadge tenant={tenant}>
-        {isAllDay && <AuthNav inline />}
+        {(isAllDay || isDeWolven) && <AuthNav inline />}
       </TenantBadge>
 
       {/* Hero */}
       <section className="relative bg-dark overflow-hidden">
-        {!isAllDay && <AuthNav />}
+        {!isAllDay && !isDeWolven && <AuthNav />}
 
         {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -33,7 +43,7 @@ export default function TryToolPage({ tenant }) {
         </div>
 
         <div className="relative max-w-[900px] mx-auto px-8 pt-[100px] pb-16 max-[640px]:pt-[72px] max-[640px]:pb-12">
-          {!isAllDay && (
+          {!isAllDay && !isDeWolven && (
             <div className="animate-hero-1">
               <div className="inline-flex items-center gap-2.5 mb-8">
                 <span className="font-[family-name:var(--font-lexend)] text-[11px] tracking-[0.2em] font-semibold text-orange uppercase">Waybetter</span>
@@ -51,7 +61,7 @@ export default function TryToolPage({ tenant }) {
             <span className="text-orange">In seconden.</span>
           </h1>
 
-          {isAllDay ? (
+          {(isAllDay || isDeWolven) ? (
             <p className="animate-hero-3 text-[17px] text-white/50 leading-[1.65] max-w-[560px] font-[family-name:var(--font-outfit)]">
               Zet gesprekken, aantekeningen en opnames om in bruikbare documenten. Voor je team, je klant, of je leverancier.
             </p>
@@ -63,7 +73,17 @@ export default function TryToolPage({ tenant }) {
         </div>
       </section>
 
-      {isAllDay ? <AllDayTranscriptForm logoUrl={tenant?.logo_url || null} /> : <PublicTranscriptForm logoUrl={tenant?.logo_url || null} />}
+      {isAllDay ? (
+        <AllDayTranscriptForm logoUrl={tenant?.logo_url || null} />
+      ) : isDeWolven ? (
+        <AllDayTranscriptForm
+          logoUrl={tenant?.logo_url || null}
+          clients={DEWOLVEN_CLIENTS}
+          extraOutputTypes={DEWOLVEN_EXTRA_TYPES}
+        />
+      ) : (
+        <PublicTranscriptForm logoUrl={tenant?.logo_url || null} />
+      )}
 
       <Footer allday={isAllDay} />
     </>
