@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import ScrollReveal from '@/components/ScrollReveal'
 import CountUp from '@/components/CountUp'
-import { FileText, Shield, Mic, LayoutTemplate, Workflow, TrendingUp } from 'lucide-react'
+import { FileText, Shield, Mic, LayoutTemplate, Workflow, TrendingUp, AlertCircle } from 'lucide-react'
 
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
@@ -93,7 +93,7 @@ export default function PreviewPage() {
                 Je kent het wel.
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
-                Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De PM heeft een briefing gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie herwerk-rondes verder.
+                Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De briefing is gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie herwerk-rondes verder.
               </p>
             </div>
 
@@ -151,85 +151,22 @@ export default function PreviewPage() {
               </p>
             </div>
 
-            {/* Drie dominante voordelen */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-
-              {/* Voordeel 1 — Opnemen */}
-              <div className="reveal reveal-delay-1 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
-                <div>
-                  <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-1.5">Niets meer hoeven typen na een gesprek</p>
-                  <p className="text-[11px] font-semibold text-orange mb-3">Opnemen, transcriberen, klaar.</p>
-                  <p className="text-text-muted text-sm leading-relaxed">Audio, video-calls, presentaties of meetings op kantoor. Waybetter neemt op en verwerkt automatisch.</p>
-                </div>
-                <div className="mt-auto pt-3 flex flex-col items-center gap-3">
-                  <Mic className="w-10 h-10 text-orange opacity-90" strokeWidth={1.5} />
-                  <div className="flex items-end gap-[3px] h-8">
-                    {[3,6,4,9,5,11,4,7,5,8,3,6,5,10,4].map((h, i) => (
-                      <div key={i} className="w-[3px] rounded-full bg-orange/40" style={{ height: `${h * 2.4}px` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Voordeel 2 — Documenten */}
-              <div className="reveal reveal-delay-2 bg-white border border-border rounded-2xl p-6 flex flex-col gap-5 shadow-sm">
-                <div>
-                  <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-text mb-1.5">Documenten die er meteen goed uitzien</p>
-                  <p className="text-[11px] font-semibold text-orange mb-3">In jullie format, in jullie toon.</p>
-                  <p className="text-text-sec text-sm leading-relaxed">Briefings, debriefs en samenvattingen, opgemaakt zoals jullie bureau ze maakt. Geen rommelig transcript dat je nog moet herschrijven.</p>
-                </div>
-                <div className="mt-auto pt-3 bg-warm border border-border rounded-xl p-5">
-                  <div className="h-2.5 bg-text/15 rounded w-2/3 mb-3" />
-                  <div className="h-px bg-border mb-3" />
-                  <div className="h-1.5 bg-text-muted/20 rounded w-full mb-2" />
-                  <div className="h-1.5 bg-text-muted/20 rounded w-5/6 mb-2" />
-                  <div className="h-1.5 bg-text-muted/20 rounded w-4/6 mb-4" />
-                  <div className="flex gap-1.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-orange/10 text-orange ring-1 ring-orange/20 text-[8px] font-bold tracking-[0.08em] uppercase">
-                      BRIEFING
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Voordeel 3 — Labels */}
-              <div className="reveal reveal-delay-3 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
-                <div>
-                  <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-1.5">Geen briefings meer waar gaten in zitten</p>
-                  <p className="text-[11px] font-semibold text-orange mb-3">Waybetter wijst aan wat ontbreekt.</p>
-                  <p className="text-text-muted text-sm leading-relaxed">Geen scope-discussies halverwege. Waybetter markeert wat nog niet besproken of vastgelegd is.</p>
-                </div>
-                <div className="mt-auto pt-3 space-y-2.5">
-                  {[
-                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Exacte budget voor deze campagne?' },
-                    { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren campagne-uitingen.' },
-                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Gewenste opleverdatum?' },
-                  ].map(({ tag, type, text }, i) => (
-                    <div key={i} className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[8px] font-bold tracking-[0.08em] uppercase whitespace-nowrap ${
-                        type === 'red' ? 'bg-orange/10 text-orange ring-1 ring-orange/25' : 'bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/25'
-                      }`}>{tag}</span>
-                      <span className="text-white/35 text-[11px] leading-snug">{text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Drie ondersteunende voordelen */}
-            <div className="reveal border-t border-border pt-6 grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+            {/* Zes voordelen in twee kolommen */}
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-12">
               {[
+                { Icon: Mic, title: 'Niets meer hoeven typen na een gesprek', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
                 { Icon: LayoutTemplate, title: 'Eigen omgeving per bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
-                { Icon: Shield, title: 'Klantgegevens beschermd', body: 'Privacy-filtering voor AI. AVG-compliant. DPA beschikbaar.' },
-                { Icon: TrendingUp, title: 'Werkt vandaag, groeit mee', body: 'Desktop-app, integraties en slimme tools komen erbij zonder extra kosten.' },
+                { Icon: FileText, title: 'Documenten die er meteen goed uitzien', body: 'Briefings en debriefs in jullie format, in jullie toon.' },
+                { Icon: Shield, title: 'Klantgegevens beschermd', body: 'Privacy-filtering voor AI. AVG-compliant.' },
+                { Icon: AlertCircle, title: 'Geen briefings meer waar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
+                { Icon: TrendingUp, title: 'Werkt vandaag, groeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-start gap-3">
-                  <div className="shrink-0 w-8 h-8 rounded-lg bg-orange/10 border border-orange/15 flex items-center justify-center mt-0.5">
-                    <Icon className="w-4 h-4 text-orange" strokeWidth={2} />
+                <div key={title} className="flex items-start gap-4">
+                  <div className="shrink-0 mt-0.5">
+                    <Icon className="w-6 h-6 text-orange" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1">{title}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-text mb-1">{title}</p>
                     <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                   </div>
                 </div>
@@ -287,16 +224,15 @@ export default function PreviewPage() {
         <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
 
-            {/* Bovenste deel — voor wie */}
             <div className="reveal mb-10">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                Voor elk type bureau, op jullie manier.
+                Voor elk type bureau.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Reclame, productie, PR, activatie, communicatie. Elk bureau werkt anders. Waybetter past zich aan, niet andersom.
+                Reclame, productie, PR, activatie, communicatie. Elk bureau werkt anders.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
                 { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
@@ -311,26 +247,6 @@ export default function PreviewPage() {
                   <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
-            </div>
-
-            {/* Onderste deel — maatwerk */}
-            <div className="reveal border-t border-border pt-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {[
-                  { Icon: FileText, title: 'Jullie documenttypes', body: 'Van call sheet tot campagne-evaluatie. Wij bouwen de formats die jullie elke week opnieuw maken.' },
-                  { Icon: Mic, title: 'Jullie toon', body: 'Waybetter schrijft zoals jullie schrijven. Helder, menselijk, of juist strak en formeel.' },
-                  { Icon: Workflow, title: 'Jullie werkwijze', body: 'Van intake tot debrief. Waybetter past zich aan het proces van jullie bureau aan.' },
-                ].map(({ Icon, title, body }, i) => (
-                  <div key={title} className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-xl p-5`}>
-                    <Icon className="w-4 h-4 text-orange mb-3" strokeWidth={2} />
-                    <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1.5">{title}</p>
-                    <p className="text-text-sec text-sm leading-relaxed">{body}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-text-muted text-sm italic">
-                We bouwen jullie Waybetter-omgeving tijdens de onboarding. Niet met templates, maar met jullie echte werk.
-              </p>
             </div>
 
           </div>
