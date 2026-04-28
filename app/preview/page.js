@@ -109,7 +109,7 @@ export default function PreviewPage() {
                   33%
                 </div>
                 <p className="text-text text-xl md:text-2xl font-semibold mt-2 max-w-xl leading-snug">
-                  van je budget gaat verloren aan slechte briefings.
+                  Verloren aan slechte briefings.
                 </p>
               </div>
 
@@ -139,20 +139,20 @@ export default function PreviewPage() {
 
       {/* WAT IS WAYBETTER */}
       <ScrollReveal>
-        <section className="bg-warm border-t border-border">
+        <section className="noise bg-dark border-t border-dark-border">
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
             <div className="reveal mb-12">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
                 Heldere afspraken, vanaf de eerste meeting.
               </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
                 Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
               </p>
             </div>
 
             {/* Zes voordelen in twee kolommen */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-12">
+            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-12">
               {[
                 { Icon: Mic, title: 'Niets meer hoeven typen na een gesprek', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
                 { Icon: LayoutTemplate, title: 'Eigen omgeving per bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
@@ -161,13 +161,13 @@ export default function PreviewPage() {
                 { Icon: AlertCircle, title: 'Geen briefings meer waar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
                 { Icon: TrendingUp, title: 'Werkt vandaag, groeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-start gap-4 border border-border rounded-lg p-4 bg-white hover:border-orange/40 transition-colors duration-200">
+                <div key={title} className="flex items-start gap-4 border border-dark-border rounded-lg p-4 bg-dark-card hover:border-orange/40 transition-colors duration-200">
                   <div className="shrink-0 mt-0.5">
                     <Icon className="w-6 h-6 text-orange" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-text mb-1">{title}</p>
-                    <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1">{title}</p>
+                    <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                   </div>
                 </div>
               ))}
@@ -199,7 +199,7 @@ export default function PreviewPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { nr: '01', title: 'Gooi er alles in.', body: 'Aantekeningen, een opgenomen gesprek, een video call, een bestand. Alles werkt.' },
+                { nr: '01', title: 'Voeg je input toe.', body: 'Aantekeningen, een opgenomen gesprek, een video call, een bestand. Alles werkt.' },
                 { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten. Jij bepaalt het resultaat.' },
                 { nr: '03', title: 'Klaar voor gebruik.', body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
               ].map(({ nr, title, body }, i) => (
@@ -264,10 +264,10 @@ export default function PreviewPage() {
             </div>
             <div className="reveal flex flex-wrap justify-center items-center gap-10 md:gap-16">
               {[
-                { src: '/logos/chase-logo.png', alt: 'Chase' },
-                { src: '/logos/all-day-logo.png', alt: 'All Day Productions' },
-                { src: '/logos/de-wolven-logo.png', alt: 'De Wolven' },
-                { src: '/logos/newfound-logo.png', alt: 'Newfound' },
+                { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
+                { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
+                { src: '/logos/de-wolven.svg', alt: 'De Wolven' },
+                { src: '/logos/newfound.svg', alt: 'Newfound' },
               ].map(({ src, alt }) => (
                 <img
                   key={alt}
@@ -283,14 +283,8 @@ export default function PreviewPage() {
 
       {/* PRIJS */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border relative overflow-hidden">
-          <img
-            src="/icons/waybetter-icon.svg"
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute right-[-60px] top-1/2 -translate-y-1/2 w-[380px] opacity-[0.05] select-none"
-          />
-          <div className="relative z-10 max-w-5xl mx-auto px-6 py-24">
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
                 Kies wat bij jullie bureau past.
