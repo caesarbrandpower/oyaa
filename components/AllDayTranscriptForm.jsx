@@ -6,9 +6,9 @@ import { isAudioFile, useAudioTranscription, supportsScreenAudio } from '@/lib/u
 import { useSoundToggle } from '@/lib/use-sounds';
 
 const ALLDAY_TYPES = [
-  { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek, direct helder' },
-  { key: 'allday-briefing', label: 'Briefing', desc: 'Een heldere opdracht om mee aan de slag te gaan' },
-  { key: 'allday-debrief', label: 'Debrief', desc: 'Een nette terugkoppeling, klaar om te delen' },
+  { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek,\ndirect helder.' },
+  { key: 'allday-briefing', label: 'Briefing', desc: 'Een heldere opdracht om mee aan de slag te gaan.' },
+  { key: 'allday-debrief', label: 'Debrief', desc: 'Een nette terugkoppeling, klaar om te delen.' },
 ];
 
 const BRIEFING_RECIPIENTS = [
@@ -243,12 +243,12 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
           <p className="text-[13px] text-white/30 font-[family-name:var(--font-outfit)] mb-5">
             Wat wil je vandaag maken?
           </p>
-          <div className={`grid gap-4 max-[580px]:grid-cols-1 ${extraOutputTypes ? 'grid-cols-3 md:grid-cols-3' : 'grid-cols-3'}`}>
+          <div className={`grid gap-4 items-stretch max-[580px]:grid-cols-1 ${extraOutputTypes ? 'grid-cols-3 md:grid-cols-3' : 'grid-cols-3'}`}>
             {ALLDAY_TYPES.map(({ key, label, desc }) => (
               <button
                 key={key}
                 onClick={() => selectAndScroll(key)}
-                className={`group text-left rounded-xl p-6 transition-all duration-200 cursor-pointer border ${
+                className={`group text-left rounded-xl p-6 transition-all duration-200 cursor-pointer border h-full ${
                   selectedType === key
                     ? 'bg-orange/10 border-orange/40 shadow-[0_0_24px_rgba(255,72,0,0.1)]'
                     : 'bg-dark-card border-dark-border hover:border-orange/30 hover:bg-orange/[0.04]'
@@ -259,7 +259,7 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
                 }`}>
                   {label}
                 </span>
-                <span className="block text-[13px] text-white/30 leading-snug font-[family-name:var(--font-outfit)]">
+                <span className="block text-[13px] text-white/30 leading-snug font-[family-name:var(--font-outfit)] whitespace-pre-line">
                   {desc}
                 </span>
               </button>
@@ -269,15 +269,15 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
             {extraOutputTypes && extraOutputTypes.map(({ key, label, desc }) => (
               <div
                 key={key}
-                className="relative group text-left rounded-xl p-6 border bg-dark-card border-dark-border opacity-50 cursor-default"
+                className="relative text-left rounded-xl p-6 border bg-dark-card/60 border-dark-border/60 cursor-default h-full"
               >
-                <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide text-white/30 bg-white/[0.06] rounded-full px-2 py-0.5 font-[family-name:var(--font-outfit)]">
+                <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide text-orange/70 bg-orange/[0.08] border border-orange/20 rounded-full px-2 py-0.5 font-[family-name:var(--font-outfit)]">
                   In ontwikkeling
                 </span>
-                <span className="block text-[17px] font-semibold mb-2 text-white/50 font-[family-name:var(--font-outfit)]">
+                <span className="block text-[17px] font-semibold mb-2 text-white/75 font-[family-name:var(--font-outfit)]">
                   {label}
                 </span>
-                <span className="block text-[13px] text-white/20 leading-snug font-[family-name:var(--font-outfit)]">
+                <span className="block text-[13px] text-white/35 leading-snug font-[family-name:var(--font-outfit)]">
                   {desc}
                 </span>
               </div>

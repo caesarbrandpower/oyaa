@@ -19,7 +19,7 @@ const DEWOLVEN_CLIENTS = ['Algemeen', 'Woonbond', 'Patagonia', 'bol', 'Museumnac
 const DEWOLVEN_EXTRA_TYPES = [
   { key: 'dewolven-persbericht', label: 'Persbericht-aanzet', desc: 'Een eerste versie van een persbericht op basis van briefing of interview.' },
   { key: 'dewolven-artikel', label: 'Interview \u2192 artikel', desc: 'Van opgenomen interview naar artikel met opbouw en kernpunten.' },
-  { key: 'dewolven-klantdebrief', label: 'Klantdebrief', desc: 'Terugkoppeling na campagne of project, in heldere structuur.' },
+  { key: 'dewolven-campagnerapportage', label: 'Campagnerapportage', desc: 'Resultaten en lessen na een campagne, in heldere structuur.' },
   { key: 'dewolven-vertaling', label: 'Vertaling NL \u2192 EN', desc: 'Van Nederlandse tekst naar Engelse versie, in jullie toon.' },
 ]
 
