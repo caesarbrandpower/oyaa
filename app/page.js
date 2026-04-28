@@ -333,10 +333,11 @@ export default async function HomePage() {
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
-                    'Volledige bureau-omgeving met eigen subdomein en inlog',
-                    'Alle huidige documenttypes (samenvatting, briefing, debrief)',
-                    'Persoonlijke onboarding op maat van jullie werkwijze',
-                    'Alle toekomstige features inbegrepen',
+                    'Volledige bureau-omgeving met eigen subdomein en logo',
+                    'Drie standaard documenttypes: samenvatting, briefing, debrief',
+                    'Tot 5 gebruikers',
+                    'Onboarding waarin we Waybetter inrichten voor jullie bureau',
+                    'Toekomstige updates inbegrepen',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                       <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
@@ -373,9 +374,9 @@ export default async function HomePage() {
                     {[
                       'Alles van Waybetter Start',
                       'Bureau-eigen documenttypes (call sheets, persberichten, eigen formats)',
-                      'Tone-of-voice training op jullie schrijfstijl',
                       'Workflow-integraties (Drive, SharePoint, Notion)',
-                      'Meedenken over wat er nog meer voor jullie bureau mogelijk is',
+                      'Slim geheugen per klant en project',
+                      'Doorontwikkeling samen met jullie bureau',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                         <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30" />
