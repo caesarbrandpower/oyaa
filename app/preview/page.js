@@ -273,7 +273,7 @@ export default function PreviewPage() {
                   key={alt}
                   src={src}
                   alt={alt}
-                  className="h-7 w-auto object-contain grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                  className="h-7 w-auto object-contain brightness-0 opacity-40 hover:brightness-100 hover:opacity-100 transition-all duration-300"
                 />
               ))}
             </div>

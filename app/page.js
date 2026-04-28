@@ -157,7 +157,7 @@ export default async function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
             <div className="reveal mb-12">
-              <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-10">
+              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
                 <img
                   src="/icons/waybetter-icon.svg"
                   alt=""
@@ -169,7 +169,7 @@ export default async function HomePage() {
                     Heldere afspraken,<br />
                     vanaf de eerste meeting.
                   </h2>
-                  <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+                  <p className="text-text-muted text-base md:text-lg leading-relaxed">
                     Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
                   </p>
                 </div>
@@ -186,9 +186,9 @@ export default async function HomePage() {
                 { Icon: AlertCircle, title: 'Geen briefings meer\nwaar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
                 { Icon: TrendingUp, title: 'Werkt vandaag,\ngroeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-center gap-5 border border-dark-border rounded-lg p-5 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                <div key={title} className="flex items-center gap-4 border border-dark-border rounded-lg p-4 bg-dark-card hover:border-orange/40 transition-colors duration-200">
                   <div className="shrink-0">
-                    <Icon className="w-9 h-9 text-orange" strokeWidth={1.5} />
+                    <Icon className="w-7 h-7 text-orange" strokeWidth={1.5} />
                   </div>
                   <div>
                     <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1 whitespace-pre-line leading-snug">{title}</p>
@@ -297,7 +297,7 @@ export default async function HomePage() {
                   key={alt}
                   src={src}
                   alt={alt}
-                  className="h-7 w-auto object-contain grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                  className="h-7 w-auto object-contain brightness-0 opacity-40 hover:brightness-100 hover:opacity-100 transition-all duration-300"
                 />
               ))}
             </div>
