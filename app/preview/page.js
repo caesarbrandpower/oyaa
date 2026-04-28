@@ -82,29 +82,164 @@ export default function PreviewPage() {
         </div>
       </section>
 
-      {/* CLIENT LOGOS */}
-      <section className="bg-dark border-t border-dark-border">
-        <div className="max-w-5xl mx-auto px-6 py-10">
-          <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-white/25 mb-7 text-center">
-            Al in gebruik bij
-          </p>
-          <div className="flex items-center justify-center gap-10 md:gap-16 flex-wrap">
-            {[
-              { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
-              { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
-              { src: '/logos/de-wolven.svg', alt: 'De Wolven' },
-              { src: '/logos/newfound.svg', alt: 'Newfound' },
-            ].map(({ src, alt }) => (
-              <img
-                key={alt}
-                src={src}
-                alt={alt}
-                className="h-7 w-auto grayscale opacity-40 hover:grayscale-0 hover:opacity-80 transition-all duration-300"
-              />
-            ))}
+      {/* USP KAARTEN */}
+      <ScrollReveal>
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
+            <div className="reveal mb-14">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
+                Wat heb je aan Waybetter?
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
+              {/* Kaart 1 — Opnemen */}
+              <div className="reveal reveal-delay-1 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">Niets meer hoeven typen na een gesprek</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">Opnemen, transcriberen, klaar.</p>
+                  <p className="text-text-muted text-xs leading-relaxed">Audio, video-calls, presentaties of meetings op kantoor. Waybetter neemt op, transcribeert en verwerkt automatisch.</p>
+                </div>
+                <div className="mt-auto pt-2 flex flex-col items-center gap-3">
+                  <Mic className="w-9 h-9 text-orange opacity-90" strokeWidth={1.5} />
+                  <div className="flex items-end gap-[3px] h-7">
+                    {[3,6,4,9,5,11,4,7,5,8,3,6,5,10,4].map((h, i) => (
+                      <div key={i} className="w-[3px] rounded-full bg-orange/30" style={{ height: `${h * 2.2}px` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Kaart 2 — Documenten */}
+              <div className="reveal reveal-delay-2 bg-white border border-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1.5">Documenten die er meteen goed uitzien</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">In jullie format, in jullie toon.</p>
+                  <p className="text-text-sec text-xs leading-relaxed">Briefings, debriefs en samenvattingen, opgemaakt zoals jullie bureau ze maakt. Geen rommelig transcript dat je nog moet herschrijven.</p>
+                </div>
+                <div className="mt-auto pt-2 bg-warm border border-border rounded-xl p-4">
+                  <div className="h-2 bg-text/15 rounded w-2/3 mb-3" />
+                  <div className="h-px bg-border mb-3" />
+                  <div className="h-1.5 bg-text-muted/20 rounded w-full mb-1.5" />
+                  <div className="h-1.5 bg-text-muted/20 rounded w-5/6 mb-1.5" />
+                  <div className="h-1.5 bg-text-muted/20 rounded w-4/6 mb-3" />
+                  <div className="h-1.5 bg-text-muted/12 rounded w-full mb-1.5" />
+                  <div className="h-1.5 bg-text-muted/12 rounded w-3/4" />
+                </div>
+              </div>
+
+              {/* Kaart 3 — Labels */}
+              <div className="reveal reveal-delay-3 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">Geen briefings meer waar gaten in zitten</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">Waybetter wijst aan wat ontbreekt.</p>
+                  <p className="text-text-muted text-xs leading-relaxed">Geen scope-discussies halverwege. Waybetter markeert wat nog niet vastgelegd is.</p>
+                </div>
+                <div className="mt-auto pt-2 space-y-2.5">
+                  {[
+                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Exacte budget voor deze campagne?' },
+                    { tag: 'WIE GAAT DIT DOEN?', type: 'amber', text: 'Aanleveren campagne-uitingen.' },
+                    { tag: 'AFSTEMMEN MET KLANT', type: 'red', text: 'Gewenste opleverdatum?' },
+                  ].map(({ tag, type, text }, i) => (
+                    <div key={i} className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[8px] font-bold tracking-[0.08em] uppercase whitespace-nowrap ${
+                        type === 'red' ? 'bg-orange/10 text-orange ring-1 ring-orange/25' : 'bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/25'
+                      }`}>{tag}</span>
+                      <span className="text-white/35 text-[11px] leading-snug">{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Kaart 4 — Eigen omgeving */}
+              <div className="reveal reveal-delay-1 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">Een tool die voelt als jullie eigen tool</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">Eigen omgeving, eigen logo.</p>
+                  <p className="text-text-muted text-xs leading-relaxed">Eigen subdomein en logo. Voor jullie team voelt Waybetter als een interne tool, niet als een externe dienst.</p>
+                </div>
+                <div className="mt-auto pt-2">
+                  <div className="bg-black rounded-xl overflow-hidden border border-white/[0.08]">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-orange flex items-center justify-center shrink-0">
+                          <span className="text-white text-[8px] font-bold">A</span>
+                        </div>
+                        <span className="text-white/70 text-[10px] font-semibold tracking-wide">All Day Productions</span>
+                      </div>
+                      <span className="text-white/20 text-[9px]">powered by waybetter</span>
+                    </div>
+                    <div className="px-4 py-4">
+                      <div className="h-1.5 bg-white/10 rounded w-1/2 mb-2" />
+                      <div className="h-1 bg-white/5 rounded w-3/4 mb-4" />
+                      <div className="grid grid-cols-3 gap-2">
+                        {[1,2,3].map(i => <div key={i} className="h-8 bg-white/[0.04] border border-white/[0.07] rounded-lg" />)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kaart 5 — Privacy */}
+              <div className="reveal reveal-delay-2 bg-white border border-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-1.5">Klantgegevens blijven bij jullie</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">Privacy by design. AVG-compliant.</p>
+                  <p className="text-text-sec text-xs leading-relaxed">Namen, merknamen en bedragen worden gefilterd voordat AI ze ziet. DPA beschikbaar.</p>
+                </div>
+                <div className="mt-auto pt-2 space-y-2">
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.12em] uppercase text-text-muted mb-1.5">Jouw input</p>
+                    <div className="bg-warm border border-border rounded-lg px-3 py-2 text-[11px] text-text leading-snug">
+                      Erik van Coca-Cola. Budget: 180.000 euro.
+                    </div>
+                  </div>
+                  <div className="flex justify-center py-0.5">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="#FF4800" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold tracking-[0.12em] uppercase text-text-muted mb-1.5">Wat AI ziet</p>
+                    <div className="bg-warm border border-border rounded-lg px-3 py-2 text-[11px] text-text leading-snug">
+                      <span className="bg-orange text-white rounded px-1 py-0.5 text-[9px] font-semibold">[PERSOON_1]</span>
+                      {' '}van{' '}
+                      <span className="bg-orange text-white rounded px-1 py-0.5 text-[9px] font-semibold">[BEDRIJF_1]</span>
+                      {'. Budget: '}
+                      <span className="bg-orange text-white rounded px-1 py-0.5 text-[9px] font-semibold">[BEDRAG_1]</span>.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kaart 6 — Groeit */}
+              <div className="reveal reveal-delay-3 bg-[#111] border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
+                <div>
+                  <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">Vandaag werkend, morgen meer kunnen</p>
+                  <p className="text-[11px] font-semibold text-orange mb-3">Waybetter groeit met je mee.</p>
+                  <p className="text-text-muted text-xs leading-relaxed">Wat je nu krijgt blijft werken. Desktop-app, integraties en slimme tools komen erbij zonder extra kosten.</p>
+                </div>
+                <div className="mt-auto pt-2">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    {[
+                      { src: '/logos/integrations/google-drive.svg', alt: 'Google Drive' },
+                      { src: '/logos/integrations/sharepoint.svg', alt: 'SharePoint' },
+                      { src: '/logos/integrations/notion.svg', alt: 'Notion' },
+                      { src: '/logos/integrations/zoom.svg', alt: 'Zoom' },
+                      { src: '/logos/integrations/microsoft-teams.svg', alt: 'Teams' },
+                    ].map(({ src, alt }) => (
+                      <img key={alt} src={src} alt={alt} title={alt} className="h-5 w-5 grayscale opacity-35" />
+                    ))}
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="ml-1 opacity-40">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="#FF4800" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className="text-white/25 text-[10px]">Meer integraties volgen.</p>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </ScrollReveal>
 
       {/* CIJFERS */}
       <ScrollReveal>
@@ -149,53 +284,30 @@ export default function PreviewPage() {
         </section>
       </ScrollReveal>
 
-      {/* ROI BLOK */}
+      {/* ROI STATEMENT */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
-          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
-            <div className="reveal relative rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-[#0a0a0a]" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,72,0,0.12)_0%,transparent_70%)]" />
-              <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
-              <div className="relative p-8 md:p-12">
-                <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3.5vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-3">
-                  Wat kost dit jullie bureau elke maand?
-                </h2>
-                <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl mb-10">
-                  Een PM verliest gemiddeld 4 uur per week aan briefings opnieuw maken, scope-discussies en herwerk. Reken het door voor jullie bureau.
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                  {[
-                    { stat: '4 uur', label: 'Per week verloren, per PM' },
-                    { stat: '80 uur', label: 'Per maand voor 5 PM\'s' },
-                    { stat: '€6.800', label: 'Bij €85 uurtarief per maand' },
-                    { stat: '€81.600', label: 'Op jaarbasis' },
-                  ].map(({ stat, label }) => (
-                    <div
-                      key={stat}
-                      className="bg-white/[0.03] border border-orange/15 rounded-xl px-5 py-6 shadow-[0_0_16px_rgba(255,72,0,0.05)]"
-                    >
-                      <div className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,52px)] font-extrabold text-orange leading-none tracking-tight mb-2">
-                        {stat}
-                      </div>
-                      <p className="text-white/35 text-xs leading-snug">{label}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="font-[family-name:var(--font-lexend)] text-base md:text-lg font-bold text-white/80 mb-6 max-w-xl leading-snug">
-                  Waybetter kost €249 per maand. Eén voorkomen herbriefing verdient hem terug.
-                </p>
-                <a
-                  href={CTA_HREF}
-                  className="group h-11 px-7 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
-                >
-                  Reken het door voor jullie bureau
-                  <span className="arrow-icon inline-block">&#8594;</span>
-                </a>
-                <p className="mt-6 text-white/20 text-xs leading-relaxed max-w-2xl">
-                  Op basis van gemiddelden uit BetterBriefs-onderzoek en bureau-praktijk. We rekenen het samen door voor jullie situatie.
-                </p>
-              </div>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-3xl mx-auto px-6 py-16 md:py-20">
+            <div className="reveal">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3.5vw,36px)] font-extrabold text-text leading-tight tracking-tight mb-5">
+                Wat kost dit jullie bureau?
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-8">
+                Een PM verliest gemiddeld{' '}
+                <span className="text-orange font-semibold">4 uur per week</span>
+                {' '}aan briefings opnieuw maken. Bij een bureau van 5 PM&apos;s en €85 uurtarief loopt dat op tot{' '}
+                <span className="text-orange font-semibold">tienduizenden euro&apos;s per jaar</span>.
+              </p>
+              <a
+                href={CTA_HREF}
+                className="group h-11 px-7 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange hover:shadow-[0_6px_24px_rgba(255,72,0,0.3)] active:scale-[0.98] inline-flex items-center gap-2"
+              >
+                Reken het door voor jullie bureau
+                <span className="arrow-icon inline-block">&#8594;</span>
+              </a>
+              <p className="mt-5 text-text-muted text-xs">
+                Op basis van gemiddelden uit BetterBriefs-onderzoek en bureau-praktijk.
+              </p>
             </div>
           </div>
         </section>
@@ -235,55 +347,6 @@ export default function PreviewPage() {
         </section>
       </ScrollReveal>
 
-      {/* USP STATEMENT BLOK */}
-      <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
-          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
-            <div className="reveal mb-10 text-center">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
-                Wat krijgt jullie bureau<br />met Waybetter?
-              </h2>
-            </div>
-            <div className="reveal relative rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-[#0f0f0f]" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(255,72,0,0.09)_0%,transparent_70%)]" />
-              <div className="absolute inset-0 border border-white/[0.06] rounded-2xl pointer-events-none" />
-              <div className="relative p-8 md:p-12">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                  {[
-                    { Icon: FileText, title: 'Documenten', body: 'Briefings, debriefs, notulen, samenvattingen. En wat jullie bureau verder nodig heeft.' },
-                    { Icon: Shield, title: 'Privacy', body: 'Klantgegevens worden gefilterd voordat AI ze ziet. AVG-compliant.' },
-                    { Icon: Building2, title: 'Eigen omgeving', body: 'Eigen subdomein, logo en toon. Voelt als jullie eigen tool.' },
-                    { Icon: Workflow, title: 'Op maat', body: 'Bureau-eigen workflows, integraties, formats. Gebouwd op jullie manier.' },
-                  ].map(({ Icon, title, body }) => (
-                    <div
-                      key={title}
-                      className="bg-white/[0.03] border border-orange/20 rounded-xl px-5 py-5 shadow-[0_0_12px_rgba(255,72,0,0.06)]"
-                    >
-                      <Icon className="w-4 h-4 text-orange mb-3" strokeWidth={2} />
-                      <p className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-1.5">{title}</p>
-                      <p className="text-white/50 text-sm leading-relaxed">{body}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-lg">
-                  En dat is nog maar het begin. We bouwen Waybetter samen met jullie tot wat jullie bureau echt nodig heeft.
-                </p>
-                <div className="text-center">
-                  <a
-                    href={CTA_HREF}
-                    className="group h-12 px-10 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
-                  >
-                    Plan een gesprek
-                    <span className="arrow-icon inline-block">&#8594;</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
       {/* PROBLEEM */}
       <ScrollReveal>
         <section className="bg-warm border-t border-border">
@@ -306,31 +369,17 @@ export default function PreviewPage() {
       {/* OPLOSSING */}
       <ScrollReveal>
         <section className="bg-white border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-24">
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
-              <div>
-                <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-4">
-                  De oplossing
-                </span>
-                <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-5">
-                  Een aanpak voor<br />het hele bureau.
-                </h2>
-                <p className="text-text-sec text-base md:text-lg leading-relaxed">
-                  Waybetter is de manier waarop jullie samen met AI werken. Een plek waar opnames, aantekeningen en bestanden binnenkomen. Een plek waar bruikbare documenten uit rollen. In jullie toon, in jullie format. Iedereen bij jullie gebruikt dezelfde werkwijze.
-                </p>
-              </div>
-              <div>
-                <div className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10">
-                  <img
-                    src="/screenshots/screenshot-allday-homepage.png"
-                    alt="De bureau-omgeving van All Day Productions"
-                    className="w-full h-auto block"
-                  />
-                </div>
-                <p className="mt-3 text-text-muted text-xs leading-relaxed">
-                  De bureau-omgeving van All Day Productions. Eigen logo, eigen subdomein, eigen werkwijze.
-                </p>
-              </div>
+          <div className="max-w-3xl mx-auto px-6 py-24">
+            <div className="reveal">
+              <span className="inline-block text-[11px] font-semibold tracking-[0.16em] uppercase text-orange mb-4">
+                De oplossing
+              </span>
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-5">
+                Een aanpak voor<br />het hele bureau.
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed">
+                Waybetter is de manier waarop jullie samen met AI werken. Een plek waar opnames, aantekeningen en bestanden binnenkomen. Een plek waar bruikbare documenten uit rollen. In jullie toon, in jullie format. Iedereen bij jullie gebruikt dezelfde werkwijze.
+              </p>
             </div>
           </div>
         </section>
@@ -575,6 +624,34 @@ export default function PreviewPage() {
                   Klantgegevens worden gefilterd voordat AI ze ziet. Namen, merknamen en bedragen worden vervangen door placeholders. AVG-compliant. DPA beschikbaar.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* KLANTLOGO'S */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-16">
+            <div className="reveal text-center mb-10">
+              <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-text-muted">
+                Werken al met Waybetter
+              </p>
+            </div>
+            <div className="reveal flex flex-wrap justify-center items-center gap-10 md:gap-16">
+              {[
+                { src: '/logos/chase-logo.png', alt: 'Chase' },
+                { src: '/logos/all-day-logo.png', alt: 'All Day Productions' },
+                { src: '/logos/de-wolven-logo.png', alt: 'De Wolven' },
+                { src: '/logos/newfound-logo.png', alt: 'Newfound' },
+              ].map(({ src, alt }) => (
+                <img
+                  key={alt}
+                  src={src}
+                  alt={alt}
+                  className="h-7 w-auto object-contain grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                />
+              ))}
             </div>
           </div>
         </section>
