@@ -22,7 +22,8 @@ function formatTime(seconds) {
   return `${m}:${s}`;
 }
 
-export default function AllDayTranscriptForm({ logoUrl = null, clients = null, extraOutputTypes = null }) {
+export default function AllDayTranscriptForm({ logoUrl = null, clients = null, outputTypes = null, extraOutputTypes = null }) {
+  const activeTypes = outputTypes || ALLDAY_TYPES;
   const [transcript, setTranscript] = useState('');
   const [selectedClient, setSelectedClient] = useState(clients ? clients[0] : null);
   const [selectedType, setSelectedType] = useState(null);
@@ -244,7 +245,7 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
             Wat wil je vandaag maken?
           </p>
           <div className={`grid gap-4 items-stretch max-[580px]:grid-cols-1 ${extraOutputTypes ? 'grid-cols-3 md:grid-cols-3' : 'grid-cols-3'}`}>
-            {ALLDAY_TYPES.map(({ key, label, desc }) => (
+            {activeTypes.map(({ key, label, desc }) => (
               <button
                 key={key}
                 onClick={() => selectAndScroll(key)}
@@ -574,7 +575,7 @@ export default function AllDayTranscriptForm({ logoUrl = null, clients = null, e
 
             {/* Output type selector in form */}
             <div className="grid grid-cols-3 gap-2 max-[480px]:grid-cols-1">
-              {ALLDAY_TYPES.map(({ key, label }) => (
+              {activeTypes.map(({ key, label }) => (
                 <button
                   key={key}
                   onClick={() => setSelectedType(key)}

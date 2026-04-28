@@ -15,6 +15,12 @@ const AllDayTranscriptForm = nextDynamic(
 
 const DEWOLVEN_CLIENTS = ['Algemeen', 'Woonbond', 'Patagonia', 'bol', 'Museumnacht Amsterdam', 'Heineken Prizes']
 
+const DEWOLVEN_OUTPUT_TYPES = [
+  { key: 'allday-samenvatting', label: 'Samenvatting', desc: 'De kern van het gesprek,\ndirect helder.' },
+  { key: 'allday-briefing', label: 'Briefing', desc: 'Een heldere opdracht om mee aan de slag te gaan.' },
+  { key: 'allday-debrief', label: 'Debrief', desc: 'Een nette terugkoppeling met afspraken en actiepunten.' },
+]
+
 const DEWOLVEN_EXTRA_TYPES = [
   { key: 'dewolven-persbericht', label: 'Persbericht-aanzet', desc: 'Een eerste versie van een persbericht op basis van briefing of interview.' },
   { key: 'dewolven-artikel', label: 'Interview \u2192 artikel', desc: 'Van opgenomen interview naar artikel met opbouw en kernpunten.' },
@@ -54,8 +60,10 @@ export default function TryToolPage({ tenant }) {
           )}
 
           {isDeWolven ? (
-            <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,54px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
-              Van interview naar artikel.
+            <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(36px,6.5vw,68px)] font-extrabold leading-[1.06] tracking-[-0.025em] text-white mb-7">
+              Van interview
+              <br />
+              naar artikel.
               <br />
               <span className="text-orange">In seconden.</span>
             </h1>
@@ -87,6 +95,7 @@ export default function TryToolPage({ tenant }) {
         <AllDayTranscriptForm
           logoUrl={tenant?.logo_url || null}
           clients={DEWOLVEN_CLIENTS}
+          outputTypes={DEWOLVEN_OUTPUT_TYPES}
           extraOutputTypes={DEWOLVEN_EXTRA_TYPES}
         />
       ) : (
