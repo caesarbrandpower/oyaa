@@ -278,33 +278,6 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
-      {/* BEWIJS */}
-      <ScrollReveal>
-        <section className="bg-warm border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-14">
-            <div className="reveal text-center mb-8">
-              <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-text-muted">
-                Werken al met Waybetter
-              </p>
-            </div>
-            <div className="reveal flex flex-nowrap justify-center items-center gap-16 md:gap-20 max-w-[800px] mx-auto">
-              {[
-                { src: '/logos/chase-amsterdam.svg', alt: 'Chase Amsterdam' },
-                { src: '/logos/all-day-productions.svg', alt: 'All Day Productions' },
-                { src: '/logos/newfound.svg', alt: 'Newfound' },
-              ].map(({ src, alt }) => (
-                <img
-                  key={alt}
-                  src={src}
-                  alt={alt}
-                  className="h-10 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity duration-300"
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
       {/* PRIJS */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
