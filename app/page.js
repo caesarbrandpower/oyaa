@@ -292,17 +292,18 @@ export default async function HomePage() {
               </h2>
             </div>
             <div className="reveal mb-12">
-              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl" style={{ textWrap: 'balance' }}>
+              <p className="text-text-muted text-base md:text-lg leading-relaxed">
                 Begin met Waybetter Start. Groei door naar Custom: een bureau-agent die taken overneemt.
               </p>
             </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
               {/* Waybetter Start */}
-              <div className="relative bg-dark-card border border-dark-border rounded-2xl p-8 transition-all duration-300 hover:border-orange/30 hover:shadow-[0_0_40px_rgba(255,72,0,0.10)]">
-                <div className="inline-flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-6">
-                  <span className="w-1 h-1 rounded-full bg-white/40" />
-                  <span className="text-white/60 text-[11px] font-semibold tracking-wide">Snel beginnen</span>
+              <div className="group relative bg-dark-card border border-orange/40 rounded-2xl p-8 shadow-[0_0_60px_rgba(255,72,0,0.12)] overflow-hidden">
+                <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
+                <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
+                  <span className="w-1 h-1 rounded-full bg-orange" />
+                  <span className="text-orange text-[11px] font-semibold tracking-wide">Snel beginnen</span>
                 </div>
                 <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                   Waybetter Start
@@ -333,7 +334,7 @@ export default async function HomePage() {
                 </ul>
                 <a
                   href={CTA_HREF}
-                  className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
+                  className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
                 >
                   Plan een gesprek
                   <span className="arrow-icon inline-block">&#8594;</span>
@@ -341,13 +342,12 @@ export default async function HomePage() {
               </div>
 
               {/* Waybetter Custom */}
-              <div className="relative bg-dark-card border border-orange/40 rounded-2xl p-8 shadow-[0_0_50px_rgba(255,72,0,0.18)] overflow-hidden">
-                <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.07)_0%,transparent_70%)] pointer-events-none" />
+              <div className="group relative bg-dark-card border border-dark-border rounded-2xl p-8 transition-all duration-300 hover:border-orange/40 hover:shadow-[0_0_40px_rgba(255,72,0,0.15)] overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.05)_0%,transparent_70%)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="relative">
-                  <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
-                    <span className="w-1 h-1 rounded-full bg-orange" />
-                    <span className="text-orange text-[11px] font-semibold tracking-wide">Volledig op maat</span>
+                  <div className="inline-flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-6">
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="text-white/60 text-[11px] font-semibold tracking-wide">Volledig op maat</span>
                   </div>
                   <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                     Waybetter Custom
@@ -371,14 +371,14 @@ export default async function HomePage() {
                       'Werkt vandaag, groeit met jullie mee',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
-                        <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30" />
+                        <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30 group-hover:bg-orange transition-colors duration-300" />
                         {item}
                       </li>
                     ))}
                   </ul>
                   <a
                     href={CTA_HREF}
-                    className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
+                    className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2"
                   >
                     Plan een gesprek
                     <span className="arrow-icon inline-block">&#8594;</span>
@@ -428,7 +428,7 @@ export default async function HomePage() {
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <Icon className="w-7 h-7 text-orange mb-4 shrink-0" strokeWidth={1.5} />
+                  <Icon className="w-7 h-7 text-orange mb-6 shrink-0" strokeWidth={1.5} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
@@ -488,12 +488,15 @@ export default async function HomePage() {
               ))}
             </div>
 
-            <div className="reveal mt-10 flex justify-center">
+            <div className="reveal mt-12 text-center">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
+                Benieuwd wat Waybetter voor jullie bureau kan betekenen?
+              </p>
               <a
-                href="mailto:hello@newfound.agency?subject=Sparren%20over%20Waybetter"
+                href={CTA_HREF}
                 className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
               >
-                Spar met ons over jullie aanpak
+                Plan een gesprek
                 <span className="arrow-icon inline-block">&#8594;</span>
               </a>
             </div>
@@ -536,11 +539,6 @@ export default async function HomePage() {
                   </span>
                 </div>
               </div>
-            </div>
-            <div className="reveal mt-10 text-center">
-              <p className="text-white/30 text-sm leading-relaxed">
-                Gemaakt door bureaumensen, voor bureaumensen.
-              </p>
             </div>
           </div>
         </section>
