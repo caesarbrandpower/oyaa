@@ -315,7 +315,7 @@ export default async function HomePage() {
                   per maand
                 </p>
                 <p className="text-white/35 text-xs leading-relaxed mb-8">
-                  Geen opstartkosten. Maandelijks opzegbaar.
+                  Setup-fee in overleg. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
@@ -343,9 +343,9 @@ export default async function HomePage() {
               <div className="group relative bg-dark-card border border-dark-border rounded-2xl p-8 transition-all duration-300 hover:border-orange/40 hover:shadow-[0_0_40px_rgba(255,72,0,0.15)] overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.05)_0%,transparent_70%)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="relative">
-                  <div className="inline-flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-6">
-                    <span className="w-1 h-1 rounded-full bg-white/40" />
-                    <span className="text-white/60 text-[11px] font-semibold tracking-wide">Volledig op maat</span>
+                  <div className="inline-flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-6 group-hover:bg-orange/10 group-hover:border-orange/20 transition-colors duration-300">
+                    <span className="w-1 h-1 rounded-full bg-white/40 group-hover:bg-orange transition-colors duration-300" />
+                    <span className="text-white/60 text-[11px] font-semibold tracking-wide group-hover:text-orange transition-colors duration-300">Volledig op maat</span>
                   </div>
                   <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                     Waybetter Custom
@@ -364,7 +364,7 @@ export default async function HomePage() {
                       'Alles van Waybetter Start',
                       'Open vraagbaak in jullie tone of voice',
                       'Bureau-eigen documenttypes',
-                      'Koppelingen met jullie eigen tools',
+                      'Koppelingen met jullie eigen tools en software',
                       'Slim geheugen per klant en project',
                       'Werkt vandaag, groeit met jullie mee',
                     ].map((item) => (
