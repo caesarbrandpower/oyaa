@@ -149,12 +149,38 @@ export default async function HomePage() {
                       Bureau-kennis die niet vastligt
                     </h3>
                     <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                      Welke leverancier had de juiste vergunning? Wat was de tone of voice voor die klant? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
+                      Wat was de tone of voice voor die klant? Welke leverancier past het beste bij dit vraagstuk? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
                     </p>
                   </div>
                 </div>
               </div>
 
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* WAT WAYBETTER DOET */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-16 md:py-20">
+            <div className="reveal mb-8">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3vw,36px)] font-extrabold text-text leading-tight tracking-tight">
+                Wat Waybetter doet
+              </h2>
+            </div>
+            <div className="reveal flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-0 mb-10">
+              {['Sneller werken', 'Betere kwaliteit', 'Heldere afspraken'].map((item, i) => (
+                <div key={item} className="flex items-center gap-4">
+                  <span className="font-[family-name:var(--font-lexend)] text-[clamp(18px,2.5vw,26px)] font-extrabold text-orange leading-tight">{item}</span>
+                  {i < 2 && <span className="hidden sm:inline text-border text-2xl font-light mx-2">&#183;</span>}
+                </div>
+              ))}
+            </div>
+            <div className="reveal max-w-2xl">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed">
+                Voor jullie team, jullie klanten en jullie partners. Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
+              </p>
             </div>
           </div>
         </section>
@@ -190,7 +216,7 @@ export default async function HomePage() {
               {[
                 {
                   Icon: FileText,
-                  title: 'Documenten zonder gaten erin',
+                  title: 'Briefings binnen minuten klaar',
                   body: 'Briefings, debriefs en samenvattingen in jullie format en toon. Met markeringen die laten zien wat nog ontbreekt.',
                 },
                 {
@@ -257,7 +283,7 @@ export default async function HomePage() {
               {[
                 { nr: '01', title: 'Voeg je input toe.', body: 'Spreek in, neem een meeting op, plak een transcript van een video-call of upload een bestand. Aantekeningen tikken kan ook.', icons: [Mic, Video, FileUp, PenLine] },
                 { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten of gewoon een vraag stellen. Jij bepaalt het resultaat.' },
-                { nr: '03', title: 'Klaar voor gebruik.', body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
+                { nr: '03', title: 'Klaar in minuten.', body: 'Na een korte check direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
               ].map(({ nr, title, body, icons }, i) => (
                 <div
                   key={nr}
@@ -315,7 +341,7 @@ export default async function HomePage() {
                   per maand
                 </p>
                 <p className="text-white/35 text-xs leading-relaxed mb-8">
-                  Setup-fee in overleg. Maandelijks opzegbaar.
+                  Vanaf &#8364;0 setup-fee. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
