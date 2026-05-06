@@ -7,7 +7,7 @@ import ScrollReveal from '@/components/ScrollReveal'
 import { FileText, Shield, Database, Layers, Users, TrendingUp, AlertTriangle, LayoutGrid, Brain, Mic, Video, FileUp, PenLine, ShieldCheck, CheckCircle, Lock } from 'lucide-react'
 
 const DEFAULT_HOSTNAME = 'waybetter.nl'
-const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
+const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@waybetter.nl'
 
 export const metadata = {
   title: 'Waybetter. Made for agency people',
@@ -42,7 +42,7 @@ export default async function HomePage() {
             </span>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <a href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag" className="hidden sm:inline text-text-muted text-sm hover:text-white transition-colors">
+            <a href="mailto:hello@waybetter.nl?subject=Waybetter%20probeer%20aanvraag" className="hidden sm:inline text-text-muted text-sm hover:text-white transition-colors">
               Probeer het zelf
             </a>
             <a
@@ -74,7 +74,7 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
-           Eén werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
+            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -85,7 +85,7 @@ export default async function HomePage() {
               <span className="arrow-icon inline-block">&#8594;</span>
             </a>
             <a
-              href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag"
+              href="mailto:hello@waybetter.nl?subject=Waybetter%20probeer%20aanvraag"
               className="h-12 px-8 border-[1.5px] border-white/20 text-white/70 rounded-lg text-sm font-semibold transition-all hover:border-white/50 hover:text-white inline-flex items-center justify-center"
             >
               Probeer het zelf
@@ -232,7 +232,7 @@ export default async function HomePage() {
             {/* CTA */}
             <div className="reveal">
               <a
-                href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag"
+                href="mailto:hello@waybetter.nl?subject=Waybetter%20probeer%20aanvraag"
                 className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
               >
                 Probeer het zelf
