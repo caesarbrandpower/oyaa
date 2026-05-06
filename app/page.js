@@ -162,8 +162,11 @@ export default async function HomePage() {
 
       {/* WAT WAYBETTER DOET */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
-          <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
+        <section className="noise bg-dark border-t border-dark-border relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px]" style={{ background: 'radial-gradient(ellipse at center, rgba(255,72,0,0.10) 0%, rgba(255,72,0,0.04) 45%, transparent 70%)' }} />
+          </div>
+          <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-28">
             <div className="reveal mb-14">
               <div className="flex items-center gap-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange" />
@@ -174,11 +177,12 @@ export default async function HomePage() {
             </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
               {[
-                { title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
-                { title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
-                { title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
-              ].map(({ title, body }) => (
-                <div key={title}>
+                { nr: '01', title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
+                { nr: '02', title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
+                { nr: '03', title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
+              ].map(({ nr, title, body }) => (
+                <div key={nr}>
+                  <div className="font-[family-name:var(--font-lexend)] text-[clamp(52px,6vw,80px)] font-extrabold text-orange leading-none tracking-tight mb-5" style={{ opacity: 0.65 }}>{nr}</div>
                   <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-5">{title}</h3>
                   <p className="text-text-muted text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
                 </div>
@@ -218,19 +222,6 @@ export default async function HomePage() {
               ))}
             </div>
 
-            <div className="reveal mt-12 text-center">
-              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
-                Benieuwd wat Waybetter voor jullie bureau kan betekenen?
-              </p>
-              <a
-                href={CTA_HREF}
-                className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
-              >
-                Plan een gesprek
-                <span className="arrow-icon inline-block">&#8594;</span>
-              </a>
-            </div>
-
           </div>
         </section>
       </ScrollReveal>
@@ -250,7 +241,7 @@ export default async function HomePage() {
                 />
                 <div>
                   <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
-                    Heldere afspraken,<br />
+                    Alles op &#233;&#233;n plek,<br />
                     vanaf de eerste meeting.
                   </h2>
                   <p className="text-text-muted text-base md:text-lg leading-relaxed">
@@ -325,7 +316,7 @@ export default async function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-14">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight">
-                Hoe werkt het?
+                Zo werkt het.
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -461,10 +452,15 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="reveal mt-16 pt-12 border-t border-dark-border">
-              <p className="text-white/50 text-base md:text-lg leading-relaxed max-w-3xl">
-                Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
-              </p>
+            <div className="reveal mt-16">
+              <div className="bg-[#FFF4F0] rounded-2xl px-8 py-10 md:px-12 md:py-12">
+                <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(20px,2.5vw,28px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+                  Verdient zich snel terug.
+                </h3>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                  Een design-ronde minder, een briefing die niet over hoeft, een deadline zonder extra uren. Dat bespaart elke dag tijd, elke week uren.
+                </p>
+              </div>
             </div>
 
           </div>
