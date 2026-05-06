@@ -262,7 +262,7 @@ export default async function HomePage() {
                 {
                   Icon: Layers,
                   title: 'E&#233;n plek voor je bureau-werk',
-                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie tone of voice, klantcontext en bestaande tools.',
+                  body: 'Stel een vraag, krijg een antwoord dat jullie klanten en projecten kent. Geen tools wisselen meer.',
                 },
                 {
                   Icon: Database,
@@ -428,7 +428,7 @@ export default async function HomePage() {
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
                       'Alles van Waybetter Start',
-                      'Chatfunctie op basis van jullie bureau-kennis',
+                      'Een chatfunctie die jullie klanten, projecten en tone of voice kent',
                       'Bureau-eigen documenttypes',
                       'Koppelingen met jullie eigen tools en software',
                       'Slim geheugen per klant en project',
@@ -457,7 +457,7 @@ export default async function HomePage() {
                 Waybetter verdient zich snel terug.
               </p>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
-                Een design-ronde minder, een briefing die niet over hoeft, een deadline zonder extra uren. Dat bespaart elke dag tijd, elke week uren.
+                Reken maar uit: een meeting samengevat in minuten, een briefing die niet over hoeft, een design-ronde minder, een deadline zonder extra uren. Dat bespaart elke dag tijd, op elk niveau van je bureau.
               </p>
             </div>
 
