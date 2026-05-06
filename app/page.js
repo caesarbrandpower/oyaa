@@ -178,7 +178,7 @@ export default async function HomePage() {
             <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
               {[
                 { nr: '01', title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
-                { nr: '02', title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
+                { nr: '02', title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Minder fouten, betere output.' },
                 { nr: '03', title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
               ].map(({ nr, title, body }) => (
                 <div key={nr}>
@@ -452,15 +452,13 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="reveal mt-16">
-              <div className="bg-[#FFF4F0] rounded-2xl px-8 py-10 md:px-12 md:py-12">
-                <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(20px,2.5vw,28px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                  Verdient zich snel terug.
-                </h3>
-                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                  Een design-ronde minder, een briefing die niet over hoeft, een deadline zonder extra uren. Dat bespaart elke dag tijd, elke week uren.
-                </p>
-              </div>
+            <div className="reveal mt-20 pt-16 border-t border-dark-border">
+              <p className="font-[family-name:var(--font-lexend)] text-base font-semibold tracking-wide text-orange mb-4">
+                Waybetter verdient zich snel terug.
+              </p>
+              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+                Een design-ronde minder, een briefing die niet over hoeft, een deadline zonder extra uren. Dat bespaart elke dag tijd, elke week uren.
+              </p>
             </div>
 
           </div>
