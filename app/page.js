@@ -341,7 +341,7 @@ export default async function HomePage() {
                   per maand
                 </p>
                 <p className="text-white/35 text-xs leading-relaxed mb-8">
-                  Vanaf &#8364;0 setup-fee. Maandelijks opzegbaar.
+                  Setup-fee in overleg. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
