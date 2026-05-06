@@ -554,7 +554,7 @@ export default async function HomePage() {
                 Werk beter met Waybetter.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
-                We kennen jullie wereld. Waybetter is gemaakt door bureaumensen, voor bureaumensen. We sparren graag over wat jullie nodig hebben.
+                Waybetter is gemaakt door bureaumensen, voor bureaumensen. We sparren graag over wat jullie nodig hebben.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
