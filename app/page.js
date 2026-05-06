@@ -36,18 +36,18 @@ export default async function HomePage() {
             <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
               WAYBETTER
             </span>
-            <span className="text-white/25 text-[11px]">&#183;</span>
-            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-white/40">
+            <span className="hidden md:inline text-white/25 text-[11px]">&#183;</span>
+            <span className="hidden md:inline font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-white/40">
               MADE FOR AGENCY PEOPLE
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag" className="text-text-muted text-sm hover:text-white transition-colors">
+          <div className="flex items-center gap-2 md:gap-4">
+            <a href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag" className="hidden sm:inline text-text-muted text-sm hover:text-white transition-colors">
               Probeer het zelf
             </a>
             <a
               href={CTA_HREF}
-              className="group h-9 px-5 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center gap-2"
+              className="group h-9 px-4 md:px-5 bg-orange text-white rounded-lg text-xs md:text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center gap-1.5 md:gap-2"
             >
               Plan een gesprek
               <span className="arrow-icon inline-block">&#8594;</span>
@@ -74,7 +74,7 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n werkomgeving.
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-lg mb-12 leading-relaxed">
-            Waybetter brengt klantcontext, documenten en je tools samen op &#233;&#233;n plek. Van betere briefings naar een bureau-agent die met jullie meedenkt.
+            &#201;&#233;n werkomgeving voor je hele bureau. Documenten, klantkennis en je bestaande tools komen samen op &#233;&#233;n plek. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -99,7 +99,7 @@ export default async function HomePage() {
         <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
-            <div className="reveal mb-16">
+            <div className="reveal mb-8">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,64px)] font-extrabold text-text leading-tight tracking-tight mb-4">
                 Je kent het wel.
               </h2>
@@ -108,12 +108,12 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="reveal flex flex-col gap-12">
+            <div className="reveal flex flex-col gap-8 md:gap-12">
 
               {/* Pijn 1 */}
               <div className="border-t border-border pt-10">
                 <div className="flex items-start gap-4">
-                  <AlertTriangle className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <AlertTriangle className="w-7 h-7 text-orange shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
                       Slechte briefings, eindeloos herwerk
@@ -128,7 +128,7 @@ export default async function HomePage() {
               {/* Pijn 2 */}
               <div className="border-t border-border pt-10">
                 <div className="flex items-start gap-4">
-                  <LayoutGrid className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <LayoutGrid className="w-7 h-7 text-orange shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
                       Te veel losse tools, geen overzicht
@@ -143,7 +143,7 @@ export default async function HomePage() {
               {/* Pijn 3 */}
               <div className="border-t border-border pt-10">
                 <div className="flex items-start gap-4">
-                  <Brain className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <Brain className="w-7 h-7 text-orange shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
                       Bureau-kennis die niet vastligt
@@ -185,8 +185,8 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* 3 dominante voordelen */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* 6 gelijke voordelen — 3x2 grid */}
+            <div className="reveal grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-12">
               {[
                 {
                   Icon: FileText,
@@ -195,37 +195,35 @@ export default async function HomePage() {
                 },
                 {
                   Icon: Layers,
-                  title: 'Eén plek voor je bureau-werk',
-                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie klantcontext en bestaande tools.',
+                  title: '&#201;&#233;n plek voor je bureau-werk',
+                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie tone of voice, klantcontext en bestaande tools.',
                 },
                 {
                   Icon: Database,
-                  title: 'Kennis die wél blijft hangen',
+                  title: 'Kennis die w&#233;l blijft hangen',
                   body: 'Tone of voice, klanten, projecten, leveranciers. Waybetter onthoudt het, je hele team profiteert ervan.',
+                },
+                {
+                  Icon: Users,
+                  title: 'Eigen omgeving per bureau',
+                  body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.',
+                },
+                {
+                  Icon: Shield,
+                  title: 'Klantgegevens beschermd',
+                  body: 'Privacy-filtering voor AI. AVG-compliant.',
+                },
+                {
+                  Icon: TrendingUp,
+                  title: 'Werkt vandaag, groeit mee',
+                  body: 'Integraties en uitbreidingen erbij zonder extra kosten.',
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="flex flex-col gap-4 border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
                   <Icon className="w-6 h-6 text-orange shrink-0" strokeWidth={1.5} />
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-2 leading-snug">{title}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-2 leading-snug" dangerouslySetInnerHTML={{ __html: title }} />
                     <p className="text-text-muted text-sm leading-relaxed">{body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 3 ondersteunende voordelen */}
-            <div className="reveal grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
-              {[
-                { title: 'Eigen omgeving per bureau', body: 'Eigen subdomein en logo.' },
-                { title: 'Klantgegevens beschermd', body: 'Privacy-filtering. AVG-compliant.' },
-                { title: 'Werkt vandaag, groeit mee', body: 'Integraties en uitbreidingen erbij zonder extra kosten.' },
-              ].map(({ title, body }) => (
-                <div key={title} className="flex items-start gap-3 border border-dark-border/50 rounded-lg px-4 py-3 bg-dark-card/50">
-                  <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
-                  <div>
-                    <p className="text-white/80 text-sm font-semibold leading-snug mb-0.5">{title}</p>
-                    <p className="text-text-muted text-xs leading-relaxed">{body}</p>
                   </div>
                 </div>
               ))}
@@ -248,28 +246,28 @@ export default async function HomePage() {
 
       {/* HOE WERKT HET */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
+        <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-14">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight">
                 Hoe werkt het?
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { nr: '01', title: 'Voeg je input toe.', body: 'Aantekeningen, een opgenomen gesprek, een video-call, een bestand. Alles werkt.' },
+                { nr: '01', title: 'Voeg je input toe.', body: 'Spreek in, neem een meeting op, plak een transcript van een video-call of upload een bestand. Aantekeningen tikken kan ook.' },
                 { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten of gewoon een vraag stellen. Jij bepaalt het resultaat.' },
                 { nr: '03', title: 'Klaar voor gebruik.', body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
               ].map(({ nr, title, body }, i) => (
                 <div
                   key={nr}
-                  className={`reveal reveal-delay-${i + 1} group bg-dark-card border border-dark-border rounded-2xl p-7 hover:border-orange/40 transition-colors duration-300`}
+                  className={`reveal reveal-delay-${i + 1} group bg-white border border-border rounded-2xl p-7 hover:border-orange/40 transition-colors duration-300`}
                 >
                   <div className="w-9 h-9 rounded-full border border-orange/40 flex items-center justify-center mb-5 group-hover:border-orange transition-colors duration-300">
                     <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold text-orange">{nr}</span>
                   </div>
-                  <h3 className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-2 leading-snug">{title}</h3>
-                  <p className="text-text-muted text-sm leading-relaxed">{body}</p>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-base font-bold text-text mb-2 leading-snug">{title}</h3>
+                  <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
             </div>
@@ -288,7 +286,7 @@ export default async function HomePage() {
             </div>
             <div className="reveal mb-12">
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
-                Begin met Waybetter Start. Schaal door naar Custom als jullie er klaar voor zijn.
+                Begin met Waybetter Start. Groei door naar Custom: een bureau-agent die taken overneemt.
               </p>
             </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -318,6 +316,7 @@ export default async function HomePage() {
                     'Eigen subdomein en logo',
                     'Vijf gebruikers',
                     'Persoonlijke onboarding voor jullie team',
+                    'Geen opstartkosten',
                     'Maandelijks opzegbaar',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
@@ -358,9 +357,9 @@ export default async function HomePage() {
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
                       'Alles van Waybetter Start',
-                      'Open vraagbaak voor jullie bureau. Vragen stellen over klanten, projecten en leveranciers',
-                      'Bureau-eigen documenttypes. Call sheets, persberichten, designbriefings of wat jullie dagelijks maken',
-                      'Koppelingen met jullie eigen tools, zoals Drive, SharePoint, Notion of jullie eigen database',
+                      'Open vraagbaak in jullie tone of voice',
+                      'Bureau-eigen documenttypes',
+                      'Koppelingen met jullie eigen tools',
                       'Slim geheugen per klant en project',
                       'Werkt vandaag, groeit met jullie mee',
                     ].map((item) => (
@@ -393,13 +392,13 @@ export default async function HomePage() {
 
       {/* PRIVACY */}
       <ScrollReveal>
-        <section className="bg-warm border-t border-border">
+        <section className="noise bg-dark border-t border-dark-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
                 Privacy is geen bijzaak.
               </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
                 Bureau-data is gevoelig. Klanten, budgetten, strategie. Daar gaan we zorgvuldig mee om.
               </p>
             </div>
@@ -421,12 +420,12 @@ export default async function HomePage() {
                   body: 'Voor bureaus die met extra gevoelige data werken zijn er extra lagen mogelijk. Bespreken we in een gesprek.',
                 },
               ].map(({ nr, title, body }) => (
-                <div key={nr} className="border border-border rounded-xl p-6 bg-white">
-                  <div className="w-7 h-7 rounded-full border border-orange/30 flex items-center justify-center mb-4">
+                <div key={nr} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                  <div className="w-7 h-7 rounded-full border border-orange/40 flex items-center justify-center mb-4">
                     <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold text-orange">{nr}</span>
                   </div>
-                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
-                  <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
+                  <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
             </div>
@@ -523,6 +522,11 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+            <div className="reveal mt-10 text-center">
+              <p className="text-white/30 text-sm leading-relaxed">
+                Gemaakt door bureaumensen, voor bureaumensen.
+              </p>
+            </div>
           </div>
         </section>
       </ScrollReveal>
@@ -536,7 +540,7 @@ export default async function HomePage() {
                 Wil je beter werken<br />met Waybetter?
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
-                We kennen jullie wereld. We sparren graag over wat jullie nodig hebben.
+                We kennen jullie wereld. Waybetter is gemaakt door bureaumensen, voor bureaumensen. We sparren graag over wat jullie nodig hebben.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
