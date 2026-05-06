@@ -262,7 +262,7 @@ export default async function HomePage() {
                 {
                   Icon: Layers,
                   title: 'E&#233;n plek voor je bureau-werk',
-                  body: 'Stel een vraag, krijg een antwoord dat jullie klanten en projecten kent. Geen tools wisselen meer.',
+                  body: 'Stel een vraag, krijg een antwoord dat jullie klanten en projecten kent. Geen generieke AI die je elke keer opnieuw moet briefen.',
                 },
                 {
                   Icon: Database,
@@ -457,7 +457,7 @@ export default async function HomePage() {
                 Waybetter verdient zich snel terug.
               </p>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
-                Reken maar uit: een meeting samengevat in minuten, een briefing die niet over hoeft, een design-ronde minder, een deadline zonder extra uren. Dat bespaart elke dag tijd, op elk niveau van je bureau.
+                Reken maar uit: een meeting samengevat in minuten, een briefing zonder gaten, een design-ronde minder, een deadline zonder extra uren. Dat bespaart elke dag tijd, op elk niveau van je bureau.
               </p>
             </div>
 
