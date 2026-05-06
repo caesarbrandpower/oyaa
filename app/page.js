@@ -74,7 +74,7 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
-            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
+            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volledige bureau-agent.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -179,7 +179,7 @@ export default async function HomePage() {
                     vanaf de eerste meeting.
                   </h2>
                   <p className="text-text-muted text-base md:text-lg leading-relaxed">
-                    Waybetter is &#233;&#233;n werkomgeving voor je hele bureau. Documenten, vragen, klantcontext; allemaal op &#233;&#233;n plek. Werkt vandaag aan briefings, groeit mee tot een bureau-agent die met jullie tools praat.
+                    Waybetter is &#233;&#233;n werkomgeving voor je hele bureau. Documenten, vragen, klantcontext; allemaal op &#233;&#233;n plek. Werkt vandaag aan briefings, groeit mee tot een bureau-agent die meedenkt en met jullie tools praat.
                   </p>
                 </div>
               </div>
@@ -420,7 +420,7 @@ export default async function HomePage() {
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <Icon className="w-7 h-7 text-orange mb-7 shrink-0" strokeWidth={1.5} />
+                  <Icon className="w-7 h-7 text-orange mb-8 shrink-0" strokeWidth={1.5} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
@@ -542,7 +542,7 @@ export default async function HomePage() {
           <div className="max-w-3xl mx-auto px-6 py-28 text-center">
             <div className="reveal">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,5vw,56px)] font-extrabold text-text leading-tight tracking-tight mb-5">
-                Wil je beter werken<br />met Waybetter?
+                Werk beter met Waybetter.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
                 We kennen jullie wereld. Waybetter is gemaakt door bureaumensen, voor bureaumensen. We sparren graag over wat jullie nodig hebben.
