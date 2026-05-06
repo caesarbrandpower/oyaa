@@ -160,6 +160,81 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
+      {/* WAT WAYBETTER DOET */}
+      <ScrollReveal>
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
+            <div className="reveal mb-14">
+              <div className="flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange" />
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
+                  Wat Waybetter doet
+                </span>
+              </div>
+            </div>
+            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
+              {[
+                { title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
+                { title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
+                { title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
+              ].map(({ title, body }) => (
+                <div key={title}>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-5">{title}</h3>
+                  <p className="text-text-muted text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* VOOR ELK TYPE BUREAU */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-24">
+
+            <div className="reveal mb-10">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+                Voor elk type bureau.
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                Reclame, branding, productie, PR, activatie, design. Werk beter met Waybetter.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
+                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
+                { title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
+                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings.' },
+              ].map(({ title, body }, i) => (
+                <div
+                  key={title}
+                  className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-2xl p-5`}
+                >
+                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
+                  <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="reveal mt-12 text-center">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
+                Benieuwd wat Waybetter voor jullie bureau kan betekenen?
+              </p>
+              <a
+                href={CTA_HREF}
+                className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+              >
+                Plan een gesprek
+                <span className="arrow-icon inline-block">&#8594;</span>
+              </a>
+            </div>
+
+          </div>
+        </section>
+      </ScrollReveal>
+
       {/* WAT IS WAYBETTER */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
@@ -282,39 +357,6 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
-      {/* WAT WAYBETTER DOET */}
-      <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
-          <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-            <div className="reveal mb-14">
-              <div className="flex items-center gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange" />
-                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
-                  Wat Waybetter doet
-                </span>
-              </div>
-            </div>
-            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 mb-20">
-              {[
-                { title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
-                { title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
-                { title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
-              ].map(({ title, body }) => (
-                <div key={title}>
-                  <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-5">{title}</h3>
-                  <p className="text-text-muted text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
-                </div>
-              ))}
-            </div>
-            <div className="reveal border-t border-dark-border pt-16">
-              <p className="text-white/50 text-base md:text-lg leading-relaxed max-w-3xl">
-                Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
-              </p>
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
       {/* TWEE NIVEAUS */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
@@ -419,19 +461,25 @@ export default async function HomePage() {
               </div>
             </div>
 
+            <div className="reveal mt-16 pt-12 border-t border-dark-border">
+              <p className="text-white/50 text-base md:text-lg leading-relaxed max-w-3xl">
+                Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
+              </p>
+            </div>
+
           </div>
         </section>
       </ScrollReveal>
 
       {/* PRIVACY */}
       <ScrollReveal>
-        <section className="noise bg-dark border-t border-dark-border">
+        <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
             <div className="reveal mb-12">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight mb-4">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
                 Privacy is geen bijzaak.
               </h2>
-              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
                 Bureau-data is gevoelig. Klanten, budgetten, strategie. Daar gaan we zorgvuldig mee om.
               </p>
             </div>
@@ -453,60 +501,13 @@ export default async function HomePage() {
                   body: 'Voor bureaus die met extra gevoelige data werken zijn er extra lagen mogelijk. Bespreken we in een gesprek.',
                 },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                <div key={title} className="bg-white border border-border rounded-xl p-6 hover:border-orange/40 transition-colors duration-200">
                   <Icon className="w-7 h-7 text-orange shrink-0" style={{ marginBottom: '40px' }} strokeWidth={1.5} />
-                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
-                  <p className="text-text-muted text-sm leading-relaxed">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
-      {/* VOOR ELK TYPE BUREAU */}
-      <ScrollReveal>
-        <section className="bg-warm border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-24">
-
-            <div className="reveal mb-10">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                Voor elk type bureau.
-              </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Reclame, branding, productie, PR, activatie, design. Werk beter met Waybetter.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
-                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
-                { title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
-                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings.' },
-              ].map(({ title, body }, i) => (
-                <div
-                  key={title}
-                  className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-2xl p-5`}
-                >
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
                   <p className="text-text-sec text-sm leading-relaxed">{body}</p>
                 </div>
               ))}
             </div>
-
-            <div className="reveal mt-12 text-center">
-              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-6">
-                Benieuwd wat Waybetter voor jullie bureau kan betekenen?
-              </p>
-              <a
-                href={CTA_HREF}
-                className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
-              >
-                Plan een gesprek
-                <span className="arrow-icon inline-block">&#8594;</span>
-              </a>
-            </div>
-
           </div>
         </section>
       </ScrollReveal>
