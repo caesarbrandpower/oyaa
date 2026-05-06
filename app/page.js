@@ -362,7 +362,7 @@ export default async function HomePage() {
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
                       'Alles van Waybetter Start',
-                      'Open vraagbaak in jullie tone of voice',
+                      'Chatfunctie op basis van jullie bureau-kennis',
                       'Bureau-eigen documenttypes',
                       'Koppelingen met jullie eigen tools en software',
                       'Slim geheugen per klant en project',
