@@ -47,7 +47,7 @@ export default async function HomePage() {
             </a>
             <a
               href={CTA_HREF}
-              className="group h-9 px-4 md:px-5 bg-orange text-white rounded-lg text-xs md:text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center gap-1.5 md:gap-2"
+              className="h-9 px-4 md:px-5 bg-orange text-white rounded-lg text-xs md:text-sm font-semibold transition-all hover:bg-orange-hover shadow-orange inline-flex items-center gap-1.5 md:gap-2"
             >
               Plan een gesprek
               <span className="arrow-icon inline-block">&#8594;</span>
@@ -74,12 +74,12 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
-            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen.
+            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
               href={CTA_HREF}
-              className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+              className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
             >
               Plan een gesprek
               <span className="arrow-icon inline-block">&#8594;</span>
@@ -233,7 +233,7 @@ export default async function HomePage() {
             <div className="reveal">
               <a
                 href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag"
-                className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+                className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
               >
                 Probeer het zelf
                 <span className="arrow-icon inline-block">&#8594;</span>
@@ -311,11 +311,11 @@ export default async function HomePage() {
                 <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
                   &#8364;249
                 </div>
-                <p className="text-text-muted text-sm mb-2">
+                <p className="text-text-muted text-sm mb-1">
                   per maand
                 </p>
-                <p className="text-text-muted text-sm mb-8">
-                  Voor bureaus die snel willen starten zonder maatwerk.
+                <p className="text-white/35 text-xs leading-relaxed mb-8">
+                  Geen opstartkosten. Maandelijks opzegbaar.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
@@ -323,8 +323,6 @@ export default async function HomePage() {
                     'Eigen subdomein en logo',
                     'Vijf gebruikers',
                     'Persoonlijke onboarding voor jullie team',
-                    'Geen opstartkosten',
-                    'Maandelijks opzegbaar',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                       <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
@@ -355,11 +353,11 @@ export default async function HomePage() {
                   <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
                     vanaf &#8364;499
                   </div>
-                  <p className="text-text-muted text-sm mb-2">
+                  <p className="text-text-muted text-sm mb-1">
                     per maand
                   </p>
-                  <p className="text-text-muted text-sm mb-8">
-                    Een bureau-agent die met jullie werkwijze meedenkt.
+                  <p className="text-white/35 text-xs leading-relaxed mb-8">
+                    Setup-fee in overleg. Maandelijks opzegbaar.
                   </p>
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
@@ -387,12 +385,6 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Ondersteunende tekst */}
-            <div className="reveal reveal-delay-2 mt-8">
-              <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl">
-                Setup-fee voor Custom bespreken we in een gesprek. Maandelijks opzegbaar.
-              </p>
-            </div>
           </div>
         </section>
       </ScrollReveal>
@@ -428,7 +420,7 @@ export default async function HomePage() {
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <Icon className="w-7 h-7 text-orange mb-6 shrink-0" strokeWidth={1.5} />
+                  <Icon className="w-7 h-7 text-orange mb-8 shrink-0" strokeWidth={1.5} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
@@ -494,7 +486,7 @@ export default async function HomePage() {
               </p>
               <a
                 href={CTA_HREF}
-                className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+                className="h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
               >
                 Plan een gesprek
                 <span className="arrow-icon inline-block">&#8594;</span>
@@ -558,7 +550,7 @@ export default async function HomePage() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href={CTA_HREF}
-                  className="group h-12 px-10 bg-orange text-white rounded-lg text-base font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+                  className="h-12 px-10 bg-orange text-white rounded-lg text-base font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
                 >
                   Plan een gesprek
                   <span className="arrow-icon inline-block">&#8594;</span>
