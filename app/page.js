@@ -421,7 +421,7 @@ export default async function HomePage() {
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <Icon className="w-7 h-7 text-orange mb-8 shrink-0" strokeWidth={1.5} />
+                  <Icon className="w-7 h-7 text-orange shrink-0" style={{ marginBottom: '40px' }} strokeWidth={1.5} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
