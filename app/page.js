@@ -293,7 +293,7 @@ export default async function HomePage() {
             </div>
             <div className="reveal mb-12">
               <p className="text-text-muted text-base md:text-lg leading-relaxed">
-                Begin met Waybetter Start. Groei door naar Custom: een bureau-agent die taken overneemt.
+                Begin met Waybetter Start. Groei door naar Waybetter Custom: een volledige bureau-agent die meedenkt, vragen beantwoordt en taken overneemt.
               </p>
             </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
