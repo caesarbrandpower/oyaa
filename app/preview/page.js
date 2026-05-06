@@ -5,7 +5,7 @@ import ScrollReveal from '@/components/ScrollReveal'
 import CountUp from '@/components/CountUp'
 import { FileText, Shield, Mic, LayoutTemplate, Workflow, TrendingUp, AlertCircle } from 'lucide-react'
 
-const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
+const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@waybetter.nl'
 
 export const metadata = {
   title: 'Waybetter Preview',
