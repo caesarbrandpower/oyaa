@@ -74,7 +74,7 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
-            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volledige bureau-agent.
+            E&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen. Vandaag voor betere briefings, morgen een volledige bureau-agent.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -195,7 +195,7 @@ export default async function HomePage() {
                 },
                 {
                   Icon: Layers,
-                  title: '&#201;&#233;n plek voor je bureau-werk',
+                  title: 'E&#233;n plek voor je bureau-werk',
                   body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie tone of voice, klantcontext en bestaande tools.',
                 },
                 {
