@@ -4,15 +4,14 @@ import Link from 'next/link'
 import TryToolPage from '@/components/TryToolPage'
 import { getTenant } from '@/lib/get-tenant'
 import ScrollReveal from '@/components/ScrollReveal'
-import CountUp from '@/components/CountUp'
-import { FileText, Shield, Mic, LayoutTemplate, Workflow, TrendingUp, AlertCircle } from 'lucide-react'
+import { FileText, Shield, Database, Layers, Users, TrendingUp } from 'lucide-react'
 
 const DEFAULT_HOSTNAME = 'waybetter.nl'
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
 
 export const metadata = {
   title: 'Waybetter. Made for agency people',
-  description: 'Waybetter zet gesprekken om in briefings, debriefs, notulen en samenvattingen. Helder vastgelegd, intern en extern. In jullie format, in jullie toon.',
+  description: 'Waybetter brengt klantcontext, documenten en je bestaande tools samen op één plek. Begin met betere briefings, groei door naar een bureau-agent die met jullie werkwijze meedenkt.',
 }
 
 export const viewport = {
@@ -71,12 +70,12 @@ export default async function HomePage() {
             </span>
           </div>
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(48px,8vw,100px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
-            Van aantekening<br />
-            naar briefing.<br />
-            <span className="text-orange italic">In seconden.</span>
+            Van losse tools<br />
+            naar&#160;&#233;&#233;n<br />
+            <span className="text-orange italic">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-lg mb-12 leading-relaxed">
-            Waybetter zet gesprekken om in briefings, debriefs, notulen en samenvattingen. Helder vastgelegd, intern en extern. In jullie format, in jullie toon.
+            Waybetter brengt klantcontext, documenten en je bestaande tools samen op &#233;&#233;n plek. Begin met betere briefings, groei door naar een bureau-agent die met jullie werkwijze meedenkt.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -101,52 +100,52 @@ export default async function HomePage() {
         <section className="bg-warm border-t border-border">
           <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
 
-            {/* Bovenste deel — herkenning */}
-            <div className="reveal mb-16 md:mb-20">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,64px)] font-extrabold text-text leading-tight tracking-tight mb-6">
+            <div className="reveal mb-16">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(36px,5.5vw,64px)] font-extrabold text-text leading-tight tracking-tight mb-4">
                 Je kent het wel.
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. De briefing is gemaakt, maar er zitten gaten in. Dingen die niet besproken zijn, of half. Aan het eind van het project ben je twee discussies en drie correctierondes verder.
+                Drie dingen die elk bureau herkent.
               </p>
             </div>
 
-            {/* Onderste deel — cijfer-bevestiging */}
-            <div className="reveal border-t border-border pt-12 md:pt-16">
-              <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.16em] uppercase text-orange mb-6">
-                Onderzoek bevestigt het.
-              </p>
+            <div className="reveal flex flex-col gap-12">
 
-              {/* Groot ankercijfer */}
-              <div className="mb-6">
-                <div className="font-[family-name:var(--font-lexend)] text-[clamp(80px,14vw,120px)] font-extrabold text-orange leading-none tracking-[-0.03em]">
-                  33%
-                </div>
-                <p className="text-text text-xl md:text-2xl font-semibold mt-2 max-w-xl leading-snug">
-                  Verloren aan slechte briefings.
+              {/* Pijn 1 */}
+              <div className="border-t border-border pt-10">
+                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
+                  Slechte briefings, eindeloos herwerk
+                </h3>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-4">
+                  Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. Briefings met gaten, scope-discussies halverwege, correctierondes aan het eind.
+                </p>
+                <p className="text-text-muted text-sm leading-relaxed max-w-xl">
+                  33% van het marketingbudget gaat verloren aan slechte briefings. Een PM is gemiddeld 4&#160;uur per week kwijt aan dit soort gedoe.{' '}
+                  <span className="text-text-muted/60">Bron: BetterBriefs Project, internationaal onderzoek.</span>
                 </p>
               </div>
 
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-8">
-                <span className="font-semibold text-text">80%</span> van marketeers denkt goed te briefen, maar slechts{' '}
-                <span className="font-semibold text-text">10%</span> van bureaus is het daarmee eens.{' '}
-                <span className="font-semibold text-text">75%</span> van bureaus zegt dat hun laatste drie briefings niet goed genoeg waren.
-              </p>
+              {/* Pijn 2 */}
+              <div className="border-t border-border pt-10">
+                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
+                  Te veel losse tools, geen overzicht
+                </h3>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                  Klantgegevens in Drive. Briefings in Word. AI in een browser-tab. Notulen in Notion. Planning in een ander systeem. Mensen kopi&#235;ren, plakken, verliezen context. Wat &#233;&#233;n plek had moeten zijn, is een verzameling losse eilandjes.
+                </p>
+              </div>
 
-              <p className="text-text-sec text-sm md:text-base leading-relaxed mb-2">
-                Een Project Manager of Account Manager is gemiddeld 4 uur per week kwijt aan dit soort gedoe. Zonde.
-              </p>
-              <p className="text-text-sec text-sm md:text-base leading-relaxed mb-6">
-                <a href={CTA_HREF} className="text-orange hover:text-orange-hover transition-colors underline underline-offset-2">
-                  Benieuwd wat Waybetter kan besparen? &#8594;
-                </a>
-              </p>
+              {/* Pijn 3 */}
+              <div className="border-t border-border pt-10">
+                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
+                  Bureau-kennis die niet vastligt
+                </h3>
+                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                  Welke locatie hebben we vorig jaar gebruikt? Wie was de leverancier met de juiste vergunning? Wat was de tone of voice voor die klant? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
+                </p>
+              </div>
 
-              <p className="text-text-muted text-xs">
-                Bron: BetterBriefs Project, internationaal onderzoek onder marketeers en bureaus.
-              </p>
             </div>
-
           </div>
         </section>
       </ScrollReveal>
@@ -170,29 +169,53 @@ export default async function HomePage() {
                     vanaf de eerste meeting.
                   </h2>
                   <p className="text-text-muted text-base md:text-lg leading-relaxed">
-                    Waybetter neemt op, verwerkt, en levert documenten die er meteen goed uitzien. In jullie format, in jullie toon. Met markeringen die laten zien wat nog ontbreekt.
+                    Waybetter is &#233;&#233;n werkomgeving voor je hele bureau. Documenten, vragen, klantcontext; allemaal op &#233;&#233;n plek. Werkt vandaag aan briefings, groeit mee tot een bureau-agent die met jullie tools praat.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Zes voordelen in twee kolommen */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-12">
+            {/* 3 dominante voordelen */}
+            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {[
-                { Icon: Mic, title: 'Niets meer\nhoeven typen', body: 'Audio, video-calls, presentaties of meetings op kantoor.' },
-                { Icon: LayoutTemplate, title: 'Eigen omgeving\nper bureau', body: 'Eigen subdomein en logo. Voelt als jullie eigen tool.' },
-                { Icon: FileText, title: 'Documenten die er\nmeteen goed uitzien', body: 'Briefings en debriefs in jullie format, in jullie toon.' },
-                { Icon: Shield, title: 'Klantgegevens\nbeschermd', body: 'Privacy-filtering voor AI. AVG-compliant.' },
-                { Icon: AlertCircle, title: 'Geen briefings meer\nwaar gaten in zitten', body: 'Waybetter wijst aan wat nog ontbreekt.' },
-                { Icon: TrendingUp, title: 'Werkt vandaag,\ngroeit mee', body: 'Desktop-app en integraties komen erbij zonder extra kosten.' },
+                {
+                  Icon: FileText,
+                  title: 'Documenten zonder gaten erin',
+                  body: 'Briefings, debriefs en samenvattingen in jullie format en toon. Met markeringen die laten zien wat nog ontbreekt.',
+                },
+                {
+                  Icon: Layers,
+                  title: 'Eén plek voor je bureau-werk',
+                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie tone of voice, klantcontext en bestaande tools.',
+                },
+                {
+                  Icon: Database,
+                  title: 'Kennis die wél blijft hangen',
+                  body: 'Tone of voice, klanten, projecten, leveranciers. Waybetter onthoudt het, je hele team profiteert ervan.',
+                },
               ].map(({ Icon, title, body }) => (
-                <div key={title} className="flex items-center gap-4 border border-dark-border rounded-lg p-4 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <div className="shrink-0">
-                    <Icon className="w-7 h-7 text-orange" strokeWidth={1.5} />
-                  </div>
+                <div key={title} className="flex flex-col gap-4 border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                  <Icon className="w-6 h-6 text-orange shrink-0" strokeWidth={1.5} />
                   <div>
-                    <p className="font-[family-name:var(--font-lexend)] text-base font-semibold text-white mb-1 whitespace-pre-line leading-snug">{title}</p>
+                    <p className="font-[family-name:var(--font-lexend)] text-base font-bold text-white mb-2 leading-snug">{title}</p>
                     <p className="text-text-muted text-sm leading-relaxed">{body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 3 ondersteunende voordelen */}
+            <div className="reveal grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
+              {[
+                { title: 'Eigen omgeving per bureau', body: 'Eigen subdomein en logo.' },
+                { title: 'Klantgegevens beschermd', body: 'Privacy-filtering. AVG-compliant.' },
+                { title: 'Werkt vandaag, groeit mee', body: 'Integraties en uitbreidingen erbij zonder extra kosten.' },
+              ].map(({ title, body }) => (
+                <div key={title} className="flex items-start gap-3 border border-dark-border/50 rounded-lg px-4 py-3 bg-dark-card/50">
+                  <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
+                  <div>
+                    <p className="text-white/80 text-sm font-semibold leading-snug mb-0.5">{title}</p>
+                    <p className="text-text-muted text-xs leading-relaxed">{body}</p>
                   </div>
                 </div>
               ))}
@@ -224,8 +247,8 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { nr: '01', title: 'Voeg je input toe.', body: 'Aantekeningen, een opgenomen gesprek, een video call, een bestand. Alles werkt.' },
-                { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten. Jij bepaalt het resultaat.' },
+                { nr: '01', title: 'Voeg je input toe.', body: 'Aantekeningen, een opgenomen gesprek, een video-call, een bestand. Alles werkt.' },
+                { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten of gewoon een vraag stellen. Jij bepaalt het resultaat.' },
                 { nr: '03', title: 'Klaar voor gebruik.', body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
               ].map(({ nr, title, body }, i) => (
                 <div
@@ -244,73 +267,48 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
-      {/* JULLIE BUREAU */}
-      <ScrollReveal>
-        <section className="bg-warm border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-24">
-
-            <div className="reveal mb-10">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
-                Voor elk type bureau.
-              </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                Reclame, branding, productie, PR, activatie, design. Werk beter met Waybetter.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { title: 'Reclame- en brandingbureaus', body: 'Van klantgesprek naar campagne-evaluatie.' },
-                { title: 'Activatie- en eventbureaus', body: 'Van meeting naar briefing zonder handmatig uitwerken.' },
-                { title: 'PR- en communicatiebureaus', body: 'Persberichten, debriefs en klantrapportages.' },
-                { title: 'Productiebureaus', body: 'Call sheets, backplanningen en leveranciersbriefings.' },
-              ].map(({ title, body }, i) => (
-                <div
-                  key={title}
-                  className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-2xl p-5`}
-                >
-                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
-                  <p className="text-text-sec text-sm leading-relaxed">{body}</p>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </section>
-      </ScrollReveal>
-
-      {/* PRIJS */}
+      {/* TWEE NIVEAUS */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
           <div className="max-w-5xl mx-auto px-6 py-24">
-            <div className="reveal mb-12">
+            <div className="reveal mb-4">
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-white leading-tight tracking-tight">
-                Kies wat bij jullie bureau past.
+                Twee niveaus van Waybetter.
               </h2>
             </div>
+            <div className="reveal mb-12">
+              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+                Begin met Waybetter Start. Schaal door naar Custom als jullie er klaar voor zijn.
+              </p>
+            </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* Pakket 1: Waybetter Start */}
+
+              {/* Waybetter Start */}
               <div className="relative bg-dark-card border border-orange/20 rounded-2xl p-8 shadow-[0_0_60px_rgba(255,72,0,0.08)]">
                 <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
                 <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
                   <span className="w-1 h-1 rounded-full bg-orange" />
-                  <span className="text-orange text-[11px] font-semibold tracking-wide">Geen verrassingen</span>
+                  <span className="text-orange text-[11px] font-semibold tracking-wide">Snel beginnen</span>
                 </div>
                 <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                   Waybetter Start
                 </p>
                 <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
-                  249 euro
+                  &#8364;249
                 </div>
+                <p className="text-text-muted text-sm mb-2">
+                  per maand
+                </p>
                 <p className="text-text-muted text-sm mb-8">
-                  Per maand. Inclusief 5 gebruikers. Geen opstartkosten. Maandelijks opzegbaar.
+                  Voor bureaus die snel willen starten zonder maatwerk.
                 </p>
                 <ul className="border-t border-dark-border pt-6 space-y-3 mb-8">
                   {[
-                    'Volledige bureau-omgeving met eigen subdomein en logo',
-                    'Drie standaard documenttypes: samenvatting, briefing, debrief',
-                    'Inclusief 5 gebruikers',
-                    'Onboarding waarin we Waybetter inrichten voor jullie bureau',
-                    'Toekomstige updates inbegrepen',
+                    'Drie standaard documenttypes: briefing, samenvatting, debrief',
+                    'Eigen subdomein en logo',
+                    'Vijf gebruikers',
+                    'Persoonlijke onboarding voor jullie team',
+                    'Maandelijks opzegbaar',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                       <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-orange" />
@@ -326,7 +324,8 @@ export default async function HomePage() {
                   <span className="arrow-icon inline-block">&#8594;</span>
                 </a>
               </div>
-              {/* Pakket 2: Waybetter Custom */}
+
+              {/* Waybetter Custom */}
               <div className="relative bg-[#0f0f0f] border border-white/[0.08] rounded-2xl p-8 shadow-[0_0_80px_rgba(255,72,0,0.05)] overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.06)_0%,transparent_70%)] pointer-events-none" />
                 <div className="relative">
@@ -338,16 +337,20 @@ export default async function HomePage() {
                     Waybetter Custom
                   </p>
                   <div className="font-[family-name:var(--font-lexend)] text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-1">
-                    vanaf 499 euro
+                    vanaf &#8364;499
                   </div>
+                  <p className="text-text-muted text-sm mb-2">
+                    per maand
+                  </p>
                   <p className="text-text-muted text-sm mb-8">
-                    Setup in overleg. Maandelijks opzegbaar.
+                    Een bureau-agent die met jullie werkwijze meedenkt.
                   </p>
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
                       'Alles van Waybetter Start',
-                      'Bureau-eigen documenttypes (call sheets, persberichten, eigen formats)',
-                      'Workflow-integraties (Drive, SharePoint, Notion)',
+                      'Open vraagbaak in jullie tone of voice. Vragen stellen over klanten, projecten en leveranciers',
+                      'Bureau-eigen documenttypes. Call sheets, persberichten, designbriefings of wat jullie dagelijks maken',
+                      'Koppelingen met jullie eigen tools, zoals Drive, SharePoint, Notion of jullie eigen database',
                       'Slim geheugen per klant en project',
                       'Doorontwikkeling samen met jullie bureau',
                     ].map((item) => (
@@ -367,13 +370,151 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="reveal reveal-delay-2 mt-8">
-              <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl mb-2">
-                Setup-fee voor Custom bespreken we in een gesprek, op basis van wat we voor jullie bouwen.
-              </p>
+
+            {/* Ondersteunende tekst */}
+            <div className="reveal reveal-delay-2 mt-8 space-y-3">
               <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl">
-                Extra gebruikers per maand bij te boeken. Bespreken we in een gesprek.
+                Setup-fee voor Custom bespreken we in een gesprek, op basis van wat we voor jullie bouwen. Maandelijks opzegbaar is een bewuste keuze. Tevreden klanten gaan niet weg.
               </p>
+              <p className="text-text-muted/60 text-sm leading-relaxed max-w-2xl border-t border-dark-border/50 pt-4">
+                Waybetter werkt het beste als jullie bureau structureel informatie vastlegt. Geen extra werk, gewoon beter werk.
+              </p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* PRIVACY */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-24">
+            <div className="reveal mb-12">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+                Privacy is geen bijzaak.
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                Bureau-data is gevoelig. Klanten, budgetten, strategie. Daar gaan we zorgvuldig mee om.
+              </p>
+            </div>
+            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  nr: '01',
+                  title: 'Filtering voordat AI het ziet',
+                  body: 'Persoonsnamen, contactgegevens en bedragen worden gefilterd voordat AI ze leest. Het AI model krijgt genoeg context om bruikbaar te werken, niet meer dan nodig.',
+                },
+                {
+                  nr: '02',
+                  title: 'AVG-compliant',
+                  body: 'Verwerkersovereenkomst beschikbaar. Data binnen Europa. Geen training op jullie data.',
+                },
+                {
+                  nr: '03',
+                  title: 'Extra zekerheid mogelijk',
+                  body: 'Voor bureaus die met extra gevoelige data werken zijn er extra lagen mogelijk. Bespreken we in een gesprek.',
+                },
+              ].map(({ nr, title, body }) => (
+                <div key={nr} className="border border-border rounded-xl p-6 bg-white">
+                  <div className="w-7 h-7 rounded-full border border-orange/30 flex items-center justify-center mb-4">
+                    <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold text-orange">{nr}</span>
+                  </div>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
+                  <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* VOOR ELK TYPE BUREAU */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-24">
+
+            <div className="reveal mb-10">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight mb-4">
+                Voor elk type bureau.
+              </h2>
+              <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                Reclame, branding, productie, PR, activatie, design. Werk beter met Waybetter.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                {
+                  title: 'Reclame- en brandingbureaus',
+                  body: 'Van klantgesprek naar campagne-evaluatie.',
+                  quote: 'Een uur klantgesprek wordt binnen &#233;&#233;n minuut een nette samenvatting plus actiepunten.',
+                },
+                {
+                  title: 'Activatie- en eventbureaus',
+                  body: 'Van meeting naar briefing zonder handmatig uitwerken.',
+                  quote: 'Een PM vraagt: tien locaties in Noord-Holland in juni. Waybetter haalt ze op uit jullie eigen database.',
+                },
+                {
+                  title: 'PR- en communicatiebureaus',
+                  body: 'Persberichten, debriefs en klantrapportages.',
+                  quote: 'Een persbericht in jullie tone of voice, op basis van de eerste klantmail.',
+                },
+                {
+                  title: 'Productiebureaus',
+                  body: 'Call sheets, backplanningen en leveranciersbriefings.',
+                  quote: 'Een nieuwe junior vraagt: welke foodtrucks kunnen we inzetten zonder groot rijbewijs? Waybetter geeft direct antwoord.',
+                },
+              ].map(({ title, body, quote }, i) => (
+                <div
+                  key={title}
+                  className={`reveal reveal-delay-${i + 1} bg-white border border-border rounded-2xl p-5`}
+                >
+                  <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-text mb-2 leading-snug">{title}</h3>
+                  <p className="text-text-sec text-sm leading-relaxed mb-3">{body}</p>
+                  <p
+                    className="text-text-muted text-xs leading-relaxed italic border-t border-border pt-3"
+                    dangerouslySetInnerHTML={{ __html: quote }}
+                  />
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* BEWIJS */}
+      <ScrollReveal>
+        <section className="bg-warm border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 py-20">
+            <div className="reveal mb-12 text-center">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(20px,2.5vw,28px)] font-bold text-text leading-tight tracking-tight">
+                Bureaus die met Waybetter werken.
+              </h2>
+            </div>
+            <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-12 md:gap-20">
+              {/* Chase Amsterdam */}
+              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+                <div className="h-8 flex items-center">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                    Chase Amsterdam
+                  </span>
+                </div>
+              </div>
+              {/* All Day Productions */}
+              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+                <div className="h-8 flex items-center">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                    All Day Productions
+                  </span>
+                </div>
+              </div>
+              {/* Newfound */}
+              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+                <div className="h-8 flex items-center">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                    Newfound
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -388,7 +529,7 @@ export default async function HomePage() {
                 Wil je beter werken<br />met Waybetter?
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
-                We kennen jullie wereld en weten waar jullie tegenaan lopen. We sparren graag over wat jullie nodig hebben. Waybetter is gemaakt voor en door bureau-mensen.
+                We kennen jullie wereld en weten waar jullie tegenaan lopen. We sparren graag over wat jullie nodig hebben. Plan een gesprek of probeer het zelf, geheel vrijblijvend.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
