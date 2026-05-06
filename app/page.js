@@ -366,6 +366,7 @@ export default async function HomePage() {
                       'Bureau-eigen documenttypes',
                       'Koppelingen met jullie eigen tools en software',
                       'Slim geheugen per klant en project',
+                      'Tien gebruikers',
                       'Werkt vandaag, groeit met jullie mee',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
