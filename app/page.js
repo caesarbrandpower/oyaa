@@ -4,7 +4,7 @@ import Link from 'next/link'
 import TryToolPage from '@/components/TryToolPage'
 import { getTenant } from '@/lib/get-tenant'
 import ScrollReveal from '@/components/ScrollReveal'
-import { FileText, Shield, Database, Layers, Users, TrendingUp } from 'lucide-react'
+import { FileText, Shield, Database, Layers, Users, TrendingUp, AlertTriangle, LayoutGrid, Brain } from 'lucide-react'
 
 const DEFAULT_HOSTNAME = 'waybetter.nl'
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
@@ -43,7 +43,7 @@ export default async function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <a href="mailto:hello@newfound.agency?subject=Waybetter%20probeer%20aanvraag" className="text-text-muted text-sm hover:text-white transition-colors">
-              Probeer gratis
+              Probeer het zelf
             </a>
             <a
               href={CTA_HREF}
@@ -71,11 +71,10 @@ export default async function HomePage() {
           </div>
           <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(48px,8vw,100px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
             Van losse tools<br />
-            naar&#160;&#233;&#233;n<br />
-            <span className="text-orange italic">werkomgeving.</span>
+            naar&#160;&#233;&#233;n werkomgeving.
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-lg mb-12 leading-relaxed">
-            Waybetter brengt klantcontext, documenten en je bestaande tools samen op &#233;&#233;n plek. Begin met betere briefings, groei door naar een bureau-agent die met jullie werkwijze meedenkt.
+            Waybetter brengt klantcontext, documenten en je tools samen op &#233;&#233;n plek. Van betere briefings naar een bureau-agent die met jullie meedenkt.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -113,36 +112,47 @@ export default async function HomePage() {
 
               {/* Pijn 1 */}
               <div className="border-t border-border pt-10">
-                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
-                  Slechte briefings, eindeloos herwerk
-                </h3>
-                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl mb-4">
-                  Een goede meeting met de klant. Iedereen knikt. Een week later staat er in de mail iets anders dan je dacht dat was afgesproken. Briefings met gaten, scope-discussies halverwege, correctierondes aan het eind.
-                </p>
-                <p className="text-text-muted text-sm leading-relaxed max-w-xl">
-                  33% van het marketingbudget gaat verloren aan slechte briefings. Een PM is gemiddeld 4&#160;uur per week kwijt aan dit soort gedoe.{' '}
-                  <span className="text-text-muted/60">Bron: BetterBriefs Project, internationaal onderzoek.</span>
-                </p>
+                <div className="flex items-start gap-4">
+                  <AlertTriangle className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <div>
+                    <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
+                      Slechte briefings, eindeloos herwerk
+                    </h3>
+                    <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                      Iedereen knikt in de meeting. Een week later staat er iets anders in de mail. Briefings met gaten, scope-discussies halverwege, correctierondes aan het eind.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Pijn 2 */}
               <div className="border-t border-border pt-10">
-                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
-                  Te veel losse tools, geen overzicht
-                </h3>
-                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                  Klantgegevens in Drive. Briefings in Word. AI in een browser-tab. Notulen in Notion. Planning in een ander systeem. Mensen kopi&#235;ren, plakken, verliezen context. Wat &#233;&#233;n plek had moeten zijn, is een verzameling losse eilandjes.
-                </p>
+                <div className="flex items-start gap-4">
+                  <LayoutGrid className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <div>
+                    <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
+                      Te veel losse tools, geen overzicht
+                    </h3>
+                    <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                      Drive, Word, Notion, een AI-tab, een ander systeem. Mensen kopi&#235;ren en plakken, verliezen context. Wat &#233;&#233;n plek had moeten zijn, zijn tien losse eilandjes.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Pijn 3 */}
               <div className="border-t border-border pt-10">
-                <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-4 leading-snug">
-                  Bureau-kennis die niet vastligt
-                </h3>
-                <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                  Welke locatie hebben we vorig jaar gebruikt? Wie was de leverancier met de juiste vergunning? Wat was de tone of voice voor die klant? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
-                </p>
+                <div className="flex items-start gap-4">
+                  <Brain className="w-5 h-5 text-orange shrink-0 mt-1" strokeWidth={1.5} />
+                  <div>
+                    <h3 className="font-[family-name:var(--font-lexend)] text-lg md:text-xl font-bold text-text mb-3 leading-snug">
+                      Bureau-kennis die niet vastligt
+                    </h3>
+                    <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
+                      Welke leverancier had de juiste vergunning? Wat was de tone of voice voor die klant? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
+                    </p>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -186,7 +196,7 @@ export default async function HomePage() {
                 {
                   Icon: Layers,
                   title: 'Eén plek voor je bureau-werk',
-                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie tone of voice, klantcontext en bestaande tools.',
+                  body: 'Geen tools wisselen meer. Vraag het, Waybetter regelt het. Met jullie klantcontext en bestaande tools.',
                 },
                 {
                   Icon: Database,
@@ -348,11 +358,11 @@ export default async function HomePage() {
                   <ul className="border-t border-white/[0.06] pt-6 space-y-3 mb-8">
                     {[
                       'Alles van Waybetter Start',
-                      'Open vraagbaak in jullie tone of voice. Vragen stellen over klanten, projecten en leveranciers',
+                      'Open vraagbaak voor jullie bureau. Vragen stellen over klanten, projecten en leveranciers',
                       'Bureau-eigen documenttypes. Call sheets, persberichten, designbriefings of wat jullie dagelijks maken',
                       'Koppelingen met jullie eigen tools, zoals Drive, SharePoint, Notion of jullie eigen database',
                       'Slim geheugen per klant en project',
-                      'Doorontwikkeling samen met jullie bureau',
+                      'Werkt vandaag, groeit met jullie mee',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/70 leading-snug">
                         <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white/30" />
@@ -372,12 +382,9 @@ export default async function HomePage() {
             </div>
 
             {/* Ondersteunende tekst */}
-            <div className="reveal reveal-delay-2 mt-8 space-y-3">
+            <div className="reveal reveal-delay-2 mt-8">
               <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-2xl">
-                Setup-fee voor Custom bespreken we in een gesprek, op basis van wat we voor jullie bouwen. Maandelijks opzegbaar is een bewuste keuze. Tevreden klanten gaan niet weg.
-              </p>
-              <p className="text-text-muted/60 text-sm leading-relaxed max-w-2xl border-t border-dark-border/50 pt-4">
-                Waybetter werkt het beste als jullie bureau structureel informatie vastlegt. Geen extra werk, gewoon beter werk.
+                Setup-fee voor Custom bespreken we in een gesprek. Maandelijks opzegbaar.
               </p>
             </div>
           </div>
@@ -455,7 +462,7 @@ export default async function HomePage() {
                 {
                   title: 'PR- en communicatiebureaus',
                   body: 'Persberichten, debriefs en klantrapportages.',
-                  quote: 'Een persbericht in jullie tone of voice, op basis van de eerste klantmail.',
+                  quote: 'Een persbericht op basis van de eerste klantmail.',
                 },
                 {
                   title: 'Productiebureaus',
@@ -483,34 +490,34 @@ export default async function HomePage() {
 
       {/* BEWIJS */}
       <ScrollReveal>
-        <section className="bg-warm border-t border-border">
+        <section className="noise bg-dark border-t border-dark-border">
           <div className="max-w-5xl mx-auto px-6 py-20">
             <div className="reveal mb-12 text-center">
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(20px,2.5vw,28px)] font-bold text-text leading-tight tracking-tight">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(20px,2.5vw,28px)] font-bold text-white leading-tight tracking-tight">
                 Bureaus die met Waybetter werken.
               </h2>
             </div>
             <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-12 md:gap-20">
               {/* Chase Amsterdam */}
-              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+              <div className="flex items-center justify-center opacity-30 hover:opacity-70 transition-all duration-300">
                 <div className="h-8 flex items-center">
-                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-white">
                     Chase Amsterdam
                   </span>
                 </div>
               </div>
               {/* All Day Productions */}
-              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+              <div className="flex items-center justify-center opacity-30 hover:opacity-70 transition-all duration-300">
                 <div className="h-8 flex items-center">
-                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-white">
                     All Day Productions
                   </span>
                 </div>
               </div>
               {/* Newfound */}
-              <div className="flex items-center justify-center opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all duration-300">
+              <div className="flex items-center justify-center opacity-30 hover:opacity-70 transition-all duration-300">
                 <div className="h-8 flex items-center">
-                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-text">
+                  <span className="font-[family-name:var(--font-lexend)] text-sm font-bold tracking-[0.12em] uppercase text-white">
                     Newfound
                   </span>
                 </div>
@@ -529,7 +536,7 @@ export default async function HomePage() {
                 Wil je beter werken<br />met Waybetter?
               </h2>
               <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
-                We kennen jullie wereld en weten waar jullie tegenaan lopen. We sparren graag over wat jullie nodig hebben. Plan een gesprek of probeer het zelf, geheel vrijblijvend.
+                We kennen jullie wereld. We sparren graag over wat jullie nodig hebben.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
