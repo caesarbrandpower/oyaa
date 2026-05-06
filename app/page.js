@@ -282,6 +282,39 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
+      {/* WAT WAYBETTER DOET */}
+      <ScrollReveal>
+        <section className="noise bg-dark border-t border-dark-border">
+          <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
+            <div className="reveal mb-14">
+              <div className="flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange" />
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
+                  Wat Waybetter doet
+                </span>
+              </div>
+            </div>
+            <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 mb-20">
+              {[
+                { title: 'Sneller werken', body: 'Een uur klantgesprek wordt in vijf minuten een complete briefing.' },
+                { title: 'Betere kwaliteit', body: 'E&#233;n standaard, voor het hele bureau. Met markeringen die laten zien wat nog ontbreekt.' },
+                { title: 'Heldere afspraken', body: 'Voor jullie team, jullie klanten en jullie partners. Op &#233;&#233;n plek.' },
+              ].map(({ title, body }) => (
+                <div key={title}>
+                  <h3 className="font-[family-name:var(--font-lexend)] text-[clamp(24px,3vw,40px)] font-extrabold text-white leading-tight tracking-tight mb-5">{title}</h3>
+                  <p className="text-text-muted text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
+                </div>
+              ))}
+            </div>
+            <div className="reveal border-t border-dark-border pt-16">
+              <p className="text-white/50 text-base md:text-lg leading-relaxed max-w-3xl">
+                Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
+              </p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
       {/* TWEE NIVEAUS */}
       <ScrollReveal>
         <section className="noise bg-dark border-t border-dark-border">
@@ -386,49 +419,6 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="reveal border-t border-dark-border pt-12 mt-8">
-              <p className="text-white/50 text-base md:text-lg leading-relaxed max-w-3xl">
-                Een design-ronde minder, een briefing die niet over hoeft, een deadline die je haalt zonder extra uren te maken. Dat bespaart elke dag tijd, elke week uren en zo verdien je Waybetter al heel snel terug.
-              </p>
-            </div>
-
-          </div>
-        </section>
-      </ScrollReveal>
-
-      {/* WAT JE ERMEE DOET */}
-      <ScrollReveal>
-        <section className="bg-warm border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
-            <div className="reveal mb-16">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange" />
-                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-orange">
-                  Wat je ermee doet
-                </span>
-              </div>
-              <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,4vw,48px)] font-extrabold text-text leading-tight tracking-tight">
-                Drie momenten waar Waybetter<br />het verschil maakt.
-              </h2>
-            </div>
-            <div className="reveal flex flex-col gap-14">
-              {[
-                { quote: 'Een uur klantgesprek wordt binnen &#233;&#233;n minuut een complete samenvatting met actiepunten.', label: 'Reclame- en brandingbureaus' },
-                { quote: 'Een PM vraagt: tien locaties in Noord-Holland in juni. Waybetter haalt ze op uit jullie eigen database.', label: 'Activatie- en eventbureaus' },
-                { quote: 'Een nieuwe junior vraagt: welke foodtrucks kunnen we inzetten zonder groot rijbewijs? Waybetter geeft direct antwoord.', label: 'Productiebureaus' },
-              ].map(({ quote, label }) => (
-                <div key={label} className="flex gap-6 md:gap-8">
-                  <div className="shrink-0 w-[3px] bg-orange rounded-full self-stretch" />
-                  <div>
-                    <p
-                      className="text-text text-xl md:text-2xl leading-snug italic mb-4"
-                      dangerouslySetInnerHTML={{ __html: `&#8220;${quote}&#8221;` }}
-                    />
-                    <p className="text-text-muted text-sm font-medium">{label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
       </ScrollReveal>
