@@ -4,7 +4,7 @@ import Link from 'next/link'
 import TryToolPage from '@/components/TryToolPage'
 import { getTenant } from '@/lib/get-tenant'
 import ScrollReveal from '@/components/ScrollReveal'
-import { FileText, Shield, Database, Layers, Users, TrendingUp, AlertTriangle, LayoutGrid, Brain } from 'lucide-react'
+import { FileText, Shield, Database, Layers, Users, TrendingUp, AlertTriangle, LayoutGrid, Brain, Mic, Video, FileUp, PenLine, ShieldCheck, CheckCircle, Lock } from 'lucide-react'
 
 const DEFAULT_HOSTNAME = 'waybetter.nl'
 const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@newfound.agency'
@@ -59,8 +59,8 @@ export default async function HomePage() {
       {/* HERO */}
       <section className="noise bg-dark relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-orange-glow blur-[100px]" />
-          <div className="absolute bottom-[-80px] right-[-100px] w-[500px] h-[500px] rounded-full bg-orange-glow opacity-50 blur-[100px]" />
+          <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[900px] h-[700px]" style={{ background: 'radial-gradient(ellipse at center, rgba(255,72,0,0.18) 0%, rgba(255,72,0,0.06) 40%, transparent 70%)' }} />
+          <div className="absolute bottom-[-80px] right-[-100px] w-[600px] h-[600px]" style={{ background: 'radial-gradient(ellipse at center, rgba(255,72,0,0.10) 0%, rgba(255,72,0,0.03) 40%, transparent 70%)' }} />
         </div>
         <div className="relative z-10 max-w-5xl mx-auto px-6 py-28 md:py-40">
           <div className="animate-hero-1 flex items-center gap-3 mb-8">
@@ -69,12 +69,12 @@ export default async function HomePage() {
               Voor bureaus die structureel beter willen werken
             </span>
           </div>
-          <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(48px,8vw,100px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
+          <h1 className="animate-hero-2 font-[family-name:var(--font-lexend)] text-[clamp(44px,7vw,92px)] font-extrabold text-white leading-[0.95] tracking-[-0.03em] mb-8">
             Van losse tools<br />
-            naar&#160;&#233;&#233;n werkomgeving.
+            naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
-          <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-lg mb-12 leading-relaxed">
-            &#201;&#233;n werkomgeving voor je hele bureau. Documenten, klantkennis en je bestaande tools komen samen op &#233;&#233;n plek. Vandaag voor betere briefings, morgen een volwaardige bureau-agent.
+          <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
+            &#201;&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en je tools samenkomen.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -255,10 +255,10 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { nr: '01', title: 'Voeg je input toe.', body: 'Spreek in, neem een meeting op, plak een transcript van een video-call of upload een bestand. Aantekeningen tikken kan ook.' },
+                { nr: '01', title: 'Voeg je input toe.', body: 'Spreek in, neem een meeting op, plak een transcript van een video-call of upload een bestand. Aantekeningen tikken kan ook.', icons: [Mic, Video, FileUp, PenLine] },
                 { nr: '02', title: 'Kies wat je nodig hebt.', body: 'Briefing, samenvatting, actiepunten of gewoon een vraag stellen. Jij bepaalt het resultaat.' },
                 { nr: '03', title: 'Klaar voor gebruik.', body: 'Direct bruikbaar voor je team of klant. Kopieer, download of stuur door.' },
-              ].map(({ nr, title, body }, i) => (
+              ].map(({ nr, title, body, icons }, i) => (
                 <div
                   key={nr}
                   className={`reveal reveal-delay-${i + 1} group bg-white border border-border rounded-2xl p-7 hover:border-orange/40 transition-colors duration-300`}
@@ -268,6 +268,13 @@ export default async function HomePage() {
                   </div>
                   <h3 className="font-[family-name:var(--font-lexend)] text-base font-bold text-text mb-2 leading-snug">{title}</h3>
                   <p className="text-text-sec text-sm leading-relaxed">{body}</p>
+                  {icons && (
+                    <div className="flex gap-3 mt-5 pt-4 border-t border-border">
+                      {icons.map((Icon, idx) => (
+                        <Icon key={idx} className="w-6 h-6 text-orange/70" strokeWidth={1.5} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -285,18 +292,17 @@ export default async function HomePage() {
               </h2>
             </div>
             <div className="reveal mb-12">
-              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+              <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl" style={{ textWrap: 'balance' }}>
                 Begin met Waybetter Start. Groei door naar Custom: een bureau-agent die taken overneemt.
               </p>
             </div>
             <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
               {/* Waybetter Start */}
-              <div className="relative bg-dark-card border border-orange/20 rounded-2xl p-8 shadow-[0_0_60px_rgba(255,72,0,0.08)]">
-                <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
-                <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
-                  <span className="w-1 h-1 rounded-full bg-orange" />
-                  <span className="text-orange text-[11px] font-semibold tracking-wide">Snel beginnen</span>
+              <div className="relative bg-dark-card border border-dark-border rounded-2xl p-8 transition-all duration-300 hover:border-orange/30 hover:shadow-[0_0_40px_rgba(255,72,0,0.10)]">
+                <div className="inline-flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1 mb-6">
+                  <span className="w-1 h-1 rounded-full bg-white/40" />
+                  <span className="text-white/60 text-[11px] font-semibold tracking-wide">Snel beginnen</span>
                 </div>
                 <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                   Waybetter Start
@@ -335,12 +341,13 @@ export default async function HomePage() {
               </div>
 
               {/* Waybetter Custom */}
-              <div className="relative bg-[#0f0f0f] border border-white/[0.08] rounded-2xl p-8 shadow-[0_0_80px_rgba(255,72,0,0.05)] overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.06)_0%,transparent_70%)] pointer-events-none" />
+              <div className="relative bg-dark-card border border-orange/40 rounded-2xl p-8 shadow-[0_0_50px_rgba(255,72,0,0.18)] overflow-hidden">
+                <div className="absolute left-0 top-8 bottom-8 w-[3px] bg-orange rounded-r-full" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,72,0,0.07)_0%,transparent_70%)] pointer-events-none" />
                 <div className="relative">
-                  <div className="inline-flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.10] rounded-full px-3 py-1 mb-6">
-                    <span className="w-1 h-1 rounded-full bg-white/40" />
-                    <span className="text-white/60 text-[11px] font-semibold tracking-wide">Volledig op maat</span>
+                  <div className="inline-flex items-center gap-1.5 bg-orange/10 border border-orange/20 rounded-full px-3 py-1 mb-6">
+                    <span className="w-1 h-1 rounded-full bg-orange" />
+                    <span className="text-orange text-[11px] font-semibold tracking-wide">Volledig op maat</span>
                   </div>
                   <p className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.14em] uppercase text-text-muted mb-2">
                     Waybetter Custom
@@ -405,25 +412,23 @@ export default async function HomePage() {
             <div className="reveal grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 {
-                  nr: '01',
+                  Icon: ShieldCheck,
                   title: 'Filtering voordat AI het ziet',
                   body: 'Persoonsnamen, contactgegevens en bedragen worden gefilterd voordat AI ze leest. Het AI model krijgt genoeg context om bruikbaar te werken, niet meer dan nodig.',
                 },
                 {
-                  nr: '02',
+                  Icon: CheckCircle,
                   title: 'AVG-compliant',
                   body: 'Verwerkersovereenkomst beschikbaar. Data binnen Europa. Geen training op jullie data.',
                 },
                 {
-                  nr: '03',
+                  Icon: Lock,
                   title: 'Extra zekerheid mogelijk',
                   body: 'Voor bureaus die met extra gevoelige data werken zijn er extra lagen mogelijk. Bespreken we in een gesprek.',
                 },
-              ].map(({ nr, title, body }) => (
-                <div key={nr} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
-                  <div className="w-7 h-7 rounded-full border border-orange/40 flex items-center justify-center mb-4">
-                    <span className="font-[family-name:var(--font-lexend)] text-[10px] font-bold text-orange">{nr}</span>
-                  </div>
+              ].map(({ Icon, title, body }) => (
+                <div key={title} className="border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">
+                  <Icon className="w-7 h-7 text-orange mb-4 shrink-0" strokeWidth={1.5} />
                   <h3 className="font-[family-name:var(--font-lexend)] text-sm font-bold text-white mb-2 leading-snug">{title}</h3>
                   <p className="text-text-muted text-sm leading-relaxed">{body}</p>
                 </div>
@@ -483,6 +488,16 @@ export default async function HomePage() {
               ))}
             </div>
 
+            <div className="reveal mt-10 flex justify-center">
+              <a
+                href="mailto:hello@newfound.agency?subject=Sparren%20over%20Waybetter"
+                className="group h-12 px-8 bg-orange text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-hover animate-pulse-glow hover:shadow-[0_6px_32px_rgba(255,72,0,0.4)] active:scale-[0.98] inline-flex items-center gap-2.5"
+              >
+                Spar met ons over jullie aanpak
+                <span className="arrow-icon inline-block">&#8594;</span>
+              </a>
+            </div>
+
           </div>
         </section>
       </ScrollReveal>
@@ -539,7 +554,7 @@ export default async function HomePage() {
               <h2 className="font-[family-name:var(--font-lexend)] text-[clamp(28px,5vw,56px)] font-extrabold text-text leading-tight tracking-tight mb-5">
                 Wil je beter werken<br />met Waybetter?
               </h2>
-              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-md mx-auto">
+              <p className="text-text-sec text-base md:text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
                 We kennen jullie wereld. Waybetter is gemaakt door bureaumensen, voor bureaumensen. We sparren graag over wat jullie nodig hebben.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
