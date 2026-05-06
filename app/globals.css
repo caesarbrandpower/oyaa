@@ -83,10 +83,3 @@ body {
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
-@keyframes arrow-slide {
-  from { transform: translateX(0); }
-  to   { transform: translateX(4px); }
-}
-.group:hover .arrow-icon {
-  animation: arrow-slide 0.3s ease-in-out forwards;
-}
