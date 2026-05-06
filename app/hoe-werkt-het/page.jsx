@@ -231,10 +231,10 @@ export default function HoeWerktHet() {
           <p className="text-[14px] text-text-muted">
             Vragen?{' '}
             <a
-              href="mailto:hello@newfound.agency"
+              href="mailto:hello@waybetter.nl"
               className="text-orange hover:underline"
             >
-              hello@newfound.agency
+              hello@waybetter.nl
             </a>
           </p>
         </div>
