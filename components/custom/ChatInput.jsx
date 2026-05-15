@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Mic, Paperclip, ArrowUp, Square } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
-export default function ChatInput({ onSend, disabled }) {
+export default function ChatInput({ onSend, disabled, prefill }) {
   const [value, setValue] = useState('');
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -25,6 +25,14 @@ export default function ChatInput({ onSend, disabled }) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   }, [value]);
+
+  // Pre-fill vanuit buiten (bijv. na sluiten DocumentView)
+  useEffect(() => {
+    if (prefill) {
+      setValue(prefill);
+      textareaRef.current?.focus();
+    }
+  }, [prefill]);
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {

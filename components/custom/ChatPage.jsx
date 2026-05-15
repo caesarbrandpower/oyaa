@@ -20,6 +20,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const abortRef = useRef(null);
   const [activeDocument, setActiveDocument] = useState(null);
   // activeDocument: null | { content, outputType, title }
+  const [chatPrefill, setChatPrefill] = useState(null);
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -38,8 +39,12 @@ export default function ChatPage({ user, tenant, initialThreads }) {
     });
   }
 
-  function handleCloseDocument() {
+  function handleCloseDocument(prefillText) {
     setActiveDocument(null);
+    if (prefillText) {
+      setChatPrefill(prefillText);
+      setTimeout(() => setChatPrefill(null), 0);
+    }
   }
 
   function handleNewThread() {
@@ -213,7 +218,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
       <DocumentView
         content={activeDocument.content}
         onClose={handleCloseDocument}
-        onImprove={handleCloseDocument}
+        onImprove={(prefillText) => handleCloseDocument(prefillText)}
       />
     )}
     <div className="flex h-full overflow-hidden">
@@ -268,7 +273,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
                 Hoi {user.firstName}. Wat ga je vandaag maken?
               </h1>
-              <ChatInput onSend={handleSend} disabled={sending} />
+              <ChatInput onSend={handleSend} disabled={sending} prefill={chatPrefill} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
@@ -284,7 +289,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
         {!isEmptyState && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={handleSend} disabled={sending} />
+              <ChatInput onSend={handleSend} disabled={sending} prefill={chatPrefill} />
             </div>
           </div>
         )}

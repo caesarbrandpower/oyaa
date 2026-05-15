@@ -225,16 +225,60 @@ export default function DocumentView({ content, onClose, onImprove }) {
           />
         </div>
 
-        {/* Markeringen panel — skeleton, content added in Task 3 */}
         {markeringen.length > 0 && (
           <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
-            <div className="px-4 py-4 border-b border-white/[0.06]">
+            {/* Header */}
+            <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
               <span className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.1em] uppercase text-white/30">
-                Markeringen ({markeringen.length})
+                Markeringen
+              </span>
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
+                {markeringen.length}
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3">
-              <p className="text-[12px] text-white/30 italic">Wordt ingevuld in Task 3...</p>
+
+            {/* Markeringen lijst */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {markeringen.map((label) => {
+                const isRed = isRedLabel(label);
+                return (
+                  <div
+                    key={label}
+                    className="rounded-lg border border-white/[0.06] p-3 bg-white/[0.02]"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                          isRed
+                            ? 'bg-red-950/60 text-red-400 border border-red-800/40'
+                            : 'bg-yellow-950/60 text-yellow-400 border border-yellow-800/40'
+                        }`}
+                      >
+                        {isRed ? 'Ontbreekt' : 'Check'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/55 leading-relaxed font-medium">
+                      {label}
+                    </p>
+                    <button
+                      onClick={() => onImprove?.(`Aanvullende info voor [${label}]: `)}
+                      className="mt-2 text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
+                    >
+                      {isRed ? '+ Aanvullen' : '✓ Bevestigen'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Verbeteren knop */}
+            <div className="px-4 py-4 border-t border-white/[0.06] shrink-0">
+              <button
+                onClick={() => onImprove?.('Ik wil dit document verbeteren. Aanvullende informatie: ')}
+                className="w-full h-9 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white transition-colors"
+              >
+                Verbeteren met info
+              </button>
             </div>
           </aside>
         )}
