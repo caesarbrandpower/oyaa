@@ -7,14 +7,14 @@ import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react'
 
 const md = new Marked({ breaks: true });
 
-const LABEL_REGEX = /\[([A-Z][A-Z\s]+)\]/g;
+const LABEL_REGEX = /\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g;
 
 function isRedLabel(label) {
   return /^(AFSTEMMEN|UITZOEKEN|NAVRAGEN|CIJFERS|ACHTERGROND)/.test(label);
 }
 
 function injectLabelHtml(html) {
-  return html.replace(/\[([A-Z][A-Z\s]+)\]/g, (_, label) => {
+  return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
     if (isRedLabel(label)) {
       return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#CC2200;color:#fff;margin:0 2px;font-family:var(--font-lexend)">${label}</span>`;
     }
@@ -40,12 +40,12 @@ function parseMarkeringen(content) {
 }
 
 function parseInlineRuns(text, size, docx) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]+\])/);
+  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(:[^\]]*)?])/);
   return parts.filter(p => p.length > 0).flatMap(p => {
     if (p.startsWith('**') && p.endsWith('**')) {
       return [new docx.TextRun({ text: p.slice(2, -2), bold: true, size })];
     }
-    const lm = p.match(/^\[([A-Z][A-Z\s]+)\]$/);
+    const lm = p.match(/^\[([A-Z][A-Z\s]*(:[^\]]*)?)\]$/);
     if (lm) {
       const label = lm[1];
       const red = isRedLabel(label);
@@ -74,6 +74,52 @@ async function downloadPdfDoc(content, title) {
   const maxWidth = pageWidth - margin * 2;
   let y = margin;
 
+  // Collect all unique labels for the summary at the end
+  const allLabels = [];
+  const seenLabels = new Set();
+  for (const m of content.matchAll(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g)) {
+    if (!seenLabels.has(m[1])) {
+      seenLabels.add(m[1]);
+      allLabels.push(m[1]);
+    }
+  }
+
+  // Split text into normal/bold segments based on label pattern
+  function splitSegments(text) {
+    const segs = [];
+    const re = /(\[[A-Z][A-Z\s]*(:[^\]]*)?])/g;
+    let last = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) segs.push({ text: text.slice(last, m.index), bold: false });
+      segs.push({ text: m[1], bold: true });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) segs.push({ text: text.slice(last), bold: false });
+    return segs;
+  }
+
+  // Render segments inline at current y, return height consumed
+  function renderInlineSegments(segs, fontSize, indentX) {
+    doc.setFontSize(fontSize);
+    let cx = indentX;
+    for (const seg of segs) {
+      if (!seg.text) continue;
+      doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+      doc.text(seg.text, cx, y);
+      cx += doc.getTextWidth(seg.text);
+    }
+    const lineH = fontSize * 0.45 + 1;
+    return lineH + 2;
+  }
+
+  function checkPage(needed) {
+    if (y + (needed || 8) > 277) {
+      doc.addPage();
+      y = margin;
+    }
+  }
+
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
@@ -88,27 +134,20 @@ async function downloadPdfDoc(content, title) {
   const lines = content.split('\n');
   for (const raw of lines) {
     const line = raw.trim();
-
-    // Add new page if needed
-    if (y > 270) {
-      doc.addPage();
-      y = margin;
-    }
+    checkPage();
 
     if (line === '') {
       y += 4;
       continue;
     }
 
-    // Strip markdown labels like [AFSTEMMEN] etc.
-    const stripped = line.replace(/\[([A-Z][A-Z\s]+)\]/g, '[$1]').replace(/\[([A-Z][A-Z\s]+)\]/g, '');
-
     const h1 = line.match(/^#\s+(.+)$/);
     if (h1) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
-      const text = h1[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+      const text = h1[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim();
       const wrapped = doc.splitTextToSize(text, maxWidth);
+      checkPage(wrapped.length * 7 + 4);
       doc.text(wrapped, margin, y);
       y += wrapped.length * 7 + 4;
       continue;
@@ -118,8 +157,9 @@ async function downloadPdfDoc(content, title) {
     if (h2) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
-      const text = h2[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim().toUpperCase();
+      const text = h2[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim().toUpperCase();
       const wrapped = doc.splitTextToSize(text, maxWidth);
+      checkPage(wrapped.length * 6 + 4);
       doc.text(wrapped, margin, y);
       y += wrapped.length * 6 + 4;
       continue;
@@ -129,8 +169,9 @@ async function downloadPdfDoc(content, title) {
     if (h3) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      const text = h3[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+      const text = h3[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim();
       const wrapped = doc.splitTextToSize(text, maxWidth);
+      checkPage(wrapped.length * 6 + 3);
       doc.text(wrapped, margin, y);
       y += wrapped.length * 6 + 3;
       continue;
@@ -139,23 +180,72 @@ async function downloadPdfDoc(content, title) {
     // List items
     const listItem = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
     if (listItem) {
-      doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      const text = listItem[1].replace(/\*\*/g, '').replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
-      const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 5);
-      doc.text(wrapped, margin + 5, y);
-      y += wrapped.length * 5 + 2;
+      const segs = splitSegments(listItem[1].replace(/\*\*/g, ''));
+      const hasLabel = segs.some(s => s.bold);
+      checkPage(7);
+      if (hasLabel) {
+        doc.setFont('helvetica', 'normal');
+        doc.text('• ', margin + 5, y);
+        const bulletWidth = doc.getTextWidth('• ');
+        const indentX = margin + 5 + bulletWidth;
+        let cx = indentX;
+        for (const seg of segs) {
+          if (!seg.text) continue;
+          doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+          doc.text(seg.text, cx, y);
+          cx += doc.getTextWidth(seg.text);
+        }
+        y += 5 + 2;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        const text = segs.map(s => s.text).join('').trim();
+        const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 5);
+        doc.text(wrapped, margin + 5, y);
+        y += wrapped.length * 5 + 2;
+      }
       continue;
     }
 
     // Regular paragraph
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    const text = line.replace(/\*\*/g, '').replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
-    if (!text) { y += 3; continue; }
-    const wrapped = doc.splitTextToSize(text, maxWidth);
-    doc.text(wrapped, margin, y);
-    y += wrapped.length * 5 + 3;
+    const cleanLine = line.replace(/\*\*/g, '');
+    const segs = splitSegments(cleanLine);
+    const hasLabel = segs.some(s => s.bold);
+    if (!hasLabel) {
+      const text = segs.map(s => s.text).join('').trim();
+      if (!text) { y += 3; continue; }
+      doc.setFont('helvetica', 'normal');
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      checkPage(wrapped.length * 5 + 3);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 5 + 3;
+    } else {
+      checkPage(7);
+      y += renderInlineSegments(segs, 10, margin);
+    }
+  }
+
+  // Openstaande punten section
+  if (allLabels.length > 0) {
+    y += 10;
+    checkPage(20);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Openstaande punten', margin, y);
+    y += 8;
+    allLabels.forEach((label, i) => {
+      checkPage(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const text = `${i + 1}. ${label}`;
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 5 + 3;
+    });
   }
 
   doc.save(title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf');
