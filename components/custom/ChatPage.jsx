@@ -54,7 +54,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
 
   function handleCloseDocument(prefillText) {
     setActiveDocument(null);
-    if (prefillText) {
+    if (typeof prefillText === 'string' && prefillText) {
       setChatPrefill({ text: prefillText, id: Date.now() });
     }
   }
