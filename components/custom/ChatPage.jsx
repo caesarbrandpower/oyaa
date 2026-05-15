@@ -14,6 +14,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const [activeThread, setActiveThread] = useState(null);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const abortRef = useRef(null);
 
@@ -21,11 +22,16 @@ export default function ChatPage({ user, tenant, initialThreads }) {
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
     : [];
 
+  function setSendingState(value) {
+    sendingRef.current = value;
+    setSending(value);
+  }
+
   function handleNewThread() {
     abortRef.current?.abort();
     setActiveThread(null);
     setMessages([]);
-    setSending(false);
+    setSendingState(false);
     setSidebarOpen(false);
   }
 
@@ -33,7 +39,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
     abortRef.current?.abort();
     setActiveThread(thread);
     setSidebarOpen(false);
-    setSending(true);
+    setSendingState(true);
 
     const { createClient } = await import('@/lib/supabase-browser');
     const supabase = createClient();
@@ -48,12 +54,12 @@ export default function ChatPage({ user, tenant, initialThreads }) {
       msg.role === 'assistant' ? { ...msg, isDocument: isDoc, streaming: false } : msg
     );
     setMessages(enriched);
-    setSending(false);
+    setSendingState(false);
   }
 
   const handleSend = useCallback(
     async (messageText, outputType = null, taskLabel = null) => {
-      if (sending) return;
+      if (sendingRef.current) return;
       const userMsg = {
         id: 'user-' + Date.now(),
         role: 'user',
@@ -61,7 +67,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
-      setSending(true);
+      setSendingState(true);
 
       const placeholderId = 'streaming-' + Date.now();
       setMessages((prev) => [
@@ -87,7 +93,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
         if (!res.ok) {
           setMessages((prev) => prev.filter(m => m.id !== placeholderId));
-          setSending(false);
+          setSendingState(false);
           return;
         }
 
@@ -154,10 +160,10 @@ export default function ChatPage({ user, tenant, initialThreads }) {
                     : m
                 )
               );
-              setSending(false);
+              setSendingState(false);
             } else if (event.type === 'error') {
               setMessages((prev) => prev.filter(m => m.id !== placeholderId));
-              setSending(false);
+              setSendingState(false);
             }
           }
         }
@@ -167,7 +173,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
         }
         // Remove placeholder on any error or abort
         setMessages((prev) => prev.filter(m => m.id !== placeholderId));
-        setSending(false);
+        setSendingState(false);
       }
     },
     [activeThread]
