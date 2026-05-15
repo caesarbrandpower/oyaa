@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { marked } from 'marked';
+import { Marked } from 'marked';
 import { ArrowLeft, Copy, Download, MoreHorizontal } from 'lucide-react';
 
-marked.setOptions({ breaks: true });
+const md = new Marked({ breaks: true });
 
 const LABEL_REGEX = /\[([A-Z][A-Z\s]+)\]/g;
 
@@ -65,6 +65,7 @@ function parseInlineRuns(text, size, docx) {
 }
 
 async function downloadWordDoc(content, title) {
+  if (!content?.trim()) return;
   const docx = await import('docx');
   const paragraphs = [];
 
@@ -83,7 +84,7 @@ async function downloadWordDoc(content, title) {
     const h1 = line.match(/^#\s+(.+)$/);
     if (h1) {
       paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: h1[1].replace(LABEL_REGEX, '').trim(), bold: true, size: 28 })],
+        children: [new docx.TextRun({ text: h1[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim(), bold: true, size: 28 })],
         spacing: { before: 240, after: 200 },
         border: { bottom: { color: 'DDDDDD', space: 1, style: docx.BorderStyle.SINGLE, size: 6 } },
       }));
@@ -92,7 +93,7 @@ async function downloadWordDoc(content, title) {
     const h2 = line.match(/^##\s+(.+)$/);
     if (h2) {
       paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: h2[1].replace(LABEL_REGEX, '').trim().toUpperCase(), bold: true, size: 22, color: '111111' })],
+        children: [new docx.TextRun({ text: h2[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim().toUpperCase(), bold: true, size: 22, color: '111111' })],
         spacing: { before: 360, after: 120 },
         border: { bottom: { color: 'EEEEEE', space: 1, style: docx.BorderStyle.SINGLE, size: 4 } },
       }));
@@ -101,7 +102,7 @@ async function downloadWordDoc(content, title) {
     const h3 = line.match(/^###\s+(.+)$/);
     if (h3) {
       paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: h3[1].replace(LABEL_REGEX, '').trim(), bold: true, size: 20, color: '444444' })],
+        children: [new docx.TextRun({ text: h3[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim(), bold: true, size: 20, color: '444444' })],
         spacing: { before: 200, after: 80 },
       }));
       continue;
@@ -148,7 +149,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
 
   const title = extractTitle(content);
   const markeringen = parseMarkeringen(content);
-  const bodyHtml = injectLabelHtml(marked.parse(content));
+  const bodyHtml = injectLabelHtml(md.parse(content));
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
