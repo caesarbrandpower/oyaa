@@ -34,7 +34,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
     if (!pendingTitleGen) return;
-    const { threadId, content, outputType } = pendingTitleGen;
+    const { threadId, content, outputType, userMsgId } = pendingTitleGen;
     setPendingTitleGen(null);
     fetch('/api/generate-title', {
       method: 'POST',
@@ -51,6 +51,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
           setActiveThread(updated);
         }
         setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t));
+        // Update user message content to match smart title
+        if (userMsgId) {
+          setMessages(prev => prev.map(m =>
+            m.id === userMsgId ? { ...m, content: title } : m
+          ));
+        }
       })
       .catch(() => {});
   }, [pendingTitleGen]);
@@ -118,8 +124,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
   const handleSend = useCallback(
     async (messageText, outputType = null, taskLabel = null, displayText = null) => {
       if (sendingRef.current) return;
+      const userMsgId = 'user-' + Date.now();
       const userMsg = {
-        id: 'user-' + Date.now(),
+        id: userMsgId,
         role: 'user',
         content: displayText || messageText,
         created_at: new Date().toISOString(),
@@ -224,6 +231,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
                   threadId: activeThreadRef.current.id,
                   content: event.content,
                   outputType,
+                  userMsgId,
                 });
               }
             } else if (event.type === 'error') {
