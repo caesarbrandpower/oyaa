@@ -1,7 +1,7 @@
 // components/custom/DocumentView.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
 import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react';
 
@@ -14,11 +14,14 @@ function isRedLabel(label) {
 }
 
 function injectLabelHtml(html) {
+  let idx = 0;
+  const baseStyle = 'display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;margin:0 2px;cursor:pointer;font-family:var(--font-lexend)';
   return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
+    const currentIdx = idx++;
     if (isRedLabel(label)) {
-      return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#CC2200;color:#fff;margin:0 2px;font-family:var(--font-lexend)">${label}</span>`;
+      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${label}</span>`;
     }
-    return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#F59E0B;color:#7C4A00;margin:0 2px;font-family:var(--font-lexend)">${label}</span>`;
+    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${label}</span>`;
   });
 }
 
@@ -32,6 +35,18 @@ function extractTitle(markdown) {
 function parseMarkeringen(content) {
   const matches = [...content.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
   return matches.map(m => m[1]);
+}
+
+function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
+  let count = 0;
+  return text.replace(new RegExp(labelPattern.source, 'g'), (match) => {
+    if (count === occurrenceIndex) {
+      count++;
+      return replacement;
+    }
+    count++;
+    return match;
+  });
 }
 
 function parseInlineRuns(text, size, docx) {
@@ -325,15 +340,21 @@ async function downloadWordDoc(content, title) {
 }
 
 export default function DocumentView({ content, onClose, onImprove }) {
+  const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [highlightedCardIdx, setHighlightedCardIdx] = useState(null);
+  const docBodyRef = useRef(null);
+  const sidebarRef = useRef(null);
 
-  const title = extractTitle(content);
-  const markeringen = parseMarkeringen(content);
-  const bodyHtml = injectLabelHtml(md.parse(content));
+  const title = extractTitle(localContent);
+  const markeringen = parseMarkeringen(localContent);
+  const bodyHtml = injectLabelHtml(md.parse(localContent));
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -342,7 +363,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
   }, [onClose]);
 
   function handleCopy() {
-    navigator.clipboard.writeText(content).then(() => {
+    navigator.clipboard.writeText(localContent).then(() => {
       setCopyLabel('Gekopieerd');
       setTimeout(() => setCopyLabel('Kopiëren'), 2200);
     }).catch(() => {
@@ -354,7 +375,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
   async function handleDownloadWord() {
     setDownloading(true);
     try {
-      await downloadWordDoc(content, title);
+      await downloadWordDoc(localContent, title);
     } finally {
       setDownloading(false);
     }
@@ -363,7 +384,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
   async function handleDownloadPdf() {
     setDownloadingPdf(true);
     try {
-      await downloadPdfDoc(content, title);
+      await downloadPdfDoc(localContent, title);
     } finally {
       setDownloadingPdf(false);
     }
@@ -375,7 +396,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
       const res = await fetch('/api/share-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, outputType: null, title }),
+        body: JSON.stringify({ content: localContent, outputType: null, title }),
       });
       const data = await res.json();
       if (data.token) {
@@ -387,6 +408,22 @@ export default function DocumentView({ content, onClose, onImprove }) {
       setSharing(false);
     }
   }
+
+  function handleSaveEdit(label, idx) {
+    if (!editValue.trim()) {
+      setEditingIdx(null);
+      return;
+    }
+    setLocalContent(prev => replaceOccurrence(prev, LABEL_REGEX, idx, editValue.trim()));
+    setEditingIdx(null);
+    setEditValue('');
+  }
+
+  useEffect(() => {
+    if (highlightedCardIdx === null) return;
+    const t = setTimeout(() => setHighlightedCardIdx(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightedCardIdx]);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0d0d0d] flex flex-col">
@@ -448,8 +485,19 @@ export default function DocumentView({ content, onClose, onImprove }) {
         {/* Document body */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
           <div
+            ref={docBodyRef}
             className="max-w-2xl mx-auto doc-prose"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
+            onClick={(e) => {
+              const markerEl = e.target.closest('[data-marker-idx]');
+              if (!markerEl) return;
+              const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
+              setHighlightedCardIdx(idx);
+              if (sidebarRef.current) {
+                const card = sidebarRef.current.querySelector(`[data-card-idx="${idx}"]`);
+                card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }}
           />
         </div>
 
@@ -466,13 +514,34 @@ export default function DocumentView({ content, onClose, onImprove }) {
             </div>
 
             {/* Markeringen lijst */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            <div ref={sidebarRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {markeringen.map((label, idx) => {
                 const isRed = isRedLabel(label);
+                const isEditing = editingIdx === idx;
                 return (
                   <div
                     key={idx}
-                    className="rounded-lg border border-white/[0.06] p-3 bg-white/[0.02]"
+                    data-card-idx={idx}
+                    className={`rounded-lg border p-3 bg-white/[0.02] transition-colors cursor-pointer ${
+                      highlightedCardIdx === idx
+                        ? 'border-orange/60 bg-orange/[0.04]'
+                        : 'border-white/[0.06]'
+                    }`}
+                    onClick={(e) => {
+                      if (e.target.closest('button, textarea')) return;
+                      if (docBodyRef.current) {
+                        const pill = docBodyRef.current.querySelector(`[data-marker-idx="${idx}"]`);
+                        if (pill) {
+                          pill.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          pill.style.outline = '2px solid #FF4800';
+                          pill.style.outlineOffset = '2px';
+                          setTimeout(() => {
+                            pill.style.outline = '';
+                            pill.style.outlineOffset = '';
+                          }, 1500);
+                        }
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span
@@ -485,15 +554,41 @@ export default function DocumentView({ content, onClose, onImprove }) {
                         {isRed ? 'Ontbreekt' : 'Check'}
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/55 leading-relaxed font-medium">
-                      {label}
-                    </p>
-                    <button
-                      onClick={() => onImprove?.(`Aanvullende info voor [${label}]: `)}
-                      className="mt-2 text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
-                    >
-                      {isRed ? '+ Aanvullen' : '✓ Bevestigen'}
-                    </button>
+                    <p className="text-[11px] text-white/55 leading-relaxed font-medium">{label}</p>
+                    {isEditing ? (
+                      <div className="mt-2">
+                        <textarea
+                          autoFocus
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          placeholder="Typ de aanvullende informatie..."
+                          rows={3}
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-[11px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors"
+                        />
+                        <div className="flex gap-2 mt-1.5">
+                          <button
+                            onClick={() => handleSaveEdit(label, idx)}
+                            disabled={!editValue.trim()}
+                            className="flex-1 h-7 rounded-lg bg-orange text-white text-[11px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            Opslaan
+                          </button>
+                          <button
+                            onClick={() => { setEditingIdx(null); setEditValue(''); }}
+                            className="h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
+                          >
+                            Annuleer
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingIdx(idx); setEditValue(''); }}
+                        className="mt-2 text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
+                      >
+                        {isRed ? '+ Aanvullen' : '✓ Bevestigen'}
+                      </button>
+                    )}
                   </div>
                 );
               })}
