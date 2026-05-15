@@ -63,15 +63,20 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
   function handleGenerate() {
     let prompt;
+    let displayText;
     if (isSearch) {
       prompt = `${task.label}: ${description.trim()}`;
+      displayText = prompt;
     } else {
       const parts = [`Maak een ${task.label} voor het volgende:\n\nContext: ${description.trim()}`];
       if (project.trim()) parts.push(`Project/klant: ${project.trim()}`);
       if (transcript.trim()) parts.push(`Aanvullende bronnen/transcriptie:\n${transcript.trim()}`);
       prompt = parts.join('\n\n');
+      displayText = project.trim()
+        ? `${task.label} voor ${project.trim()}`
+        : task.label;
     }
-    onGenerate(prompt, task.id, task.label);
+    onGenerate(prompt, task.id, task.label, displayText);
   }
 
   function handleDirectChat() {

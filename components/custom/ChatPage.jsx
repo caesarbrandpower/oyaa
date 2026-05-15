@@ -1,7 +1,7 @@
 // components/custom/ChatPage.jsx
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageList from './MessageList';
@@ -28,6 +28,32 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
   // chatPrefill: null | { text: string, id: number }
   const [activeTask, setActiveTask] = useState(null);
   // activeTask: null | task object from enabled_output_types
+  const [pendingTitleGen, setPendingTitleGen] = useState(null);
+  // pendingTitleGen: null | { threadId, content, outputType }
+
+  // After a document is generated, fetch a smart title and update thread
+  useEffect(() => {
+    if (!pendingTitleGen) return;
+    const { threadId, content, outputType } = pendingTitleGen;
+    setPendingTitleGen(null);
+    fetch('/api/generate-title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threadId, content, outputType }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const title = data?.title;
+        if (!title) return;
+        if (activeThreadRef.current?.id === threadId) {
+          const updated = { ...activeThreadRef.current, title };
+          activeThreadRef.current = updated;
+          setActiveThread(updated);
+        }
+        setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t));
+      })
+      .catch(() => {});
+  }, [pendingTitleGen]);
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -90,12 +116,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null) => {
       if (sendingRef.current) return;
       const userMsg = {
         id: 'user-' + Date.now(),
         role: 'user',
-        content: messageText,
+        content: displayText || messageText,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
@@ -161,7 +187,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
               if (!activeThreadRef.current) {
                 const newThread = {
                   id: event.threadId,
-                  title: taskLabel || messageText.slice(0, 60),
+                  title: displayText || taskLabel || messageText.slice(0, 60),
                   output_type: outputType,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
@@ -193,6 +219,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
                 )
               );
               setSendingState(false);
+              if (isDocument && activeThreadRef.current?.id) {
+                setPendingTitleGen({
+                  threadId: activeThreadRef.current.id,
+                  content: event.content,
+                  outputType,
+                });
+              }
             } else if (event.type === 'error') {
               setMessages((prev) => prev.filter(m => m.id !== placeholderId));
               setSendingState(false);
@@ -215,10 +248,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText) {
     setActiveTask(null);
     handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel); // reads null from ref — no setTimeout needed
+    handleSend(prompt, outputType, taskLabel, displayText); // reads null from ref — no setTimeout needed
   }
 
   function handleTaskPanelClose(prefillText) {

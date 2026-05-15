@@ -75,6 +75,9 @@ async function downloadWordDoc(content, title) {
     border: { bottom: { color: 'DDDDDD', space: 1, style: docx.BorderStyle.SINGLE, size: 6 } },
   }));
 
+  // Skip the first h1 — it's already rendered as the title paragraph above
+  let skipFirstH1 = true;
+
   for (const raw of content.split('\n')) {
     const line = raw.trim();
     if (line === '') {
@@ -83,6 +86,7 @@ async function downloadWordDoc(content, title) {
     }
     const h1 = line.match(/^#\s+(.+)$/);
     if (h1) {
+      if (skipFirstH1) { skipFirstH1 = false; continue; }
       paragraphs.push(new docx.Paragraph({
         children: [new docx.TextRun({ text: h1[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim(), bold: true, size: 28 })],
         spacing: { before: 240, after: 200 },
@@ -110,7 +114,9 @@ async function downloadWordDoc(content, title) {
     const heading = line.match(/^\*\*(.+?)\*\*(.*)$/);
     if (heading) {
       const rest = heading[2].replace(/^[\s\-\u2013\u2014]+/, '');
-      const runs = [new docx.TextRun({ text: heading[1], bold: true, size: 22 })];
+      // Strip trailing colon to prevent "Klant:: Coca-Cola" when appending ': '
+      const labelText = heading[1].replace(/:$/, '');
+      const runs = [new docx.TextRun({ text: labelText, bold: true, size: 22 })];
       if (rest) runs.push(new docx.TextRun({ text: ': ' + rest, size: 22 }));
       paragraphs.push(new docx.Paragraph({ children: runs, spacing: { before: 200, after: 80 } }));
       continue;
