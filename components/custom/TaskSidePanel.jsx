@@ -42,6 +42,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const [showSkipPrompt, setShowSkipPrompt] = useState(false);
   const [skipStep2, setSkipStep2] = useState(false);
+  const [uploadedFilename, setUploadedFilename] = useState('');
   const fileInputRef = useRef(null);
 
   const handleTranscript = useCallback((text) => {
@@ -50,7 +51,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const handleStatus = useCallback((s) => setTranscriptStatus(s ?? ''), []);
   const handleError = useCallback((err) => setTranscriptStatus('Fout: ' + err), []);
 
-  const { recording, transcribing, toggleRecording, transcribeFile } = useAudioTranscription({
+  const { recording, transcribing, toggleRecording, transcribeFile, cancelTranscription, transcribeProgress } = useAudioTranscription({
     onTranscript: handleTranscript,
     onStatus: handleStatus,
     onError: handleError,
@@ -71,6 +72,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadedFilename(file.name);
     e.target.value = '';
     if (isAudioFile(file)) transcribeFile(file, false);
   }
@@ -235,7 +237,30 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                     <><Mic className="w-3.5 h-3.5" strokeWidth={1.75} /> Opnemen</>
                   )}
                 </button>
+                {transcribing && (
+                  <button
+                    type="button"
+                    onClick={cancelTranscription}
+                    className="flex items-center gap-2 h-9 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
+                  >
+                    Annuleer
+                  </button>
+                )}
               </div>
+              {transcribing && transcribeProgress && (
+                <div className="mb-3">
+                  <p className="text-[11px] text-white/50 mb-1.5 truncate">{transcribeProgress.filename || uploadedFilename}</p>
+                  <div className="w-full bg-white/[0.08] rounded-full h-1.5">
+                    <div
+                      className="bg-orange h-1.5 rounded-full transition-all"
+                      style={{ width: `${transcribeProgress.total > 0 ? Math.round((transcribeProgress.current / transcribeProgress.total) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-white/30 mt-1">
+                    {transcribeProgress.total > 0 ? `${Math.round((transcribeProgress.current / transcribeProgress.total) * 100)}%` : 'Transcriberen...'}
+                  </p>
+                </div>
+              )}
               {transcriptStatus && (
                 <p className="text-[11px] text-white/40 mb-3">{transcriptStatus}</p>
               )}
@@ -330,7 +355,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             ) : !isLastStep ? (
               <button
                 onClick={handleNext}
-                disabled={step === 1 && !description.trim()}
+                disabled={(step === 1 && !description.trim()) || transcribing}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende
