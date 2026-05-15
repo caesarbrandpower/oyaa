@@ -11,9 +11,10 @@ import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import DocumentView from './DocumentView';
 import TaskSidePanel from './TaskSidePanel';
 
-export default function ChatPage({ user, tenant, initialThreads }) {
+export default function ChatPage({ user, tenant, initialThreads, initialPrefill }) {
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
+  const activeThreadRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
@@ -21,7 +22,9 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const abortRef = useRef(null);
   const [activeDocument, setActiveDocument] = useState(null);
   // activeDocument: null | { content, outputType, title }
-  const [chatPrefill, setChatPrefill] = useState(null);
+  const [chatPrefill, setChatPrefill] = useState(
+    initialPrefill ? { text: initialPrefill, id: Date.now() } : null
+  );
   // chatPrefill: null | { text: string, id: number }
   const [activeTask, setActiveTask] = useState(null);
   // activeTask: null | task object from enabled_output_types
@@ -35,10 +38,16 @@ export default function ChatPage({ user, tenant, initialThreads }) {
     setSending(value);
   }
 
+  // Always update ref and state together — ref is read by handleSend (stable useCallback)
+  function setActiveThreadBoth(thread) {
+    activeThreadRef.current = thread;
+    setActiveThread(thread);
+  }
+
   function handleOpenDocument(msg) {
     setActiveDocument({
       content: msg.content,
-      outputType: msg.output_type ?? activeThread?.output_type ?? null,
+      outputType: msg.output_type ?? activeThreadRef.current?.output_type ?? null,
       title: null,
     });
   }
@@ -52,7 +61,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
   function handleNewThread() {
     abortRef.current?.abort();
-    setActiveThread(null);
+    setActiveThreadBoth(null);
     setMessages([]);
     setSendingState(false);
     setSidebarOpen(false);
@@ -60,7 +69,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
-    setActiveThread(thread);
+    setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
 
@@ -106,9 +115,9 @@ export default function ChatPage({ user, tenant, initialThreads }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            threadId: activeThread?.id ?? null,
+            threadId: activeThreadRef.current?.id ?? null,
             message: messageText,
-            outputType: outputType ?? activeThread?.output_type ?? null,
+            outputType: outputType ?? activeThreadRef.current?.output_type ?? null,
             taskLabel,
           }),
           signal: controller.signal,
@@ -149,7 +158,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
                 prev.map(m => m.id === placeholderId ? { ...m, isDocument } : m)
               );
 
-              if (!activeThread) {
+              if (!activeThreadRef.current) {
                 const newThread = {
                   id: event.threadId,
                   title: taskLabel || messageText.slice(0, 60),
@@ -157,7 +166,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
-                setActiveThread(newThread);
+                setActiveThreadBoth(newThread);
                 setThreads((prev) => [newThread, ...prev]);
               }
             } else if (event.type === 'chunk') {
@@ -199,7 +208,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
         setSendingState(false);
       }
     },
-    [activeThread]
+    [] // stable — reads activeThread and sending via refs (activeThreadRef, sendingRef)
   );
 
   function handleTaskClick(task) {
@@ -208,12 +217,8 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
   function handleTaskGenerate(prompt, outputType, taskLabel) {
     setActiveTask(null);
-    handleNewThread(); // resets activeThread to null and clears messages synchronously via state
-    // setTimeout defers handleSend until after React batches the handleNewThread state updates.
-    // handleSend reads activeThread via closure — deferring ensures it reads null (new thread).
-    setTimeout(() => {
-      handleSend(prompt, outputType, taskLabel);
-    }, 0);
+    handleNewThread(); // sets activeThreadRef.current = null synchronously
+    handleSend(prompt, outputType, taskLabel); // reads null from ref — no setTimeout needed
   }
 
   function handleTaskPanelClose(prefillText) {

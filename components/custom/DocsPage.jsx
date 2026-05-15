@@ -91,7 +91,13 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
         <DocumentView
           content={activeDocument.content}
           onClose={() => setActiveDocument(null)}
-          onImprove={() => setActiveDocument(null)}
+          onImprove={(prefillText) => {
+            setActiveDocument(null);
+            router.push(prefillText
+              ? '/app?prefill=' + encodeURIComponent(prefillText)
+              : '/app'
+            );
+          }}
         />
       )}
 

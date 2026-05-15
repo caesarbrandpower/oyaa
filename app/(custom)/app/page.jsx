@@ -10,7 +10,7 @@ export const metadata = {
   title: 'Waybetter',
 };
 
-export default async function AppPage() {
+export default async function AppPage({ searchParams }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -31,11 +31,14 @@ export default async function AppPage() {
     user.user_metadata?.name?.split(' ')[0] ||
     user.email.split('@')[0];
 
+  const prefill = (await searchParams)?.prefill ?? null;
+
   return (
     <ChatPage
       user={{ id: user.id, email: user.email, firstName }}
       tenant={tenant}
       initialThreads={threads ?? []}
+      initialPrefill={prefill}
     />
   );
 }
