@@ -13,7 +13,7 @@ const SEARCH_TASK_IDS = new Set(['location-search', 'supplier-search']);
 // Detect if description already contains a client or project name.
 // Matches "voor Heineken", "van Nike", "voor Coca-Cola HHZH", etc.
 function hasClientOrProject(text) {
-  return /\b(?:voor|van)\s+[A-Z][a-zA-Z]{2,}/.test(text);
+  return /\b(?:voor|van)\s+(?:[A-Z]{2,}|[A-Z][a-zA-Z](?:[a-zA-Z]|-[A-Z][a-zA-Z]*)*)/.test(text);
 }
 
 function ProgressBar({ step, total }) {
@@ -296,7 +296,15 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
           <div className="flex gap-2">
             {step > 1 && (
               <button
-                onClick={() => setStep((s) => s - 1)}
+                onClick={() => {
+                  if (effectivelySkippingStep2 && step === 3) {
+                    setSkipStep2(false);
+                    setShowSkipPrompt(false);
+                    setStep(1);
+                  } else {
+                    setStep((s) => s - 1);
+                  }
+                }}
                 className="h-10 px-4 rounded-xl text-[13px] text-white/60 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
               >
                 Terug
@@ -322,7 +330,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             ) : !isLastStep ? (
               <button
                 onClick={handleNext}
-                disabled={!description.trim()}
+                disabled={step === 1 && !description.trim()}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende
