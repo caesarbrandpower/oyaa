@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Marked } from 'marked';
-import { ArrowLeft, Copy, Download, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react';
 
 const md = new Marked({ breaks: true });
 
@@ -250,6 +250,8 @@ export default function DocumentView({ content, onClose, onImprove }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState(null);
 
   const title = extractTitle(content);
   const markeringen = parseMarkeringen(content);
@@ -286,6 +288,25 @@ export default function DocumentView({ content, onClose, onImprove }) {
       await downloadPdfDoc(content, title);
     } finally {
       setDownloadingPdf(false);
+    }
+  }
+
+  async function handleShare() {
+    setSharing(true);
+    try {
+      const res = await fetch('/api/share-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, outputType: null, title }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        const url = `${window.location.origin}/doc/${data.token}`;
+        setShareUrl(url);
+        await navigator.clipboard.writeText(url).catch(() => {});
+      }
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -326,6 +347,14 @@ export default function DocumentView({ content, onClose, onImprove }) {
           >
             <Download className="w-3 h-3" strokeWidth={2} />
             {downloadingPdf ? 'Bezig...' : 'PDF'}
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors disabled:opacity-40"
+          >
+            <Share2 className="w-3 h-3" strokeWidth={2} />
+            {sharing ? 'Bezig...' : shareUrl ? 'Link gekopieerd!' : 'Deel als link'}
           </button>
           <button
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
