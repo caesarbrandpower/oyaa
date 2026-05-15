@@ -17,6 +17,8 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const sendingRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const abortRef = useRef(null);
+  const [activeDocument, setActiveDocument] = useState(null);
+  // activeDocument: null | { content, outputType, title }
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -25,6 +27,18 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   function setSendingState(value) {
     sendingRef.current = value;
     setSending(value);
+  }
+
+  function handleOpenDocument(msg) {
+    setActiveDocument({
+      content: msg.content,
+      outputType: msg.output_type ?? activeThread?.output_type ?? null,
+      title: null,
+    });
+  }
+
+  function handleCloseDocument() {
+    setActiveDocument(null);
   }
 
   function handleNewThread() {
@@ -193,6 +207,14 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const isEmptyState = messages.length === 0 && !sending;
 
   return (
+    <>
+    {/* DocumentView overlay — wordt toegevoegd in Task 2 */}
+    {activeDocument && (
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+        <p className="text-white text-sm">Document view coming in Task 2</p>
+        <button onClick={handleCloseDocument} className="ml-4 text-white/60 text-sm underline">Sluiten</button>
+      </div>
+    )}
     <div className="flex h-full overflow-hidden">
       {/* Sidebar */}
       <aside
@@ -253,7 +275,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
               )}
             </div>
           ) : (
-            <MessageList messages={messages} sending={sending} />
+            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} />
           )}
         </div>
 
@@ -267,5 +289,6 @@ export default function ChatPage({ user, tenant, initialThreads }) {
         )}
       </div>
     </div>
+    </>
   );
 }

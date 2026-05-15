@@ -7,7 +7,7 @@ import DocumentCard from './DocumentCard';
 
 marked.setOptions({ breaks: true });
 
-export default function MessageList({ messages, sending }) {
+export default function MessageList({ messages, sending, onOpenDocument }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -51,7 +51,10 @@ export default function MessageList({ messages, sending }) {
               </p>
             ) : msg.isDocument ? (
               /* Document-kaart */
-              <DocumentCard content={msg.content} />
+              <DocumentCard
+                content={msg.content}
+                onOpen={() => onOpenDocument?.(msg)}
+              />
             ) : (
               /* Gewone markdown */
               <div
