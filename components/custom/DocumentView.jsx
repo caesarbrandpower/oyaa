@@ -45,14 +45,7 @@ function parseInlineRuns(text, size, docx) {
       const label = lm[1];
       const red = isRedLabel(label);
       return [
-        new docx.TextRun({
-          text: ` ${label} `,
-          bold: true,
-          size: Math.max(16, size - 2),
-          color: red ? 'FFFFFF' : '7C4A00',
-          shading: { type: docx.ShadingType.SOLID, color: red ? 'CC2200' : 'F59E0B', fill: red ? 'CC2200' : 'F59E0B' },
-        }),
-        new docx.TextRun({ text: ' ', size }),
+        new docx.TextRun({ text: `[${label}]`, bold: true, size }),
       ];
     }
     return [new docx.TextRun({ text: p.replace(/\*/g, ''), size })];
