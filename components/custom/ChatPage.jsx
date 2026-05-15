@@ -208,7 +208,9 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
   function handleTaskGenerate(prompt, outputType, taskLabel) {
     setActiveTask(null);
-    handleNewThread();
+    handleNewThread(); // resets activeThread to null and clears messages synchronously via state
+    // setTimeout defers handleSend until after React batches the handleNewThread state updates.
+    // handleSend reads activeThread via closure — deferring ensures it reads null (new thread).
     setTimeout(() => {
       handleSend(prompt, outputType, taskLabel);
     }, 0);

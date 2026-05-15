@@ -1,10 +1,13 @@
 // components/custom/TaskSidePanel.jsx
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { X, Mic, Square, Paperclip } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
+// Search tasks use a 2-step flow (description + confirm) and a simpler prompt.
+// These IDs correspond to task.id values from tenant.enabled_output_types.
+// Add new search-type task IDs here when they are added to the system.
 const SEARCH_TASK_IDS = new Set(['location-search', 'supplier-search']);
 
 function ProgressBar({ step, total }) {
@@ -33,10 +36,22 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const fileInputRef = useRef(null);
 
+  const handleTranscript = useCallback((text) => {
+    setTranscript((prev) => prev ? prev + ' ' + text : text);
+  }, []);
+
+  const handleStatus = useCallback((s) => {
+    setTranscriptStatus(s ?? '');
+  }, []);
+
+  const handleError = useCallback((err) => {
+    setTranscriptStatus('Fout: ' + err);
+  }, []);
+
   const { recording, transcribing, toggleRecording, transcribeFile } = useAudioTranscription({
-    onTranscript: (text) => setTranscript((prev) => prev ? prev + ' ' + text : text),
-    onStatus: (s) => setTranscriptStatus(s ?? ''),
-    onError: (err) => setTranscriptStatus('Fout: ' + err),
+    onTranscript: handleTranscript,
+    onStatus: handleStatus,
+    onError: handleError,
   });
 
   function handleFileChange(e) {
@@ -245,7 +260,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             {step < totalSteps ? (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                disabled={step === 1 && !description.trim()}
+                disabled={!description.trim()}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende
