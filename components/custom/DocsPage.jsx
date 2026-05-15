@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  FileText, ClipboardList, PenLine, BarChart2, Search, ChevronRight
+  FileText, ClipboardList, PenLine, BarChart2, Search, ChevronRight, Menu
 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DocumentView from './DocumentView';
@@ -67,12 +67,11 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
         .eq('thread_id', thread.id)
         .eq('role', 'assistant')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (data?.content) {
+      if (data?.[0]?.content) {
         setActiveDocument({
-          content: data.content,
+          content: data[0].content,
           outputType: thread.output_type,
         });
       }
@@ -121,6 +120,24 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
 
       {/* Hoofdgebied */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Mobile header */}
+        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-white/40 hover:text-white/70 transition-colors"
+            aria-label="Menu openen"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          {tenant?.logo_url ? (
+            <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
+          ) : (
+            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+              {tenant?.name ?? 'Waybetter'}
+            </span>
+          )}
+        </header>
+
         {/* Header */}
         <header className="shrink-0 px-4 md:px-8 py-6 border-b border-white/[0.06]">
           <div className="max-w-3xl mx-auto">
