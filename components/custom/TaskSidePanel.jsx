@@ -10,12 +10,6 @@ import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 // Add new search-type task IDs here when they are added to the system.
 const SEARCH_TASK_IDS = new Set(['location-search', 'supplier-search']);
 
-// Detect if description already contains a client or project name.
-// Matches "voor Heineken", "van Nike", "voor Coca-Cola HHZH", etc.
-function hasClientOrProject(text) {
-  return /\b(?:voor|van)\s+(?:[A-Z]{2,}|[A-Z][a-zA-Z](?:[a-zA-Z]|-[A-Z][a-zA-Z]*)*)/.test(text);
-}
-
 function ProgressBar({ step, total }) {
   return (
     <div className="flex gap-1">
@@ -33,15 +27,13 @@ function ProgressBar({ step, total }) {
 
 export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const isSearch = SEARCH_TASK_IDS.has(task.id);
-  const totalSteps = isSearch ? 2 : 4;
+  const totalSteps = isSearch ? 2 : 3;
 
   const [step, setStep] = useState(1);
   const [description, setDescription] = useState('');
   const [project, setProject] = useState('');
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
-  const [showSkipPrompt, setShowSkipPrompt] = useState(false);
-  const [skipStep2, setSkipStep2] = useState(false);
   const [uploadedFilename, setUploadedFilename] = useState('');
   const fileInputRef = useRef(null);
 
@@ -57,17 +49,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     onError: handleError,
   });
 
-  // Derived: should we skip step 2?
-  const skipStep2Auto = !isSearch && hasClientOrProject(description);
-  const effectivelySkippingStep2 = !isSearch && (skipStep2Auto || skipStep2);
-
-  // Progress bar: show 3 steps when skipping step 2, else 4 (or 2 for search)
-  const displayTotalSteps = isSearch ? 2 : effectivelySkippingStep2 ? 3 : 4;
-  const displayStep = (step > 2 && effectivelySkippingStep2) ? step - 1 : step;
-
   const STEP_LABELS = isSearch
     ? ['Omschrijving', 'Bevestigen']
-    : ['Omschrijving', 'Project', 'Bronnen', 'Bevestigen'];
+    : ['Omschrijving & Klant', 'Bronnen', 'Bevestigen'];
 
   function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -75,23 +59,6 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     setUploadedFilename(file.name);
     e.target.value = '';
     if (isAudioFile(file)) transcribeFile(file, false);
-  }
-
-  function handleNext() {
-    if (step === 1 && !isSearch) {
-      if (skipStep2Auto) {
-        // Auto-detected client/project: silently skip step 2
-        setStep(3);
-      } else if (showSkipPrompt) {
-        // Prompt is showing — "Volgende" shouldn't be visible, handled by separate buttons
-        setStep(2);
-      } else {
-        // No client detected: show soft prompt
-        setShowSkipPrompt(true);
-      }
-    } else {
-      setStep((s) => s + 1);
-    }
   }
 
   function handleGenerate() {
@@ -141,62 +108,51 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
               <X className="w-4 h-4" strokeWidth={2} />
             </button>
           </div>
-          <ProgressBar step={displayStep} total={displayTotalSteps} />
+          <ProgressBar step={step} total={totalSteps} />
           <p className="text-[11px] text-white/35 mt-2">
-            Stap {displayStep} van {displayTotalSteps} — {STEP_LABELS[step - 1]}
+            Stap {step} van {totalSteps} — {STEP_LABELS[step - 1]}
           </p>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {step === 1 && (
-            <div>
-              <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                {isSearch ? 'Wat ben je op zoek naar?' : 'Korte omschrijving van de opdracht'}
-              </label>
-              <textarea
-                autoFocus
-                value={description}
-                onChange={(e) => { setDescription(e.target.value); setShowSkipPrompt(false); }}
-                placeholder={
-                  isSearch
-                    ? 'Bijv. "Locatie voor een teamdag in Amsterdam voor 20 personen"'
-                    : 'Bijv. "Notulen van het kickoff-gesprek met Heineken over de rebrand"'
-                }
-                rows={5}
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
-              />
-              {!isSearch && !showSkipPrompt && (
-                <p className="text-[11px] text-white/30 mt-2 leading-relaxed">
-                  Tip: noem ook de klant of het project voor een betere briefing.{' '}
-                  <span className="italic">&ldquo;Briefing voor Coca-Cola HHZH op 14 juni.&rdquo;</span>
-                </p>
-              )}
-              {!isSearch && showSkipPrompt && (
-                <p className="text-[11px] text-white/50 mt-2 leading-relaxed">
-                  We zien nog geen klant of project — wil je dat toevoegen?
-                </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                  {isSearch ? 'Wat ben je op zoek naar?' : 'Korte omschrijving van de opdracht'}
+                </label>
+                <textarea
+                  autoFocus
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={
+                    isSearch
+                      ? 'Bijv. "Locatie voor een teamdag in Amsterdam voor 20 personen"'
+                      : 'Bijv. "Notulen van het kickoff-gesprek met Heineken over de rebrand"'
+                  }
+                  rows={5}
+                  className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                />
+              </div>
+              {!isSearch && (
+                <div>
+                  <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                    Klant of project
+                  </label>
+                  <textarea
+                    value={project}
+                    onChange={(e) => setProject(e.target.value)}
+                    placeholder='Bijv. "Coca-Cola HHZH" — optioneel'
+                    rows={2}
+                    className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                  />
+                </div>
               )}
             </div>
           )}
 
           {step === 2 && !isSearch && (
-            <div>
-              <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                Voor welk project of welke klant?
-              </label>
-              <textarea
-                autoFocus
-                value={project}
-                onChange={(e) => setProject(e.target.value)}
-                placeholder='Bijv. "Heineken rebrand Q3 2026" of laat leeg als niet van toepassing'
-                rows={4}
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
-              />
-            </div>
-          )}
-
-          {step === 3 && !isSearch && (
             <div>
               <label className="block text-[12px] font-semibold text-white/60 mb-2">
                 Bronnen toevoegen
@@ -285,7 +241,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             </div>
           )}
 
-          {(step === 4 || (isSearch && step === 2)) && (
+          {(step === 3 || (isSearch && step === 2)) && (
             <div>
               <label className="block text-[12px] font-semibold text-white/60 mb-3">
                 Overzicht
@@ -299,9 +255,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                     {description || <span className="text-white/30 italic">Niet ingevuld</span>}
                   </p>
                 </div>
-                {!isSearch && project && (
+                {!isSearch && project.trim() && (
                   <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
-                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Project</p>
+                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Klant/project</p>
                     <p className="text-[13px] text-white/75">{project}</p>
                   </div>
                 )}
@@ -321,41 +277,16 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
           <div className="flex gap-2">
             {step > 1 && (
               <button
-                onClick={() => {
-                  if (effectivelySkippingStep2 && step === 3) {
-                    setSkipStep2(false);
-                    setShowSkipPrompt(false);
-                    setStep(1);
-                  } else {
-                    setStep((s) => s - 1);
-                  }
-                }}
+                onClick={() => setStep((s) => s - 1)}
                 className="h-10 px-4 rounded-xl text-[13px] text-white/60 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
               >
                 Terug
               </button>
             )}
-            {/* Soft skip prompt replaces Volgende when showing */}
-            {showSkipPrompt && step === 1 && !isSearch ? (
-              <>
-                <button
-                  onClick={() => { setShowSkipPrompt(false); setStep(2); }}
-                  disabled={!description.trim()}
-                  className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  Toevoegen in stap 2
-                </button>
-                <button
-                  onClick={() => { setSkipStep2(true); setShowSkipPrompt(false); setStep(3); }}
-                  className="h-10 px-4 rounded-xl text-[13px] text-white/50 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
-                >
-                  Overslaan
-                </button>
-              </>
-            ) : !isLastStep ? (
+            {!isLastStep ? (
               <button
-                onClick={handleNext}
-                disabled={(step === 1 && !description.trim()) || transcribing}
+                onClick={() => setStep((s) => s + 1)}
+                disabled={step === 1 && !description.trim()}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende
