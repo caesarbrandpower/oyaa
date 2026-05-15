@@ -9,6 +9,7 @@ import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import DocumentView from './DocumentView';
+import TaskSidePanel from './TaskSidePanel';
 
 export default function ChatPage({ user, tenant, initialThreads }) {
   const [threads, setThreads] = useState(initialThreads);
@@ -22,6 +23,8 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   // activeDocument: null | { content, outputType, title }
   const [chatPrefill, setChatPrefill] = useState(null);
   // chatPrefill: null | { text: string, id: number }
+  const [activeTask, setActiveTask] = useState(null);
+  // activeTask: null | task object from enabled_output_types
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -200,20 +203,35 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   );
 
   function handleTaskClick(task) {
+    setActiveTask(task);
+  }
+
+  function handleTaskGenerate(prompt, outputType, taskLabel) {
+    setActiveTask(null);
     handleNewThread();
     setTimeout(() => {
-      handleSend(
-        `Ik wil ${task.label.toLowerCase()}. Hier is mijn input:`,
-        task.id,
-        task.label
-      );
+      handleSend(prompt, outputType, taskLabel);
     }, 0);
+  }
+
+  function handleTaskPanelClose(prefillText) {
+    setActiveTask(null);
+    if (prefillText) {
+      setChatPrefill({ text: prefillText, id: Date.now() });
+    }
   }
 
   const isEmptyState = messages.length === 0 && !sending;
 
   return (
     <>
+    {activeTask && (
+      <TaskSidePanel
+        task={activeTask}
+        onClose={handleTaskPanelClose}
+        onGenerate={handleTaskGenerate}
+      />
+    )}
     {activeDocument && (
       <DocumentView
         content={activeDocument.content}
