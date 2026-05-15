@@ -64,6 +64,103 @@ function parseInlineRuns(text, size, docx) {
   });
 }
 
+async function downloadPdfDoc(content, title) {
+  if (!content?.trim()) return;
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const maxWidth = pageWidth - margin * 2;
+  let y = margin;
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(title, margin, y);
+  y += 10;
+
+  // Separator line
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  const lines = content.split('\n');
+  for (const raw of lines) {
+    const line = raw.trim();
+
+    // Add new page if needed
+    if (y > 270) {
+      doc.addPage();
+      y = margin;
+    }
+
+    if (line === '') {
+      y += 4;
+      continue;
+    }
+
+    // Strip markdown labels like [AFSTEMMEN] etc.
+    const stripped = line.replace(/\[([A-Z][A-Z\s]+)\]/g, '[$1]').replace(/\[([A-Z][A-Z\s]+)\]/g, '');
+
+    const h1 = line.match(/^#\s+(.+)$/);
+    if (h1) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      const text = h1[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 7 + 4;
+      continue;
+    }
+
+    const h2 = line.match(/^##\s+(.+)$/);
+    if (h2) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      const text = h2[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim().toUpperCase();
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 6 + 4;
+      continue;
+    }
+
+    const h3 = line.match(/^###\s+(.+)$/);
+    if (h3) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      const text = h3[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 6 + 3;
+      continue;
+    }
+
+    // List items
+    const listItem = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
+    if (listItem) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const text = listItem[1].replace(/\*\*/g, '').replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+      const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 5);
+      doc.text(wrapped, margin + 5, y);
+      y += wrapped.length * 5 + 2;
+      continue;
+    }
+
+    // Regular paragraph
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const text = line.replace(/\*\*/g, '').replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim();
+    if (!text) { y += 3; continue; }
+    const wrapped = doc.splitTextToSize(text, maxWidth);
+    doc.text(wrapped, margin, y);
+    y += wrapped.length * 5 + 3;
+  }
+
+  doc.save(title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf');
+}
+
 async function downloadWordDoc(content, title) {
   if (!content?.trim()) return;
   const docx = await import('docx');
@@ -152,6 +249,7 @@ async function downloadWordDoc(content, title) {
 export default function DocumentView({ content, onClose, onImprove }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const title = extractTitle(content);
   const markeringen = parseMarkeringen(content);
@@ -179,6 +277,15 @@ export default function DocumentView({ content, onClose, onImprove }) {
       await downloadWordDoc(content, title);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    setDownloadingPdf(true);
+    try {
+      await downloadPdfDoc(content, title);
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -211,6 +318,14 @@ export default function DocumentView({ content, onClose, onImprove }) {
           >
             <Download className="w-3 h-3" strokeWidth={2} />
             {downloading ? 'Bezig...' : 'Word'}
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
+            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors disabled:opacity-40"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            {downloadingPdf ? 'Bezig...' : 'PDF'}
           </button>
           <button
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
