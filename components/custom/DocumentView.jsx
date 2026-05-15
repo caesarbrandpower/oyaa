@@ -31,21 +31,16 @@ function extractTitle(markdown) {
 
 function parseMarkeringen(content) {
   const matches = [...content.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
-  const seen = new Set();
-  return matches.map(m => m[1]).filter(label => {
-    if (seen.has(label)) return false;
-    seen.add(label);
-    return true;
-  });
+  return matches.map(m => m[1]);
 }
 
 function parseInlineRuns(text, size, docx) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(:[^\]]*)?])/);
+  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(?::[^\]]*)?])/);
   return parts.filter(p => p.length > 0).flatMap(p => {
     if (p.startsWith('**') && p.endsWith('**')) {
       return [new docx.TextRun({ text: p.slice(2, -2), bold: true, size })];
     }
-    const lm = p.match(/^\[([A-Z][A-Z\s]*(:[^\]]*)?)\]$/);
+    const lm = p.match(/^\[([A-Z][A-Z\s]*(?::[^\]]*)?)\]$/);
     if (lm) {
       const label = lm[1];
       const red = isRedLabel(label);
@@ -479,11 +474,11 @@ export default function DocumentView({ content, onClose, onImprove }) {
 
             {/* Markeringen lijst */}
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-              {markeringen.map((label) => {
+              {markeringen.map((label, idx) => {
                 const isRed = isRedLabel(label);
                 return (
                   <div
-                    key={label}
+                    key={idx}
                     className="rounded-lg border border-white/[0.06] p-3 bg-white/[0.02]"
                   >
                     <div className="flex items-center gap-2 mb-2">
