@@ -28,8 +28,8 @@ export default function ChatInput({ onSend, disabled, prefill }) {
 
   // Pre-fill vanuit buiten (bijv. na sluiten DocumentView)
   useEffect(() => {
-    if (prefill) {
-      setValue(prefill);
+    if (prefill?.text) {
+      setValue(prefill.text);
       textareaRef.current?.focus();
     }
   }, [prefill]);

@@ -21,6 +21,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   const [activeDocument, setActiveDocument] = useState(null);
   // activeDocument: null | { content, outputType, title }
   const [chatPrefill, setChatPrefill] = useState(null);
+  // chatPrefill: null | { text: string, id: number }
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -42,8 +43,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
   function handleCloseDocument(prefillText) {
     setActiveDocument(null);
     if (prefillText) {
-      setChatPrefill(prefillText);
-      setTimeout(() => setChatPrefill(null), 0);
+      setChatPrefill({ text: prefillText, id: Date.now() });
     }
   }
 
@@ -218,7 +218,7 @@ export default function ChatPage({ user, tenant, initialThreads }) {
       <DocumentView
         content={activeDocument.content}
         onClose={handleCloseDocument}
-        onImprove={(prefillText) => handleCloseDocument(prefillText)}
+        onImprove={handleCloseDocument}
       />
     )}
     <div className="flex h-full overflow-hidden">
