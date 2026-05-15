@@ -2,8 +2,13 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread }) {
+  const pathname = usePathname();
+  const isDocsActive = pathname === '/app/docs';
+
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
     : user.email.slice(0, 2).toUpperCase();
@@ -77,14 +82,18 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         )}
       </div>
 
-      {/* Alle documenten (dode link) */}
+      {/* Alle documenten */}
       <div className="px-3 pb-2">
-        <button
-          disabled
-          className="w-full text-left px-2 py-1.5 text-[12px] text-white/20 rounded-lg cursor-not-allowed"
+        <Link
+          href="/app/docs"
+          className={`block w-full text-left px-2 py-1.5 text-[12px] rounded-lg transition-colors ${
+            isDocsActive
+              ? 'bg-white/[0.08] text-white'
+              : 'text-white/35 hover:text-white/70 hover:bg-white/[0.04]'
+          }`}
         >
           Alle documenten
-        </button>
+        </Link>
       </div>
 
       {/* User initials */}
