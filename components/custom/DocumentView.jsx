@@ -513,7 +513,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
               </span>
             </div>
 
-            {/* Markeringen lijst */}
+            {/* Markeringen lijst — click card -> scroll doc pill; click pill -> highlight card */}
             <div ref={sidebarRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {markeringen.map((label, idx) => {
                 const isRed = isRedLabel(label);
