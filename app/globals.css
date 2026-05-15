@@ -138,3 +138,61 @@ body {
   border-color: rgba(255,255,255,0.08);
   margin: 1.25rem 0;
 }
+
+/* Doc prose — full-screen DocumentView typografie */
+.doc-prose h1 {
+  font-family: var(--font-lexend);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  line-height: 1.3;
+}
+.doc-prose h2 {
+  font-family: var(--font-lexend);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.doc-prose h3 {
+  font-family: var(--font-lexend);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+.doc-prose p {
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 0.9rem;
+}
+.doc-prose ul,
+.doc-prose ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.9rem;
+}
+.doc-prose li {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 0.35rem;
+}
+.doc-prose strong {
+  color: white;
+  font-weight: 600;
+}
+.doc-prose hr {
+  border-color: rgba(255,255,255,0.08);
+  margin: 1.5rem 0;
+}

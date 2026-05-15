@@ -8,6 +8,7 @@ import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
+import DocumentView from './DocumentView';
 
 export default function ChatPage({ user, tenant, initialThreads }) {
   const [threads, setThreads] = useState(initialThreads);
@@ -208,12 +209,12 @@ export default function ChatPage({ user, tenant, initialThreads }) {
 
   return (
     <>
-    {/* DocumentView overlay — wordt toegevoegd in Task 2 */}
     {activeDocument && (
-      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-        <p className="text-white text-sm">Document view coming in Task 2</p>
-        <button onClick={handleCloseDocument} className="ml-4 text-white/60 text-sm underline">Sluiten</button>
-      </div>
+      <DocumentView
+        content={activeDocument.content}
+        onClose={handleCloseDocument}
+        onImprove={handleCloseDocument}
+      />
     )}
     <div className="flex h-full overflow-hidden">
       {/* Sidebar */}
