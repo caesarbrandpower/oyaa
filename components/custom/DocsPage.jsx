@@ -58,9 +58,11 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openFolders, setOpenFolders] = useState(() => {
-    // Start met alle client-mappen open
-    const tree = buildFolderTree(docThreads);
-    return new Set(Object.keys(tree));
+    // Alleen de map met het meest recente item standaard open
+    if (docThreads.length === 0) return new Set();
+    const mostRecent = docThreads[0]; // al gesorteerd nieuwste eerst
+    const activeClient = mostRecent.client || 'Overige';
+    return new Set([activeClient]);
   });
   const [moveMenu, setMoveMenu] = useState(null); // threadId
   const [moveInputVisible, setMoveInputVisible] = useState(false);
