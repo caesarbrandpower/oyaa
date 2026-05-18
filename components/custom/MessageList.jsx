@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { marked } from 'marked';
+import { Image as ImageIcon, FileText } from 'lucide-react';
 import DocumentCard from './DocumentCard';
 
 marked.setOptions({ breaks: true });
@@ -42,7 +43,25 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
             }
           >
             {msg.role === 'user' ? (
-              <span className="whitespace-pre-wrap">{msg.content}</span>
+              <>
+                <span className="whitespace-pre-wrap">{msg.content}</span>
+                {msg.attachments?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {msg.attachments.map((att, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 text-[10px] text-white/40 border border-white/[0.08] rounded-md px-1.5 py-0.5"
+                      >
+                        {att.type === 'image'
+                          ? <ImageIcon className="w-2.5 h-2.5" strokeWidth={1.75} />
+                          : <FileText className="w-2.5 h-2.5" strokeWidth={1.75} />
+                        }
+                        {att.filename}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : msg.streaming ? (
               /* Live streaming tekst */
               <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">

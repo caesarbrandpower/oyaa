@@ -40,7 +40,7 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName, imageAttachments = [] } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
@@ -133,17 +133,44 @@ export async function POST(request) {
         const isFirstTurn = userMessages.length === 1;
         const useStructuredPrompt = isFirstTurn && outputType && CUSTOM_PROMPTS[outputType];
 
+        function buildImageBlocks(images) {
+          return images.map((img) => ({
+            type: 'image',
+            source: { type: 'base64', media_type: img.mediaType || 'image/jpeg', data: img.data },
+          }));
+        }
+
         let claudeMessages;
         if (useStructuredPrompt) {
           const lastUserIdx = anonParts.length - 1;
+          const promptText = CUSTOM_PROMPTS[outputType](anonParts[lastUserIdx]);
           claudeMessages = [
-            { role: 'user', content: CUSTOM_PROMPTS[outputType](anonParts[lastUserIdx]) },
+            {
+              role: 'user',
+              content: imageAttachments.length > 0
+                ? [{ type: 'text', text: promptText }, ...buildImageBlocks(imageAttachments)]
+                : promptText,
+            },
           ];
         } else {
           claudeMessages = allMessages.map((msg, i) => ({
             role: msg.role,
             content: anonParts[i] ?? msg.content,
           }));
+          // Voeg afbeeldingen toe aan het laatste gebruikersbericht
+          if (imageAttachments.length > 0) {
+            const lastIdx = claudeMessages.length - 1;
+            if (claudeMessages[lastIdx]?.role === 'user') {
+              const textContent = claudeMessages[lastIdx].content;
+              claudeMessages[lastIdx] = {
+                role: 'user',
+                content: [
+                  { type: 'text', text: typeof textContent === 'string' ? textContent : '' },
+                  ...buildImageBlocks(imageAttachments),
+                ],
+              };
+            }
+          }
         }
 
         let fullText = '';
