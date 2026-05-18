@@ -78,22 +78,32 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             Nog geen gesprekken.
           </p>
         ) : (
-          <ul className="space-y-0.5">
-            {threads.slice(0, 8).map((thread) => (
-              <li key={thread.id}>
-                <button
-                  onClick={() => onSelectThread(thread)}
-                  className={`w-full text-left px-2 py-2 rounded-lg text-[12px] leading-snug transition-colors truncate ${
-                    activeThreadId === thread.id
-                      ? 'bg-white/[0.08] text-white'
-                      : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
-                  }`}
-                >
-                  {thread.title}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-0.5">
+              {threads.slice(0, 8).map((thread) => (
+                <li key={thread.id}>
+                  <button
+                    onClick={() => onSelectThread(thread)}
+                    className={`w-full text-left px-2 py-2 rounded-lg text-[12px] leading-snug transition-colors truncate ${
+                      activeThreadId === thread.id
+                        ? 'bg-white/[0.08] text-white'
+                        : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
+                    }`}
+                  >
+                    {thread.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {threads.length > 8 && (
+              <Link
+                href="/app/docs"
+                className="block px-2 py-1.5 mt-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+              >
+                Toon meer...
+              </Link>
+            )}
+          </>
         )}
       </div>
 
