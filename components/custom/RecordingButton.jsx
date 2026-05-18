@@ -9,7 +9,7 @@ import { useAudioTranscription } from '@/lib/use-audio';
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 // state: idle | choosing | recording | stopping | transcribing
@@ -234,23 +234,30 @@ export default function RecordingButton() {
           else if (uiState === 'stopping') setUiState('recording');
         }}
         disabled={isTranscribing}
-        className={`relative flex items-center justify-center rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
           isRecording
-            ? 'w-10 h-10 bg-red-600 shadow-lg shadow-red-900/40 animate-pulse'
+            ? 'bg-red-600/10 border border-red-600/25 text-red-400'
             : isTranscribing
-            ? 'w-10 h-10 bg-orange/60'
-            : 'w-9 h-9 bg-red-600 hover:bg-red-500 shadow-md shadow-red-900/30 hover:shadow-red-900/50'
+            ? 'bg-white/[0.04] border border-white/[0.08] text-white/30'
+            : 'bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/[0.15] hover:bg-white/[0.06]'
         }`}
         title={isRecording ? 'Opname bezig — klik voor opties' : 'Opname starten'}
       >
         {isTranscribing ? (
-          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          <>
+            <div className="w-3 h-3 border-2 border-white/30 border-t-white/60 rounded-full animate-spin" />
+            <span className="text-[12px] font-medium">Verwerken...</span>
+          </>
         ) : isRecording ? (
-          <span className="text-[11px] font-bold text-white tabular-nums leading-none">
-            {formatTime(timer)}
-          </span>
+          <>
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span className="text-[12px] font-medium tabular-nums">{formatTime(timer)}</span>
+          </>
         ) : (
-          <span className="block w-3.5 h-3.5 rounded-full bg-white" />
+          <>
+            <Mic className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+            <span className="text-[12px] font-medium">Opnemen</span>
+          </>
         )}
       </button>
 

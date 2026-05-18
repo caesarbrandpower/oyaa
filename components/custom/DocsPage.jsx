@@ -274,9 +274,12 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ zoom: `${1 / 1.1}` }}
+      >
         <Sidebar
           tenant={tenant}
           user={user}
@@ -298,15 +301,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            {tenant?.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
-            ) : (
-              <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-                {tenant?.name ?? 'Waybetter'}
-              </span>
-            )}
-          </div>
+          <div className="flex-1" />
           <RecordingButton />
         </header>
 

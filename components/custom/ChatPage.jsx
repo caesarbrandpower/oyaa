@@ -332,6 +332,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
         className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ zoom: `${1 / 1.1}` }}
       >
         <Sidebar
           tenant={tenant}
@@ -362,22 +363,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            {tenant?.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
-            ) : (
-              <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-                {tenant?.name ?? 'Waybetter'}
-              </span>
-            )}
-          </div>
+          <div className="flex-1" />
           <RecordingButton />
         </header>
 
         {/* Chat content */}
         <div className="flex-1 overflow-y-auto">
           {isEmptyState ? (
-            <div className="flex flex-col justify-center min-h-full px-4 md:px-8 py-12 max-w-3xl mx-auto w-full">
+            <div className="flex items-center justify-center min-h-full">
+            <div className="w-full max-w-2xl px-4 md:px-8 py-12">
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
                 Hoi {user.firstName}. Wat ga je vandaag maken?
               </h1>
@@ -387,6 +381,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
                 </div>
               )}
+            </div>
             </div>
           ) : (
             <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} />

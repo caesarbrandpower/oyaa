@@ -2,7 +2,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 const TEXT_EXTS = ['.pdf', '.docx', '.txt', '.eml'];
@@ -24,7 +24,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const { transcribing, transcribeFile } = useAudioTranscription({
+  const { transcribing, transcribeFile, recording, toggleRecording } = useAudioTranscription({
     onTranscript: (text) => setValue((prev) => (prev ? prev + ' ' + text : text)),
     onStatus: () => {},
     onError: (err) => console.error('[ChatInput audio error]', err),
@@ -185,13 +185,29 @@ export default function ChatInput({ onSend, disabled, prefill }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={transcribing ? 'Opname wordt verwerkt...' : 'Schrijf of spreek je input...'}
+          placeholder={transcribing ? 'Opname wordt verwerkt...' : recording ? 'Aan het dicteren...' : 'Schrijf hier of sleep een bestand hierin...'}
           disabled={disabled || transcribing}
           rows={1}
           className="flex-1 bg-transparent text-[14px] text-white placeholder-white/25 resize-none outline-none leading-relaxed min-h-[24px] max-h-[200px]"
         />
 
         <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
+          <button
+            type="button"
+            onClick={toggleRecording}
+            disabled={disabled || transcribing}
+            title={recording ? 'Stop dicteren' : 'Dicteren'}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+              recording
+                ? 'text-red-400 bg-red-950/30 hover:bg-red-950/50'
+                : 'text-white/30 hover:text-white/60 hover:bg-white/[0.06]'
+            }`}
+          >
+            {recording
+              ? <Square className="w-3.5 h-3.5" strokeWidth={2} />
+              : <Mic className="w-4 h-4" strokeWidth={1.75} />
+            }
+          </button>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
