@@ -139,6 +139,17 @@ body {
   margin: 1.25rem 0;
 }
 
+/* ── MARKER PULSE — kaart → document highlight ── */
+@keyframes marker-pulse {
+  0%   { outline: 2px solid transparent; outline-offset: 3px; }
+  25%  { outline: 2px solid #FF4800; outline-offset: 3px; }
+  75%  { outline: 2px solid #FF4800; outline-offset: 3px; }
+  100% { outline: 2px solid transparent; outline-offset: 3px; }
+}
+.marker-pulse {
+  animation: marker-pulse 1s ease-in-out;
+}
+
 /* Doc prose — full-screen DocumentView typografie */
 .doc-prose h1 {
   font-family: var(--font-lexend);

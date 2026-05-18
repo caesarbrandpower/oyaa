@@ -533,12 +533,10 @@ export default function DocumentView({ content, onClose, onImprove }) {
                         const pill = docBodyRef.current.querySelector(`[data-marker-idx="${idx}"]`);
                         if (pill) {
                           pill.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          pill.style.outline = '2px solid #FF4800';
-                          pill.style.outlineOffset = '2px';
-                          setTimeout(() => {
-                            pill.style.outline = '';
-                            pill.style.outlineOffset = '';
-                          }, 1500);
+                          pill.classList.remove('marker-pulse');
+                          void pill.offsetWidth; // reflow zodat animatie herstart
+                          pill.classList.add('marker-pulse');
+                          setTimeout(() => pill.classList.remove('marker-pulse'), 1000);
                         }
                       }
                     }}
