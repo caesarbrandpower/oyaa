@@ -122,7 +122,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null) => {
       if (sendingRef.current) return;
       const userMsgId = 'user-' + Date.now();
       const userMsg = {
@@ -152,6 +152,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
             message: messageText,
             outputType: outputType ?? activeThreadRef.current?.output_type ?? null,
             taskLabel,
+            client,
           }),
           signal: controller.signal,
         });
@@ -256,10 +257,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client) {
     setActiveTask(null);
     handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel, displayText); // reads null from ref — no setTimeout needed
+    handleSend(prompt, outputType, taskLabel, displayText, client); // reads null from ref — no setTimeout needed
   }
 
   function handleTaskPanelClose(prefillText) {

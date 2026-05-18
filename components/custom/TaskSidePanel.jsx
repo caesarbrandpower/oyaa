@@ -77,7 +77,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         ? `${task.label} voor ${project.trim()}`
         : task.label;
     }
-    onGenerate(prompt, task.id, task.label, displayText);
+    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null);
   }
 
   function handleDirectChat() {

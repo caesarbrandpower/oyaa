@@ -7,6 +7,27 @@ import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/l
 
 export const maxDuration = 60;
 
+async function detectClientProject(supabase, threadId, message) {
+  const Anthropic = (await import('@anthropic-ai/sdk')).default;
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 80,
+    messages: [{
+      role: 'user',
+      content: `Zit er een klantnaam of projectnaam in deze tekst? Geef terug als JSON met exacte sleutels: {"client": string|null, "project": string|null}. Alleen JSON, geen uitleg.\n\nTekst: ${message.slice(0, 500)}`,
+    }],
+  });
+  const text = response.content[0]?.text?.trim() ?? '';
+  const json = JSON.parse(text);
+  if (json.client || json.project) {
+    await supabase.from('threads').update({
+      client: json.client ?? null,
+      project: json.project ?? null,
+    }).eq('id', threadId);
+  }
+}
+
 function writeEvent(controller, data) {
   const encoded = new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
   controller.enqueue(encoded);
@@ -19,7 +40,7 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
@@ -44,6 +65,7 @@ export async function POST(request) {
               tenant_id: tenant?.id ?? null,
               title,
               output_type: outputType ?? null,
+              client: clientName ?? null,
             })
             .select('id')
             .single();
@@ -54,6 +76,11 @@ export async function POST(request) {
             return;
           }
           activeThreadId = newThread.id;
+
+          // Detecteer klant/project uit directe chat-berichten (fire-and-forget)
+          if (!clientName && !outputType) {
+            detectClientProject(supabase, activeThreadId, message).catch(() => {});
+          }
         }
 
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });

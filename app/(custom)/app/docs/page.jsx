@@ -20,7 +20,7 @@ export default async function DocsArchivePage() {
   // Alle document-type threads (gesorteerd nieuwste eerst)
   const { data: threads } = await supabase
     .from('threads')
-    .select('id, title, output_type, created_at, updated_at')
+    .select('id, title, output_type, created_at, updated_at, client, project')
     .eq('user_id', user.id)
     .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation'])
     .order('updated_at', { ascending: false });

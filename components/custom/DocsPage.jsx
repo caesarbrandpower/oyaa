@@ -1,10 +1,12 @@
 // components/custom/DocsPage.jsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  FileText, ClipboardList, PenLine, BarChart2, Search, ChevronRight, Menu
+  FileText, ClipboardList, PenLine, BarChart2, Search,
+  ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
+  MoreHorizontal, X,
 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DocumentView from './DocumentView';
@@ -19,42 +21,63 @@ const ICON_COMPONENTS = {
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('nl-NL', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+    day: 'numeric', month: 'short', year: 'numeric',
   });
 }
 
-function getWeekGroup(dateStr) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  // Start van huidige week (maandag)
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  monday.setHours(0, 0, 0, 0);
-  // Start van vorige week
-  const lastMonday = new Date(monday);
-  lastMonday.setDate(monday.getDate() - 7);
-
-  if (date >= monday) return 'Deze week';
-  if (date >= lastMonday) return 'Vorige week';
-  return 'Eerder';
+function buildFolderTree(threads) {
+  // Returns { clientName: { __direct: [], __projects: { projectName: [] } } }
+  const tree = {};
+  for (const t of threads) {
+    const client = t.client || 'Overige';
+    if (!tree[client]) tree[client] = { __direct: [], __projects: {} };
+    if (t.project) {
+      if (!tree[client].__projects[t.project]) tree[client].__projects[t.project] = [];
+      tree[client].__projects[t.project].push(t);
+    } else {
+      tree[client].__direct.push(t);
+    }
+  }
+  return tree;
 }
 
-function groupThreadsByWeek(threads) {
-  const groups = { 'Deze week': [], 'Vorige week': [], 'Eerder': [] };
-  for (const thread of threads) {
-    const group = getWeekGroup(thread.updated_at || thread.created_at);
-    groups[group].push(thread);
-  }
-  return groups;
+function sortedClients(tree) {
+  return Object.keys(tree).sort((a, b) => {
+    if (a === 'Overige') return 1;
+    if (b === 'Overige') return -1;
+    return a.localeCompare(b, 'nl');
+  });
 }
 
 export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
   const router = useRouter();
+  const [threads, setThreads] = useState(docThreads);
   const [activeDocument, setActiveDocument] = useState(null);
   const [loadingThreadId, setLoadingThreadId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openFolders, setOpenFolders] = useState(() => {
+    // Start met alle client-mappen open
+    const tree = buildFolderTree(docThreads);
+    return new Set(Object.keys(tree));
+  });
+  const [moveMenu, setMoveMenu] = useState(null); // threadId
+  const [moveInputVisible, setMoveInputVisible] = useState(false);
+  const [moveInputValue, setMoveInputValue] = useState('');
+  const moveMenuRef = useRef(null);
+
+  // Sluit move-menu bij klik buiten
+  useEffect(() => {
+    function handleClick(e) {
+      if (moveMenu && moveMenuRef.current && !moveMenuRef.current.contains(e.target)) {
+        setMoveMenu(null);
+        setMoveInputVisible(false);
+        setMoveInputValue('');
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [moveMenu]);
 
   async function handleOpenDoc(thread) {
     setLoadingThreadId(thread.id);
@@ -70,43 +93,189 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
         .limit(1);
 
       if (data?.[0]?.content) {
-        setActiveDocument({
-          content: data[0].content,
-          outputType: thread.output_type,
-        });
+        setActiveDocument({ content: data[0].content, outputType: thread.output_type });
       }
     } finally {
       setLoadingThreadId(null);
     }
   }
 
-  const groups = groupThreadsByWeek(docThreads);
-  const groupOrder = ['Deze week', 'Vorige week', 'Eerder'];
-  const totalCount = docThreads.length;
+  async function handleMove(threadId, newClient) {
+    const clientValue = newClient === 'Overige' ? null : newClient;
+    await fetch(`/api/threads/${threadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client: clientValue, project: null }),
+    });
+    setThreads(prev =>
+      prev.map(t => t.id === threadId ? { ...t, client: clientValue, project: null } : t)
+    );
+    // Zorg dat de nieuwe map open is
+    setOpenFolders(prev => new Set([...prev, newClient]));
+    setMoveMenu(null);
+    setMoveInputVisible(false);
+    setMoveInputValue('');
+  }
+
+  function toggleFolder(name) {
+    setOpenFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  const tree = buildFolderTree(threads);
+  const clients = sortedClients(tree);
+  const allClientNames = clients.filter(c => c !== 'Overige');
+
+  // Zoekfilter — platte lijst
+  const q = searchQuery.trim().toLowerCase();
+  const filteredThreads = q
+    ? threads.filter(t =>
+        t.title?.toLowerCase().includes(q) ||
+        t.client?.toLowerCase().includes(q) ||
+        t.project?.toLowerCase().includes(q)
+      )
+    : null;
+
+  function renderDocRow(thread, isLast) {
+    const typeInfo = OUTPUT_TYPE_INFO[thread.output_type] ?? { label: 'Document', icon: 'file-text' };
+    const Icon = ICON_COMPONENTS[typeInfo.icon] ?? FileText;
+    const isLoading = loadingThreadId === thread.id;
+    const isMenuOpen = moveMenu === thread.id;
+
+    return (
+      <div
+        key={thread.id}
+        className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors group ${
+          !isLast ? 'border-b border-white/[0.05]' : ''
+        }`}
+      >
+        <button
+          onClick={() => handleOpenDoc(thread)}
+          disabled={isLoading}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+        >
+          <div className="shrink-0 w-7 h-7 rounded-md bg-orange/10 border border-orange/20 flex items-center justify-center">
+            <Icon className="w-3.5 h-3.5 text-orange" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium text-white/80 truncate">{thread.title}</p>
+            <p className="text-[11px] text-white/30 mt-0.5">{typeInfo.label}</p>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="text-[11px] text-white/25">{formatDate(thread.updated_at || thread.created_at)}</span>
+            {isLoading
+              ? <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin" />
+              : <ChevronRight className="w-3.5 h-3.5 text-white/15" strokeWidth={2} />
+            }
+          </div>
+        </button>
+
+        {/* Verplaatsen — 3-puntjes */}
+        <div className="relative shrink-0" ref={isMenuOpen ? moveMenuRef : null}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isMenuOpen) {
+                setMoveMenu(null);
+                setMoveInputVisible(false);
+                setMoveInputValue('');
+              } else {
+                setMoveMenu(thread.id);
+                setMoveInputVisible(false);
+                setMoveInputValue('');
+              }
+            }}
+            className="w-6 h-6 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
+          </button>
+
+          {isMenuOpen && (
+            <div className="absolute right-0 top-7 z-50 w-48 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
+              <p className="px-3 py-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+                Verplaatsen naar
+              </p>
+              {allClientNames
+                .filter(c => c !== (thread.client || 'Overige'))
+                .map(name => (
+                  <button
+                    key={name}
+                    onClick={() => handleMove(thread.id, name)}
+                    className="w-full text-left px-3 py-2 text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2"
+                  >
+                    <Folder className="w-3.5 h-3.5 shrink-0 text-white/30" strokeWidth={1.5} />
+                    {name}
+                  </button>
+                ))
+              }
+              {thread.client && (
+                <button
+                  onClick={() => handleMove(thread.id, 'Overige')}
+                  className="w-full text-left px-3 py-2 text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2"
+                >
+                  <Folder className="w-3.5 h-3.5 shrink-0 text-white/30" strokeWidth={1.5} />
+                  Overige
+                </button>
+              )}
+              <div className="border-t border-white/[0.06] mt-1 pt-1">
+                {moveInputVisible ? (
+                  <div className="px-3 py-2 flex gap-1.5">
+                    <input
+                      autoFocus
+                      value={moveInputValue}
+                      onChange={e => setMoveInputValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && moveInputValue.trim()) handleMove(thread.id, moveInputValue.trim());
+                        if (e.key === 'Escape') { setMoveInputVisible(false); setMoveInputValue(''); }
+                      }}
+                      placeholder="Mapnaam..."
+                      className="flex-1 bg-white/[0.06] border border-white/[0.12] rounded-lg px-2 py-1 text-[11px] text-white placeholder-white/25 outline-none focus:border-white/[0.25]"
+                    />
+                    <button
+                      onClick={() => moveInputValue.trim() && handleMove(thread.id, moveInputValue.trim())}
+                      disabled={!moveInputValue.trim()}
+                      className="px-2 py-1 bg-orange rounded-lg text-white text-[10px] font-semibold disabled:opacity-30 hover:bg-[#e03d00] transition-colors"
+                    >
+                      OK
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setMoveInputVisible(true)}
+                    className="w-full text-left px-3 py-2 text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+                  >
+                    + Nieuwe map...
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* DocumentView overlay */}
       {activeDocument && (
         <DocumentView
           content={activeDocument.content}
           onClose={() => setActiveDocument(null)}
           onImprove={(prefillText) => {
             setActiveDocument(null);
-            router.push(prefillText
-              ? '/app?prefill=' + encodeURIComponent(prefillText)
-              : '/app'
-            );
+            router.push(prefillText ? '/app?prefill=' + encodeURIComponent(prefillText) : '/app');
           }}
         />
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      <aside className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <Sidebar
           tenant={tenant}
           user={user}
@@ -118,21 +287,14 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
       </aside>
 
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Hoofdgebied */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Mobile header */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-white/40 hover:text-white/70 transition-colors"
-            aria-label="Menu openen"
-          >
+          <button onClick={() => setSidebarOpen(true)} className="text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">
             <Menu className="w-5 h-5" />
           </button>
           {tenant?.logo_url ? (
@@ -150,27 +312,22 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
             <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-bold text-white mb-4">
               Documenten
               <span className="ml-3 text-[14px] font-normal text-white/30">
-                {totalCount} document{totalCount !== 1 ? 'en' : ''}
+                {threads.length} document{threads.length !== 1 ? 'en' : ''}
               </span>
             </h1>
-            {/* Zoekbalk + filters — visueel, niet functioneel */}
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2 flex-1 h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg">
-                <Search className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={2} />
-                <span className="text-[13px] text-white/25">Zoeken in documenten...</span>
-              </div>
-              <select
-                disabled
-                className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[12px] text-white/30 cursor-not-allowed"
-              >
-                <option>Type</option>
-              </select>
-              <select
-                disabled
-                className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[12px] text-white/30 cursor-not-allowed"
-              >
-                <option>Project</option>
-              </select>
+            <div className="flex items-center gap-2 h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg">
+              <Search className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={2} />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Zoeken in documenten..."
+                className="flex-1 bg-transparent text-[13px] text-white placeholder-white/25 outline-none"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-white/30 hover:text-white/60 transition-colors">
+                  <X className="w-3.5 h-3.5" strokeWidth={2} />
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -178,64 +335,96 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
         {/* Document lijst */}
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
           <div className="max-w-3xl mx-auto">
-            {totalCount === 0 ? (
+            {threads.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-[14px] text-white/30">
-                  Nog geen documenten. Maak een document aan via de chat.
+                <p className="text-[14px] text-white/30">Nog geen documenten. Maak een document aan via de chat.</p>
+              </div>
+            ) : filteredThreads !== null ? (
+              /* Zoekresultaten — platte lijst */
+              <div>
+                <p className="text-[11px] text-white/30 mb-3">
+                  {filteredThreads.length} resultaat{filteredThreads.length !== 1 ? 'en' : ''} voor "{searchQuery}"
                 </p>
+                {filteredThreads.length === 0 ? (
+                  <p className="text-[13px] text-white/25 italic">Geen documenten gevonden.</p>
+                ) : (
+                  <div className="rounded-xl border border-white/[0.08] overflow-hidden">
+                    {filteredThreads.map((t, i) => renderDocRow(t, i === filteredThreads.length - 1))}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="space-y-8">
-                {groupOrder.map((groupName) => {
-                  const items = groups[groupName];
-                  if (items.length === 0) return null;
+              /* Mappenstructuur */
+              <div className="space-y-2">
+                {clients.map(clientName => {
+                  const folder = tree[clientName];
+                  const projectNames = Object.keys(folder.__projects).sort((a, b) => a.localeCompare(b, 'nl'));
+                  const totalDocs = folder.__direct.length + projectNames.reduce((s, p) => s + folder.__projects[p].length, 0);
+                  const isOpen = openFolders.has(clientName);
+
                   return (
-                    <div key={groupName}>
-                      <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-white/30 mb-3">
-                        {groupName}
-                      </p>
-                      <div className="rounded-xl border border-white/[0.08] overflow-hidden">
-                        {items.map((thread, idx) => {
-                          const typeInfo = OUTPUT_TYPE_INFO[thread.output_type] ?? { label: 'Document', icon: 'file-text' };
-                          const Icon = ICON_COMPONENTS[typeInfo.icon] ?? FileText;
-                          const isLoading = loadingThreadId === thread.id;
-                          return (
-                            <button
-                              key={thread.id}
-                              onClick={() => handleOpenDoc(thread)}
-                              disabled={isLoading}
-                              className={`w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.04] transition-colors text-left ${
-                                idx > 0 ? 'border-t border-white/[0.05]' : ''
-                              } disabled:opacity-50`}
-                            >
-                              <div className="shrink-0 w-8 h-8 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center">
-                                <Icon className="w-4 h-4 text-orange" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium text-white/85 truncate">
-                                  {thread.title}
-                                </p>
-                                <p className="text-[11px] text-white/35 mt-0.5">
-                                  {typeInfo.label}
-                                </p>
-                              </div>
-                              <div className="shrink-0 flex items-center gap-3">
-                                <span className="text-[11px] text-white/30">
-                                  {formatDate(thread.updated_at || thread.created_at)}
-                                </span>
-                                <span className="inline-flex items-center h-5 px-2 rounded-full bg-white/[0.06] text-[10px] font-semibold text-white/40">
-                                  Klaar
-                                </span>
-                                {isLoading ? (
-                                  <div className="w-4 h-4 border-2 border-white/20 border-t-orange rounded-full animate-spin" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-white/20" strokeWidth={2} />
+                    <div key={clientName} className="rounded-xl border border-white/[0.08] overflow-hidden">
+                      {/* Client-map header */}
+                      <button
+                        onClick={() => toggleFolder(clientName)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left"
+                      >
+                        {isOpen
+                          ? <FolderOpen className="w-4 h-4 text-orange/70 shrink-0" strokeWidth={1.5} />
+                          : <Folder className="w-4 h-4 text-white/30 shrink-0" strokeWidth={1.5} />
+                        }
+                        <span className="flex-1 text-[13px] font-semibold text-white/80">{clientName}</span>
+                        <span className="text-[11px] text-white/25 mr-2">{totalDocs}</span>
+                        {isOpen
+                          ? <ChevronDown className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
+                          : <ChevronRight className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
+                        }
+                      </button>
+
+                      {isOpen && (
+                        <div className="border-t border-white/[0.05]">
+                          {/* Directe documenten onder client (geen project) */}
+                          {folder.__direct.map((t, i) => (
+                            <div key={t.id} className="pl-4">
+                              {renderDocRow(t, i === folder.__direct.length - 1 && projectNames.length === 0)}
+                            </div>
+                          ))}
+
+                          {/* Project-submappen */}
+                          {projectNames.map((projectName, pi) => {
+                            const projectKey = `${clientName}/${projectName}`;
+                            const projOpen = openFolders.has(projectKey);
+                            const projDocs = folder.__projects[projectName];
+                            const isLastProject = pi === projectNames.length - 1;
+
+                            return (
+                              <div key={projectName} className={!isLastProject || folder.__direct.length > 0 ? '' : ''}>
+                                <button
+                                  onClick={() => toggleFolder(projectKey)}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 pl-8 hover:bg-white/[0.03] transition-colors text-left border-t border-white/[0.04]"
+                                >
+                                  {projOpen
+                                    ? <FolderOpen className="w-3.5 h-3.5 text-white/40 shrink-0" strokeWidth={1.5} />
+                                    : <Folder className="w-3.5 h-3.5 text-white/25 shrink-0" strokeWidth={1.5} />
+                                  }
+                                  <span className="flex-1 text-[12px] font-medium text-white/55">{projectName}</span>
+                                  <span className="text-[10px] text-white/20 mr-1">{projDocs.length}</span>
+                                  {projOpen
+                                    ? <ChevronDown className="w-3 h-3 text-white/15" strokeWidth={2} />
+                                    : <ChevronRight className="w-3 h-3 text-white/15" strokeWidth={2} />
+                                  }
+                                </button>
+
+                                {projOpen && (
+                                  <div className="pl-8 border-t border-white/[0.04]">
+                                    {projDocs.map((t, i) => renderDocRow(t, i === projDocs.length - 1))}
+                                  </div>
                                 )}
                               </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
