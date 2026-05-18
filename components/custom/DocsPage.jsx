@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, ClipboardList, PenLine, BarChart2, Search,
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
-  MoreHorizontal, X,
+  MoreHorizontal, X, Mic,
 } from 'lucide-react';
 import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
@@ -142,9 +142,12 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     : null;
 
   function renderDocRow(thread, isLast) {
-    const typeInfo = OUTPUT_TYPE_INFO[thread.output_type] ?? { label: 'Document', icon: 'file-text' };
-    const Icon = ICON_COMPONENTS[typeInfo.icon] ?? FileText;
-    const isLoading = loadingThreadId === thread.id;
+    const isRecording = !!thread.audio_url;
+    const typeInfo = isRecording
+      ? { label: 'Opname' }
+      : OUTPUT_TYPE_INFO[thread.output_type] ?? { label: 'Document', icon: 'file-text' };
+    const Icon = isRecording ? Mic : (ICON_COMPONENTS[typeInfo.icon] ?? FileText);
+    const isLoading = !isRecording && loadingThreadId === thread.id;
     const isMenuOpen = moveMenu === thread.id;
 
     return (
@@ -155,12 +158,16 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         }`}
       >
         <button
-          onClick={() => handleOpenDoc(thread)}
+          onClick={() => isRecording ? router.push('/app?thread=' + thread.id) : handleOpenDoc(thread)}
           disabled={isLoading}
           className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
         >
-          <div className="shrink-0 w-7 h-7 rounded-md bg-orange/10 border border-orange/20 flex items-center justify-center">
-            <Icon className="w-3.5 h-3.5 text-orange" strokeWidth={1.5} />
+          <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${
+            isRecording
+              ? 'bg-white/[0.05] border border-white/[0.10]'
+              : 'bg-orange/10 border border-orange/20'
+          }`}>
+            <Icon className={`w-3.5 h-3.5 ${isRecording ? 'text-white/40' : 'text-orange'}`} strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-medium text-white/80 truncate">{thread.title}</p>

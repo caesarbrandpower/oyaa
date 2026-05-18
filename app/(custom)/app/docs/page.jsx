@@ -18,12 +18,27 @@ export default async function DocsArchivePage() {
   const tenant = await getTenant();
 
   // Alle document-type threads (gesorteerd nieuwste eerst)
-  const { data: threads } = await supabase
+  const { data: docThreads } = await supabase
     .from('threads')
-    .select('id, title, output_type, created_at, updated_at, client, project')
+    .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
     .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation'])
     .order('updated_at', { ascending: false });
+
+  // Opname-threads (audio_url aanwezig, nog geen gegenereerd document)
+  const { data: recordingThreads } = await supabase
+    .from('threads')
+    .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
+    .eq('user_id', user.id)
+    .not('audio_url', 'is', null)
+    .order('updated_at', { ascending: false });
+
+  // Merge: documenten + opnames (zonder duplicaten), nieuwste eerst
+  const docIds = new Set((docThreads ?? []).map((t) => t.id));
+  const threads = [
+    ...(docThreads ?? []),
+    ...(recordingThreads ?? []).filter((t) => !docIds.has(t.id)),
+  ].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
 
   // Alle threads voor de sidebar
   const { data: allThreads } = await supabase
