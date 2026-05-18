@@ -93,7 +93,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, created_at, updated_at')
+        .select('id, title, output_type, created_at, updated_at, audio_url')
         .eq('id', threadParam)
         .single();
       if (!thread) return;
@@ -366,6 +366,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           <div className="flex-1" />
           <RecordingButton />
         </header>
+
+        {/* Audio player — zichtbaar als de thread een opname heeft */}
+        {!isEmptyState && activeThread?.audio_url && (
+          <div className="shrink-0 px-4 md:px-8 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="max-w-3xl mx-auto">
+              <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
+              <audio
+                controls
+                src={activeThread.audio_url}
+                className="w-full h-9"
+                style={{ accentColor: '#f04800' }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Chat content */}
         <div className="flex-1 overflow-y-auto">

@@ -76,5 +76,30 @@ export async function POST(request) {
     attachments: [],
   });
 
-  return Response.json({ threadId: thread.id, title, transcript });
+  // Upload audio naar Supabase Storage
+  let audioUrl = null;
+  try {
+    const ext = audioFile.name?.split('.').pop() || 'webm';
+    const storagePath = `${user.id}/${thread.id}/${Date.now()}.${ext}`;
+    const audioBuffer = await audioFile.arrayBuffer();
+
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('recordings')
+      .upload(storagePath, audioBuffer, {
+        contentType: audioFile.type || 'audio/webm',
+        upsert: false,
+      });
+
+    if (!storageError && storageData) {
+      const { data: { publicUrl } } = supabase.storage
+        .from('recordings')
+        .getPublicUrl(storagePath);
+      audioUrl = publicUrl;
+      await supabase.from('threads').update({ audio_url: audioUrl }).eq('id', thread.id);
+    }
+  } catch {
+    // Audio upload mislukt — thread en transcript zijn al opgeslagen, doorgaan
+  }
+
+  return Response.json({ threadId: thread.id, title, transcript, audioUrl });
 }

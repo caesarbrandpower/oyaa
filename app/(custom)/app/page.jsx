@@ -21,7 +21,7 @@ export default async function AppPage({ searchParams }) {
 
   const { data: threads } = await supabase
     .from('threads')
-    .select('id, title, output_type, created_at, updated_at, client')
+    .select('id, title, output_type, created_at, updated_at, client, audio_url')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(20);

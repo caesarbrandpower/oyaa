@@ -28,7 +28,7 @@ export default async function DocsArchivePage() {
   // Alle threads voor de sidebar
   const { data: allThreads } = await supabase
     .from('threads')
-    .select('id, title, output_type, created_at, updated_at, client')
+    .select('id, title, output_type, created_at, updated_at, client, audio_url')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(20);
