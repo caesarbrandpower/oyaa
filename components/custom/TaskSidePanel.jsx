@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { X, Mic, Square, Paperclip } from 'lucide-react';
+import { X, Mic, Square, Paperclip, Copy, Check } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 // Search tasks use a 2-step flow (description + confirm) and a simpler prompt.
@@ -34,6 +34,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [project, setProject] = useState('');
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [uploadedFilename, setUploadedFilename] = useState('');
   const fileInputRef = useRef(null);
 
@@ -222,9 +223,27 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
               )}
               {transcript && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-white/40 mb-1.5">
-                    Transcriptie
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[11px] font-semibold text-white/40">
+                      Transcriptie
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(transcript).then(() => {
+                          setTranscriptCopied(true);
+                          setTimeout(() => setTranscriptCopied(false), 2000);
+                        });
+                      }}
+                      className="flex items-center gap-1 h-6 px-2 rounded text-[10px] text-white/35 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+                    >
+                      {transcriptCopied ? (
+                        <><Check className="w-3 h-3" strokeWidth={2} /> Gekopieerd</>
+                      ) : (
+                        <><Copy className="w-3 h-3" strokeWidth={1.75} /> Kopieer</>
+                      )}
+                    </button>
+                  </div>
                   <textarea
                     value={transcript}
                     onChange={(e) => setTranscript(e.target.value)}
