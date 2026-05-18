@@ -13,7 +13,7 @@ export default async function CustomLayout({ children }) {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0d0d0d]" style={{ zoom: 1.1 }}>
+    <div className="h-screen overflow-hidden bg-[#0d0d0d]">
       {children}
     </div>
   );

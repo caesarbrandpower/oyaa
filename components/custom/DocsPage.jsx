@@ -50,7 +50,7 @@ function sortedClients(tree) {
   });
 }
 
-export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
+export default function DocsPage({ user, tenant, docThreads, sidebarThreads, projects = [] }) {
   const router = useRouter();
   const [threads, setThreads] = useState(docThreads);
   const [activeDocument, setActiveDocument] = useState(null);
@@ -278,7 +278,6 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
         className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ zoom: `${1 / 1.1}` }}
       >
         <Sidebar
           tenant={tenant}
@@ -287,6 +286,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
           activeThreadId={null}
           onNewThread={() => router.push('/app')}
           onSelectThread={() => router.push('/app')}
+          projects={projects}
         />
       </aside>
 
@@ -295,7 +295,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
       )}
 
       {/* Hoofdgebied */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden" style={{ zoom: 1.1 }}>
         {/* Header — altijd zichtbaar */}
         <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">

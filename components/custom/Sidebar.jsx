@@ -1,11 +1,11 @@
 // components/custom/Sidebar.jsx
 'use client';
 
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Folder } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread }) {
+export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, projects = [] }) {
   const pathname = usePathname();
   const isDocsActive = pathname === '/app/docs';
 
@@ -41,13 +41,28 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         </button>
       </div>
 
-      {/* Zoekbalk (visueel, niet functioneel) */}
-      <div className="px-3 pb-3">
-        <div className="flex items-center gap-2 h-8 px-3 bg-white/[0.04] border border-white/[0.06] rounded-lg">
-          <Search className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={2} />
-          <span className="text-[12px] text-white/25">Zoeken...</span>
+      {/* Projecten sectie */}
+      {projects.length > 0 && (
+        <div className="px-3 pb-2">
+          <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/25 px-2 pb-1.5">
+            Projecten
+          </p>
+          <ul className="space-y-0.5">
+            {projects.map((project) => (
+              <li key={project.name}>
+                <Link
+                  href="/app/docs"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-white/50 hover:bg-white/[0.04] hover:text-white/80 transition-colors"
+                >
+                  <Folder className="w-3 h-3 shrink-0 text-white/25" strokeWidth={1.75} />
+                  <span className="flex-1 truncate">{project.name}</span>
+                  <span className="text-[10px] text-white/25 shrink-0">{project.count}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
+      )}
 
       {/* Recent label */}
       <div className="px-4 pb-1.5">
@@ -56,7 +71,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         </span>
       </div>
 
-      {/* Threads lijst */}
+      {/* Threads lijst — max 8 */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {threads.length === 0 ? (
           <p className="text-[12px] text-white/20 px-2 py-2">
@@ -64,7 +79,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           </p>
         ) : (
           <ul className="space-y-0.5">
-            {threads.map((thread) => (
+            {threads.slice(0, 8).map((thread) => (
               <li key={thread.id}>
                 <button
                   onClick={() => onSelectThread(thread)}

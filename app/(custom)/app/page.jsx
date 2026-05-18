@@ -21,10 +21,25 @@ export default async function AppPage({ searchParams }) {
 
   const { data: threads } = await supabase
     .from('threads')
-    .select('id, title, output_type, created_at, updated_at')
+    .select('id, title, output_type, created_at, updated_at, client')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(20);
+
+  const { data: projectRows } = await supabase
+    .from('threads')
+    .select('client')
+    .eq('user_id', user.id)
+    .not('output_type', 'is', null)
+    .not('client', 'is', null);
+
+  const projectMap = {};
+  for (const t of projectRows ?? []) {
+    projectMap[t.client] = (projectMap[t.client] || 0) + 1;
+  }
+  const projects = Object.entries(projectMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
 
   // Voornaam uit metadata of email prefix
   const firstName =
@@ -41,6 +56,7 @@ export default async function AppPage({ searchParams }) {
         tenant={tenant}
         initialThreads={threads ?? []}
         initialPrefill={prefill}
+        projects={projects}
       />
     </Suspense>
   );

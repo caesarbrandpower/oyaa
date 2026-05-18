@@ -13,7 +13,7 @@ import DocumentView from './DocumentView';
 import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
-export default function ChatPage({ user, tenant, initialThreads, initialPrefill }) {
+export default function ChatPage({ user, tenant, initialThreads, initialPrefill, projects = [] }) {
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -332,7 +332,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
         className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ zoom: `${1 / 1.1}` }}
       >
         <Sidebar
           tenant={tenant}
@@ -341,6 +340,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
           activeThreadId={activeThread?.id}
           onNewThread={handleNewThread}
           onSelectThread={handleSelectThread}
+          projects={projects}
         />
       </aside>
 
@@ -353,7 +353,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
       )}
 
       {/* Hoofdgebied */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden" style={{ zoom: 1.1 }}>
         {/* Header — altijd zichtbaar */}
         <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
           <button
