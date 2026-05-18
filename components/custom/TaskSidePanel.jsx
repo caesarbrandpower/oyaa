@@ -217,7 +217,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   </p>
                 </div>
               )}
-              {transcriptStatus && (
+              {transcriptStatus && !transcribeProgress && (
                 <p className="text-[11px] text-white/40 mb-3">{transcriptStatus}</p>
               )}
               {transcript && (
