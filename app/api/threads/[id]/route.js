@@ -7,7 +7,8 @@ export async function PATCH(request, { params }) {
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
 
   const { id } = await params;
-  const { client, project } = await request.json();
+  const body = await request.json();
+  const { client, project, title } = body;
 
   const { data: thread } = await supabase
     .from('threads')
@@ -18,10 +19,12 @@ export async function PATCH(request, { params }) {
 
   if (!thread) return Response.json({ error: 'Niet gevonden.' }, { status: 404 });
 
-  await supabase
-    .from('threads')
-    .update({ client: client ?? null, project: project ?? null })
-    .eq('id', id);
+  const updateData = {};
+  if ('client' in body) updateData.client = client ?? null;
+  if ('project' in body) updateData.project = project ?? null;
+  if (title?.trim()) updateData.title = title.trim();
+
+  await supabase.from('threads').update(updateData).eq('id', id);
 
   return Response.json({ ok: true });
 }

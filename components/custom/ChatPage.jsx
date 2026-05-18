@@ -33,6 +33,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // activeTask: null | task object from enabled_output_types
   const [pendingTitleGen, setPendingTitleGen] = useState(null);
   // pendingTitleGen: null | { threadId, content, outputType }
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
 
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
@@ -77,6 +79,27 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   function setActiveThreadBoth(thread) {
     activeThreadRef.current = thread;
     setActiveThread(thread);
+  }
+
+  async function saveTitle() {
+    setTitleEditing(false);
+    const newTitle = titleDraft.trim();
+    if (!newTitle || !activeThreadRef.current || newTitle === activeThreadRef.current.title) return;
+    await fetch(`/api/threads/${activeThreadRef.current.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle }),
+    });
+    const updated = { ...activeThreadRef.current, title: newTitle };
+    setActiveThreadBoth(updated);
+    setThreads((prev) => prev.map((t) => t.id === updated.id ? { ...t, title: newTitle } : t));
+  }
+
+  function handleRenameThread(threadId, newTitle) {
+    setThreads((prev) => prev.map((t) => t.id === threadId ? { ...t, title: newTitle } : t));
+    if (activeThreadRef.current?.id === threadId) {
+      setActiveThreadBoth({ ...activeThreadRef.current, title: newTitle });
+    }
   }
 
   // ?thread=id param — open thread direct na navigatie (bijv. vanuit RecordingButton)
@@ -340,6 +363,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           activeThreadId={activeThread?.id}
           onNewThread={handleNewThread}
           onSelectThread={handleSelectThread}
+          onRenameThread={handleRenameThread}
           projects={projects}
         />
       </aside>
@@ -363,7 +387,31 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1" />
+          <div className="flex-1 flex items-center min-w-0 mx-2">
+            {activeThread && (
+              titleEditing ? (
+                <input
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveTitle();
+                    if (e.key === 'Escape') setTitleEditing(false);
+                  }}
+                  onBlur={saveTitle}
+                  autoFocus
+                  className="w-full bg-transparent text-[13px] font-medium text-white outline-none border-b border-white/[0.25] py-0.5 truncate"
+                />
+              ) : (
+                <button
+                  onClick={() => { setTitleDraft(activeThread.title || ''); setTitleEditing(true); }}
+                  className="text-[13px] font-medium text-white/50 hover:text-white/80 transition-colors truncate max-w-full text-left"
+                  title="Klik om te hernoemen"
+                >
+                  {activeThread.title}
+                </button>
+              )
+            )}
+          </div>
           <RecordingButton />
         </header>
 

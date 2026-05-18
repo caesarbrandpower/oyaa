@@ -67,20 +67,20 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [moveMenu, setMoveMenu] = useState(null); // threadId
   const [moveInputVisible, setMoveInputVisible] = useState(false);
   const [moveInputValue, setMoveInputValue] = useState('');
+  const [renameMode, setRenameMode] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
   const moveMenuRef = useRef(null);
 
   // Sluit move-menu bij klik buiten
   useEffect(() => {
     function handleClick(e) {
       if (moveMenu && moveMenuRef.current && !moveMenuRef.current.contains(e.target)) {
-        setMoveMenu(null);
-        setMoveInputVisible(false);
-        setMoveInputValue('');
+        closeMoveMenu();
       }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [moveMenu]);
+  }, [moveMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOpenDoc(thread) {
     setLoadingThreadId(thread.id);
@@ -113,11 +113,30 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     setThreads(prev =>
       prev.map(t => t.id === threadId ? { ...t, client: clientValue, project: null } : t)
     );
-    // Zorg dat de nieuwe map open is
     setOpenFolders(prev => new Set([...prev, newClient]));
     setMoveMenu(null);
     setMoveInputVisible(false);
     setMoveInputValue('');
+  }
+
+  function closeMoveMenu() {
+    setMoveMenu(null);
+    setMoveInputVisible(false);
+    setMoveInputValue('');
+    setRenameMode(false);
+    setRenameValue('');
+  }
+
+  async function handleRename(threadId) {
+    const newTitle = renameValue.trim();
+    closeMoveMenu();
+    if (!newTitle) return;
+    await fetch(`/api/threads/${threadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle }),
+    });
+    setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title: newTitle } : t));
   }
 
   function toggleFolder(name) {
@@ -190,13 +209,13 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
             onClick={(e) => {
               e.stopPropagation();
               if (isMenuOpen) {
-                setMoveMenu(null);
-                setMoveInputVisible(false);
-                setMoveInputValue('');
+                closeMoveMenu();
               } else {
                 setMoveMenu(thread.id);
                 setMoveInputVisible(false);
                 setMoveInputValue('');
+                setRenameMode(false);
+                setRenameValue('');
               }
             }}
             className="w-6 h-6 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
@@ -206,9 +225,42 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
 
           {isMenuOpen && (
             <div className="absolute right-0 top-7 z-50 w-48 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
-              <p className="px-3 py-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider">
-                Verplaatsen naar
-              </p>
+              {renameMode ? (
+                <div className="px-3 py-2 flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleRename(thread.id);
+                      if (e.key === 'Escape') { setRenameMode(false); setRenameValue(''); }
+                    }}
+                    placeholder="Nieuwe naam..."
+                    className="flex-1 bg-white/[0.06] border border-white/[0.12] rounded-lg px-2 py-1 text-[11px] text-white placeholder-white/25 outline-none focus:border-white/[0.25]"
+                  />
+                  <button
+                    onClick={() => handleRename(thread.id)}
+                    disabled={!renameValue.trim()}
+                    className="px-2 py-1 bg-orange rounded-lg text-white text-[10px] font-semibold disabled:opacity-30 hover:bg-[#e03d00] transition-colors"
+                  >
+                    OK
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { setRenameValue(thread.title || ''); setRenameMode(true); }}
+                    className="w-full text-left px-3 py-2 text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    Hernoemen
+                  </button>
+                  <div className="border-t border-white/[0.06] my-1" />
+                  <p className="px-3 py-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+                    Verplaatsen naar
+                  </p>
+                </>
+              )}
+              {!renameMode && (<>
               {allClientNames
                 .filter(c => c !== (thread.client || 'Overige'))
                 .map(name => (
@@ -262,6 +314,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   </button>
                 )}
               </div>
+              </>)}
             </div>
           )}
         </div>

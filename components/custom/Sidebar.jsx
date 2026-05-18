@@ -1,13 +1,16 @@
 // components/custom/Sidebar.jsx
 'use client';
 
+import { useState } from 'react';
 import { Plus, Search, Folder } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, projects = [] }) {
+export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, projects = [] }) {
   const pathname = usePathname();
   const isDocsActive = pathname === '/app/docs';
+  const [editingThreadId, setEditingThreadId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
@@ -82,16 +85,53 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             <ul className="space-y-0.5">
               {threads.slice(0, 8).map((thread) => (
                 <li key={thread.id}>
-                  <button
-                    onClick={() => onSelectThread(thread)}
-                    className={`w-full text-left px-2 py-2 rounded-lg text-[12px] leading-snug transition-colors truncate ${
-                      activeThreadId === thread.id
-                        ? 'bg-white/[0.08] text-white'
-                        : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
-                    }`}
-                  >
-                    {thread.title}
-                  </button>
+                  {editingThreadId === thread.id ? (
+                    <input
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          const newTitle = editingTitle.trim();
+                          setEditingThreadId(null);
+                          if (newTitle && newTitle !== thread.title) {
+                            await fetch(`/api/threads/${thread.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ title: newTitle }),
+                            });
+                            onRenameThread?.(thread.id, newTitle);
+                          }
+                        }
+                        if (e.key === 'Escape') setEditingThreadId(null);
+                      }}
+                      onBlur={async () => {
+                        const newTitle = editingTitle.trim();
+                        setEditingThreadId(null);
+                        if (newTitle && newTitle !== thread.title) {
+                          await fetch(`/api/threads/${thread.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: newTitle }),
+                          });
+                          onRenameThread?.(thread.id, newTitle);
+                        }
+                      }}
+                      autoFocus
+                      className="w-full px-2 py-2 rounded-lg text-[12px] bg-white/[0.06] border border-white/[0.15] text-white outline-none"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onSelectThread(thread)}
+                      onDoubleClick={() => { setEditingTitle(thread.title || ''); setEditingThreadId(thread.id); }}
+                      className={`w-full text-left px-2 py-2 rounded-lg text-[12px] leading-snug transition-colors truncate ${
+                        activeThreadId === thread.id
+                          ? 'bg-white/[0.08] text-white'
+                          : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
+                      }`}
+                    >
+                      {thread.title}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
