@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageList from './MessageList';
@@ -10,8 +11,10 @@ import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import DocumentView from './DocumentView';
 import TaskSidePanel from './TaskSidePanel';
+import RecordingButton from './RecordingButton';
 
 export default function ChatPage({ user, tenant, initialThreads, initialPrefill }) {
+  const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
   const activeThreadRef = useRef(null);
@@ -75,6 +78,39 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
     activeThreadRef.current = thread;
     setActiveThread(thread);
   }
+
+  // ?thread=id param — open thread direct na navigatie (bijv. vanuit RecordingButton)
+  useEffect(() => {
+    const threadParam = searchParams?.get('thread');
+    if (!threadParam) return;
+    // Verwijder param uit URL zonder reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('thread');
+    window.history.replaceState({}, '', url.toString());
+
+    async function loadThread() {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data: thread } = await supabase
+        .from('threads')
+        .select('id, title, output_type, created_at, updated_at')
+        .eq('id', threadParam)
+        .single();
+      if (!thread) return;
+
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('id, role, content, created_at')
+        .eq('thread_id', thread.id)
+        .order('created_at', { ascending: true });
+
+      setActiveThreadBoth(thread);
+      setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
+      setMessages((msgs ?? []).map((m) => ({ ...m, attachments: [] })));
+    }
+    loadThread();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleOpenDocument(msg) {
     setActiveDocument({
@@ -317,22 +353,25 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill 
 
       {/* Hoofdgebied */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+        {/* Header — altijd zichtbaar */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-white/40 hover:text-white/70 transition-colors"
+            className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
             aria-label="Menu openen"
           >
             <Menu className="w-5 h-5" />
           </button>
-          {tenant?.logo_url ? (
-            <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
-          ) : (
-            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-              {tenant?.name ?? 'Waybetter'}
-            </span>
-          )}
+          <div className="flex-1">
+            {tenant?.logo_url ? (
+              <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
+            ) : (
+              <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+                {tenant?.name ?? 'Waybetter'}
+              </span>
+            )}
+          </div>
+          <RecordingButton />
         </header>
 
         {/* Chat content */}

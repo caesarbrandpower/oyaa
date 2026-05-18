@@ -8,6 +8,7 @@ import {
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
   MoreHorizontal, X,
 } from 'lucide-react';
+import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
 import DocumentView from './DocumentView';
 import { OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
@@ -292,18 +293,21 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads }) {
 
       {/* Hoofdgebied */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">
+        {/* Header — altijd zichtbaar */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">
             <Menu className="w-5 h-5" />
           </button>
-          {tenant?.logo_url ? (
-            <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
-          ) : (
-            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-              {tenant?.name ?? 'Waybetter'}
-            </span>
-          )}
+          <div className="flex-1">
+            {tenant?.logo_url ? (
+              <img src={tenant.logo_url} alt={tenant.name} className="h-5 w-auto object-contain" />
+            ) : (
+              <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+                {tenant?.name ?? 'Waybetter'}
+              </span>
+            )}
+          </div>
+          <RecordingButton />
         </header>
 
         {/* Header */}

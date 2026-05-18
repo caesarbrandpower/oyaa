@@ -1,4 +1,5 @@
 // app/(custom)/app/page.jsx
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 import { redirect } from 'next/navigation';
@@ -34,11 +35,13 @@ export default async function AppPage({ searchParams }) {
   const prefill = (await searchParams)?.prefill ?? null;
 
   return (
-    <ChatPage
-      user={{ id: user.id, email: user.email, firstName }}
-      tenant={tenant}
-      initialThreads={threads ?? []}
-      initialPrefill={prefill}
-    />
+    <Suspense>
+      <ChatPage
+        user={{ id: user.id, email: user.email, firstName }}
+        tenant={tenant}
+        initialThreads={threads ?? []}
+        initialPrefill={prefill}
+      />
+    </Suspense>
   );
 }
