@@ -227,7 +227,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     <div
       className="relative"
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-      onDragLeave={() => setIsDragOver(false)}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragOver(false); }}
       onDrop={handleDrop}
     >
       {pendingAttachments.length > 0 && (
