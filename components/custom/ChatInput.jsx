@@ -1,7 +1,7 @@
 // components/custom/ChatInput.jsx
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2 } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
@@ -21,6 +21,7 @@ function isImageFile(file) {
 export default function ChatInput({ onSend, disabled, prefill }) {
   const [value, setValue] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -176,6 +177,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
 
   function handleDrop(e) {
     e.preventDefault();
+    setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files || []);
     if (files.length) processFiles(files);
   }
@@ -192,7 +194,8 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   return (
     <div
       className="relative"
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
     >
       {pendingAttachments.length > 0 && (
@@ -231,7 +234,11 @@ export default function ChatInput({ onSend, disabled, prefill }) {
         </div>
       )}
 
-      <div className="flex items-end gap-2 bg-white/[0.04] border border-white/[0.10] rounded-2xl px-4 py-3 focus-within:border-white/[0.20] transition-colors">
+      <div className={`flex items-end gap-2 rounded-2xl px-4 py-3 transition-colors ${
+        isDragOver
+          ? 'bg-orange/[0.06] border border-orange/40'
+          : 'bg-white/[0.04] border border-white/[0.10] focus-within:border-white/[0.20]'
+      }`}>
         <textarea
           ref={textareaRef}
           value={value}
