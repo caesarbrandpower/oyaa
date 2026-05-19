@@ -204,7 +204,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
                 att.status === 'error'
                   ? 'bg-red-950/40 border-red-800/40 text-red-400'
                   : att.status === 'loading'
-                  ? 'bg-white/[0.04] border-white/[0.08] text-white/35'
+                  ? 'bg-white/[0.04] border-white/[0.08] text-white/35 animate-pulse'
                   : 'bg-white/[0.06] border-white/[0.12] text-white/65'
               }`}
             >
