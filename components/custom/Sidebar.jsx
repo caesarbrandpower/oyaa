@@ -2,9 +2,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Folder } from 'lucide-react';
+import { Plus, Search, Folder, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+function getThreadIcon(thread) {
+  if (thread.audio_url) return Mic;
+  switch (thread.output_type) {
+    case 'meeting-summary':     return ClipboardList;
+    case 'project-briefing':    return FileText;
+    case 'account-pm-briefing': return PenLine;
+    case 'evaluation':          return BarChart2;
+    default:                    return MessageSquare;
+  }
+}
 
 export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, projects = [] }) {
   const pathname = usePathname();
@@ -123,13 +134,14 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                     <button
                       onClick={() => onSelectThread(thread)}
                       onDoubleClick={() => { setEditingTitle(thread.title || ''); setEditingThreadId(thread.id); }}
-                      className={`w-full text-left px-2 py-2 rounded-lg text-[12px] leading-snug transition-colors truncate ${
+                      className={`w-full text-left px-2 py-1.5 rounded-lg text-[12px] leading-snug transition-colors flex items-center gap-2 ${
                         activeThreadId === thread.id
                           ? 'bg-white/[0.08] text-white'
                           : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
                       }`}
                     >
-                      {thread.title}
+                      {(() => { const Icon = getThreadIcon(thread); return <Icon className="w-3.5 h-3.5 shrink-0 opacity-50" strokeWidth={1.5} />; })()}
+                      <span className="truncate">{thread.title}</span>
                     </button>
                   )}
                 </li>
