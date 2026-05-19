@@ -358,7 +358,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           threads={sidebarThreads}
           activeThreadId={null}
           onNewThread={() => router.push('/app')}
-          onSelectThread={() => router.push('/app')}
+          onSelectThread={(t) => router.push('/app?thread=' + t.id)}
           projects={projects}
         />
       </aside>
