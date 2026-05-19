@@ -241,7 +241,6 @@ export default function RecordingButton() {
             ? 'bg-white/[0.04] border border-white/[0.08] text-white/30'
             : 'bg-orange text-white hover:bg-[#e03d00]'
         }`}
-        style={!isRecording && !isTranscribing ? { boxShadow: '0 0 12px rgba(255, 77, 0, 0.6)' } : undefined}
         title={isRecording ? 'Opname bezig — klik voor opties' : 'Opname starten'}
       >
         {isTranscribing ? (
