@@ -1,7 +1,7 @@
 // components/custom/ChatInput.jsx
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2 } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
@@ -28,23 +28,6 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   const pendingAudioIdRef = useRef(null);
   const [transcriptBarProgress, setTranscriptBarProgress] = useState(-1); // -1 = verborgen, 0-100 = actief
   const barIntervalRef = useRef(null);
-
-  // Simuleer voortgangsbalk tijdens transcriberen
-  useEffect(() => {
-    if (transcribing && pendingAudioIdRef.current) {
-      setTranscriptBarProgress(0);
-      barIntervalRef.current = setInterval(() => {
-        setTranscriptBarProgress((prev) => {
-          if (prev < 0) return 0;
-          const remaining = 85 - prev;
-          return prev + Math.max(0.3, remaining * 0.025);
-        });
-      }, 250);
-    } else {
-      clearInterval(barIntervalRef.current);
-    }
-    return () => clearInterval(barIntervalRef.current);
-  }, [transcribing]);
 
   const { transcribing, transcribeFile, recording, toggleRecording, cancelTranscription } = useAudioTranscription({
     onTranscript: (text) => {
@@ -77,6 +60,23 @@ export default function ChatInput({ onSend, disabled, prefill }) {
       console.error('[ChatInput audio error]', err);
     },
   });
+
+  // Simuleer voortgangsbalk tijdens transcriberen
+  useEffect(() => {
+    if (transcribing && pendingAudioIdRef.current) {
+      setTranscriptBarProgress(0);
+      barIntervalRef.current = setInterval(() => {
+        setTranscriptBarProgress((prev) => {
+          if (prev < 0) return 0;
+          const remaining = 85 - prev;
+          return prev + Math.max(0.3, remaining * 0.025);
+        });
+      }, 250);
+    } else {
+      clearInterval(barIntervalRef.current);
+    }
+    return () => clearInterval(barIntervalRef.current);
+  }, [transcribing]);
 
   useEffect(() => {
     const el = textareaRef.current;
