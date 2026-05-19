@@ -39,7 +39,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
     if (!pendingTitleGen) return;
-    const { threadId, content, outputType, userMsgId } = pendingTitleGen;
+    const { threadId, content, outputType, userMsgId, fallbackTitle } = pendingTitleGen;
     setPendingTitleGen(null);
     fetch('/api/generate-title', {
       method: 'POST',
@@ -48,7 +48,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        const title = data?.title;
+        const title = data?.title || fallbackTitle;
         if (!title) return;
         if (activeThreadRef.current?.id === threadId) {
           const updated = { ...activeThreadRef.current, title };
@@ -56,7 +56,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           setActiveThread(updated);
         }
         setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t));
-        // Update user message content to match smart title
         if (userMsgId) {
           setMessages(prev => prev.map(m =>
             m.id === userMsgId ? { ...m, content: title } : m
@@ -129,12 +128,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       setActiveThreadBoth(thread);
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
-      const isDoc = thread.output_type ? DOCUMENT_OUTPUT_TYPES.has(thread.output_type) : false;
+      const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
+      const isDoc = thread.output_type
+        ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
+        : false;
       let firstUserReplaced = false;
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
         if (m.role === 'assistant') return { ...base, isDocument: isDoc, streaming: false };
-        if (isDoc && !firstUserReplaced && thread.title) {
+        if (isDoc && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
         }
@@ -182,11 +184,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       .eq('thread_id', thread.id)
       .order('created_at', { ascending: true });
 
-    const isDoc = thread.output_type ? DOCUMENT_OUTPUT_TYPES.has(thread.output_type) : false;
+    const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
+    const isDoc = thread.output_type
+      ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
+      : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
       if (msg.role === 'assistant') return { ...msg, isDocument: isDoc, streaming: false };
-      if (isDoc && !firstUserReplaced && thread.title) {
+      if (isDoc && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
       }
@@ -203,7 +208,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const userMsg = {
         id: userMsgId,
         role: 'user',
-        content: displayText || messageText,
+        content: displayText || taskLabel || messageText,
         created_at: new Date().toISOString(),
         attachments: imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
       };
@@ -310,6 +315,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   content: event.content,
                   outputType,
                   userMsgId,
+                  fallbackTitle: displayText || taskLabel,
                 });
               }
             } else if (event.type === 'error') {

@@ -185,10 +185,10 @@ export default function ChatInput({ onSend, disabled, prefill }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={transcribing ? 'Opname wordt verwerkt...' : recording ? 'Aan het dicteren...' : 'Schrijf hier of sleep een bestand hierin...'}
+          placeholder={transcribing ? 'Opname wordt verwerkt...' : recording ? 'Aan het dicteren...' : 'Stel een vraag, geef een opdracht of sleep een bestand hierin...'}
           disabled={disabled || transcribing}
           rows={1}
-          className="flex-1 bg-transparent text-[14px] text-white placeholder-white/25 resize-none outline-none leading-relaxed min-h-[24px] max-h-[200px] py-0"
+          className="flex-1 bg-transparent text-[14px] text-white placeholder-white/25 resize-none outline-none leading-relaxed max-h-[200px] py-1"
         />
 
         <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
