@@ -173,11 +173,18 @@ export async function POST(request) {
           }
         }
 
+        // Wizard-flow (structured prompt): gebruik een neutrale system prompt zodat de
+        // "Je maakt geen document als je niet genoeg weet"-instructie uit CUSTOM_SYSTEM_PROMPT
+        // niet botst met de directe genereeropdracht.
+        const systemPrompt = useStructuredPrompt
+          ? 'Je bent een werk-AI bij een bureau. Genereer altijd het gevraagde document volledig en direct op basis van de beschikbare informatie, ook als die beperkt is. Weiger nooit te genereren. Ontbrekende informatie markeer je met [UITZOEKEN INTERN] of [AFSTEMMEN MET KLANT].'
+          : CUSTOM_SYSTEM_PROMPT;
+
         let fullText = '';
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          system: CUSTOM_SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: claudeMessages,
         });
 
