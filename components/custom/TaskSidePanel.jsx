@@ -32,6 +32,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [step, setStep] = useState(1);
   const [description, setDescription] = useState('');
   const [project, setProject] = useState('');
+  const [background, setBackground] = useState('');
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const [transcriptCopied, setTranscriptCopied] = useState(false);
@@ -71,6 +72,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     } else {
       const parts = [`Maak een ${task.label} voor het volgende:\n\nContext: ${description.trim()}`];
       if (project.trim()) parts.push(`Project/klant: ${project.trim()}`);
+      if (background.trim()) parts.push(`Achtergrond of extra info:\n${background.trim()}`);
       if (transcript.trim()) parts.push(`Aanvullende bronnen/transcriptie:\n${transcript.trim()}`);
       prompt = parts.join('\n\n');
       displayText = project.trim()
@@ -137,18 +139,32 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                 />
               </div>
               {!isSearch && (
-                <div>
-                  <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                    Klant of project
-                  </label>
-                  <textarea
-                    value={project}
-                    onChange={(e) => setProject(e.target.value)}
-                    placeholder='Bijv. "Coca-Cola HHZH" — optioneel'
-                    rows={2}
-                    className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                      Klant of project
+                    </label>
+                    <textarea
+                      value={project}
+                      onChange={(e) => setProject(e.target.value)}
+                      placeholder='Bijv. "Coca-Cola HHZH" — optioneel'
+                      rows={2}
+                      className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                      Achtergrond of extra info
+                    </label>
+                    <textarea
+                      value={background}
+                      onChange={(e) => setBackground(e.target.value)}
+                      placeholder='Bijv. gevoelig project, specifieke toon, eerder gemaakte afspraken... — optioneel'
+                      rows={3}
+                      className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -278,6 +294,12 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
                     <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Klant/project</p>
                     <p className="text-[13px] text-white/75">{project}</p>
+                  </div>
+                )}
+                {!isSearch && background.trim() && (
+                  <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
+                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Achtergrond</p>
+                    <p className="text-[12px] text-white/50 line-clamp-3">{background}</p>
                   </div>
                 )}
                 {!isSearch && transcript && (
