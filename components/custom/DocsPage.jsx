@@ -171,6 +171,29 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const clients = sortedClients(tree);
   const allClientNames = clients.filter(c => c !== 'Overige');
 
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === 'undefined') return 200;
+    const saved = parseInt(localStorage.getItem('sidebar-width') || '', 10);
+    return (saved >= 160 && saved <= 320) ? saved : 200;
+  });
+
+  function startResize(e) {
+    e.preventDefault();
+    const startX = e.clientX;
+    let w = sidebarWidth;
+    function onMove(e) {
+      w = Math.min(320, Math.max(160, sidebarWidth + e.clientX - startX));
+      setSidebarWidth(w);
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      localStorage.setItem('sidebar-width', String(w));
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
   // Zoekfilter — platte lijst
   const q = searchQuery.trim().toLowerCase();
   const filteredThreads = q
@@ -383,7 +406,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[200px] bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 ${
+        style={{ width: sidebarWidth }}
+        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -397,6 +421,15 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           projects={projects}
         />
       </aside>
+
+      {/* Drag handle sidebar resize — alleen desktop */}
+      <div
+        onMouseDown={startResize}
+        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
+        title="Sleep om sidebar te resizen"
+      >
+        <div className="absolute inset-y-0 left-0 w-px bg-white/[0.06] group-hover/resize:bg-orange/40 transition-colors" />
+      </div>
 
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
