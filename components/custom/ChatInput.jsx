@@ -26,12 +26,34 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   const fileInputRef = useRef(null);
 
   const pendingAudioIdRef = useRef(null);
+  const [transcriptBarProgress, setTranscriptBarProgress] = useState(-1); // -1 = verborgen, 0-100 = actief
+  const barIntervalRef = useRef(null);
 
-  const { transcribing, transcribeFile, recording, toggleRecording } = useAudioTranscription({
+  // Simuleer voortgangsbalk tijdens transcriberen
+  useEffect(() => {
+    if (transcribing && pendingAudioIdRef.current) {
+      setTranscriptBarProgress(0);
+      barIntervalRef.current = setInterval(() => {
+        setTranscriptBarProgress((prev) => {
+          if (prev < 0) return 0;
+          const remaining = 85 - prev;
+          return prev + Math.max(0.3, remaining * 0.025);
+        });
+      }, 250);
+    } else {
+      clearInterval(barIntervalRef.current);
+    }
+    return () => clearInterval(barIntervalRef.current);
+  }, [transcribing]);
+
+  const { transcribing, transcribeFile, recording, toggleRecording, cancelTranscription } = useAudioTranscription({
     onTranscript: (text) => {
       const id = pendingAudioIdRef.current;
       if (id) {
         // Audio via paperclip → sla op als transcript-attachment
+        clearInterval(barIntervalRef.current);
+        setTranscriptBarProgress(100);
+        setTimeout(() => setTranscriptBarProgress(-1), 500);
         setPendingAttachments((prev) =>
           prev.map((a) => a.id === id ? { ...a, content: text, status: 'ready' } : a)
         );
@@ -45,6 +67,8 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     onError: (err) => {
       const id = pendingAudioIdRef.current;
       if (id) {
+        clearInterval(barIntervalRef.current);
+        setTranscriptBarProgress(-1);
         setPendingAttachments((prev) =>
           prev.map((a) => a.id === id ? { ...a, status: 'error' } : a)
         );
@@ -186,6 +210,14 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
+  function cancelTranscriptUpload(id) {
+    cancelTranscription();
+    clearInterval(barIntervalRef.current);
+    setTranscriptBarProgress(-1);
+    pendingAudioIdRef.current = null;
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
   const canSend =
     (value.trim().length > 0 || pendingAttachments.some((a) => a.status === 'ready')) &&
     !disabled &&
@@ -201,33 +233,51 @@ export default function ChatInput({ onSend, disabled, prefill }) {
       {pendingAttachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {pendingAttachments.map((att) => (
-            <div
-              key={att.id}
-              className={`flex items-center gap-1.5 h-7 pl-2 pr-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                att.status === 'error'
-                  ? 'bg-red-950/40 border-red-800/40 text-red-400'
-                  : att.status === 'loading'
-                  ? 'bg-white/[0.04] border-white/[0.08] text-white/35 animate-pulse'
-                  : 'bg-white/[0.06] border-white/[0.12] text-white/65'
-              }`}
-            >
-              {att.type === 'image' ? (
-                <ImageIcon className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-              ) : att.type === 'transcript' ? (
-                <Mic2 className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-              ) : (
-                <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-              )}
-              <span className="max-w-[160px] truncate">
-                {att.status === 'loading' ? 'Laden...' : att.status === 'error' ? 'Mislukt' : att.filename}
-              </span>
-              {att.status !== 'loading' && (
-                <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="ml-0.5 text-white/25 hover:text-white/60 transition-colors"
-                >
-                  <X className="w-3 h-3" strokeWidth={2} />
-                </button>
+            <div key={att.id} className="flex flex-col gap-0.5">
+              <div
+                className={`flex items-center gap-1.5 h-7 pl-2 pr-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
+                  att.status === 'error'
+                    ? 'bg-red-950/40 border-red-800/40 text-red-400'
+                    : att.status === 'loading'
+                    ? 'bg-white/[0.04] border-white/[0.08] text-white/35'
+                    : 'bg-white/[0.06] border-white/[0.12] text-white/65'
+                }`}
+              >
+                {att.type === 'image' ? (
+                  <ImageIcon className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                ) : att.type === 'transcript' ? (
+                  <Mic2 className={`w-3 h-3 shrink-0 ${att.status === 'loading' ? 'animate-pulse' : ''}`} strokeWidth={1.75} />
+                ) : (
+                  <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                )}
+                <span className="max-w-[160px] truncate">
+                  {att.status === 'loading' ? 'Transcriberen...' : att.status === 'error' ? 'Mislukt' : att.filename}
+                </span>
+                {att.type === 'transcript' && att.status === 'loading' ? (
+                  <button
+                    onClick={() => cancelTranscriptUpload(att.id)}
+                    className="ml-0.5 text-white/25 hover:text-white/60 transition-colors"
+                    title="Annuleren"
+                  >
+                    <X className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                ) : att.status !== 'loading' ? (
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="ml-0.5 text-white/25 hover:text-white/60 transition-colors"
+                  >
+                    <X className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                ) : null}
+              </div>
+              {/* Progress bar onder transcript-pill tijdens laden */}
+              {att.type === 'transcript' && att.status === 'loading' && transcriptBarProgress >= 0 && (
+                <div className="h-0.5 bg-white/[0.08] rounded-full overflow-hidden w-full">
+                  <div
+                    className="h-full bg-orange/60 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${Math.min(100, transcriptBarProgress)}%` }}
+                  />
+                </div>
               )}
             </div>
           ))}
