@@ -188,7 +188,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
           placeholder={transcribing ? 'Opname wordt verwerkt...' : recording ? 'Aan het dicteren...' : 'Schrijf hier of sleep een bestand hierin...'}
           disabled={disabled || transcribing}
           rows={1}
-          className="flex-1 bg-transparent text-[14px] text-white placeholder-white/25 resize-none outline-none leading-relaxed min-h-[24px] max-h-[200px]"
+          className="flex-1 bg-transparent text-[14px] text-white placeholder-white/25 resize-none outline-none leading-relaxed min-h-[24px] max-h-[200px] py-0"
         />
 
         <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
