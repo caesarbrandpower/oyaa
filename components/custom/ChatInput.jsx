@@ -108,10 +108,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }
 
-  async function handleFileChange(e) {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    e.target.value = '';
+  async function processFiles(files) {
 
     for (const file of files) {
       if (isAudioFile(file)) {
@@ -171,6 +168,18 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     }
   }
 
+  function handleFileChange(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (files.length) processFiles(files);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length) processFiles(files);
+  }
+
   function removeAttachment(id) {
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   }
@@ -181,7 +190,11 @@ export default function ChatInput({ onSend, disabled, prefill }) {
     !transcribing;
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       {pendingAttachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {pendingAttachments.map((att) => (
