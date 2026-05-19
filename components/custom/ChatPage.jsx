@@ -27,6 +27,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
+  const messagesRef = useRef([]); // stabiele referentie voor gebruik in useCallback
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const abortRef = useRef(null);
   const [activeDocument, setActiveDocument] = useState(null);
@@ -70,6 +71,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       })
       .catch(() => {});
   }, [pendingTitleGen]);
+
+  // Houd messagesRef synchroon — gebruikt door de stabiele handleSend useCallback
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -312,7 +316,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               const threadIsDoc = threadOutputType
                 ? (DOCUMENT_OUTPUT_TYPES.has(threadOutputType) || !SEARCH_IDS_DONE.has(threadOutputType))
                 : false;
-              const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content);
+              // Eerdere DocumentCard in deze thread → follow-up met voldoende inhoud ook als document renderen
+              const prevHasDoc = messagesRef.current.some(
+                m => m.role === 'assistant' && m.isDocument === true && m.id !== placeholderId
+              );
+              const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content)
+                || (prevHasDoc && (event.content?.length ?? 0) > 500);
               setMessages((prev) =>
                 prev.map(m =>
                   m.id === placeholderId
