@@ -98,7 +98,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             {projects.map((project) => (
               <li key={project.name}>
                 <Link
-                  href="/app/docs"
+                  href={`/app/docs?client=${encodeURIComponent(project.name)}`}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-white/50 hover:bg-white/[0.04] hover:text-white/80 transition-colors"
                 >
                   <Folder className="w-3 h-3 shrink-0 text-white/25" strokeWidth={1.75} />

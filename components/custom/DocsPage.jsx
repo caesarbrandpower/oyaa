@@ -64,6 +64,17 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     const activeClient = mostRecent.client || 'Overige';
     return new Set([activeClient]);
   });
+  // Open de juiste map als ?client=... in de URL staat
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const clientParam = params.get('client');
+    if (!clientParam) return;
+    setOpenFolders((prev) => new Set([...prev, clientParam]));
+    setTimeout(() => {
+      document.getElementById(`folder-${clientParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  }, []);
+
   const [moveMenu, setMoveMenu] = useState(null); // threadId
   const [moveInputVisible, setMoveInputVisible] = useState(false);
   const [moveInputValue, setMoveInputValue] = useState('');
@@ -424,7 +435,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   const isOpen = openFolders.has(clientName);
 
                   return (
-                    <div key={clientName} className="rounded-xl border border-white/[0.08] overflow-hidden">
+                    <div key={clientName} id={`folder-${clientName}`} className="rounded-xl border border-white/[0.08] overflow-hidden">
                       {/* Client-map header */}
                       <button
                         onClick={() => toggleFolder(clientName)}
