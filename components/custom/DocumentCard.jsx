@@ -2,7 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Copy, ExternalLink } from 'lucide-react';
+import { FileText, Copy, ExternalLink, Download, Share2 } from 'lucide-react';
+import { downloadWordDoc, downloadPdfDoc, shareDocument } from '@/lib/doc-export';
 
 function extractTitle(markdown) {
   const headingMatch = markdown.match(/^#{1,3}\s+(.+)$/m);
@@ -26,6 +27,10 @@ function extractPreview(markdown) {
 
 export default function DocumentCard({ content, onOpen }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
+  const [wordLoading, setWordLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareLabel, setShareLabel] = useState('Deel als link');
   const title = extractTitle(content);
   const preview = extractPreview(content);
 
@@ -38,6 +43,33 @@ export default function DocumentCard({ content, onOpen }) {
       setCopyLabel('Mislukt');
       setTimeout(() => setCopyLabel('Kopiëren'), 2200);
     });
+  }
+
+  async function handleWord(e) {
+    e.stopPropagation();
+    setWordLoading(true);
+    try { await downloadWordDoc(content, title); } finally { setWordLoading(false); }
+  }
+
+  async function handlePdf(e) {
+    e.stopPropagation();
+    setPdfLoading(true);
+    try { await downloadPdfDoc(content, title); } finally { setPdfLoading(false); }
+  }
+
+  async function handleShare(e) {
+    e.stopPropagation();
+    setShareLoading(true);
+    try {
+      const url = await shareDocument(content, title);
+      if (url) {
+        await navigator.clipboard.writeText(url).catch(() => {});
+        setShareLabel('Link gekopieerd!');
+        setTimeout(() => setShareLabel('Deel als link'), 3000);
+      }
+    } finally {
+      setShareLoading(false);
+    }
   }
 
   return (
@@ -55,7 +87,7 @@ export default function DocumentCard({ content, onOpen }) {
           </p>
         </div>
       </div>
-      <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
+      <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-wrap items-center gap-1.5">
         <button
           onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
           className="flex items-center gap-1.5 h-8 px-3 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
@@ -69,6 +101,30 @@ export default function DocumentCard({ content, onOpen }) {
         >
           <Copy className="w-3 h-3" strokeWidth={2} />
           {copyLabel}
+        </button>
+        <button
+          onClick={handleWord}
+          disabled={wordLoading}
+          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+        >
+          <Download className="w-3 h-3" strokeWidth={2} />
+          {wordLoading ? 'Bezig...' : 'Word'}
+        </button>
+        <button
+          onClick={handlePdf}
+          disabled={pdfLoading}
+          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+        >
+          <Download className="w-3 h-3" strokeWidth={2} />
+          {pdfLoading ? 'Bezig...' : 'PDF'}
+        </button>
+        <button
+          onClick={handleShare}
+          disabled={shareLoading}
+          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+        >
+          <Share2 className="w-3 h-3" strokeWidth={2} />
+          {shareLoading ? 'Bezig...' : shareLabel}
         </button>
       </div>
     </div>

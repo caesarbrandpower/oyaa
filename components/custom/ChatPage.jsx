@@ -129,7 +129,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       setActiveThreadBoth(thread);
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
-      setMessages((msgs ?? []).map((m) => ({ ...m, attachments: [] })));
+      const isDoc = thread.output_type ? DOCUMENT_OUTPUT_TYPES.has(thread.output_type) : false;
+      setMessages((msgs ?? []).map((m) => ({
+        ...m,
+        attachments: [],
+        ...(m.role === 'assistant' ? { isDocument: isDoc, streaming: false } : {}),
+      })));
     }
     loadThread();
   // eslint-disable-next-line react-hooks/exhaustive-deps
