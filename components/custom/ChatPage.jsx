@@ -307,7 +307,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 )
               );
             } else if (event.type === 'done') {
-              const finalIsDocument = isDocument || looksLikeDocument(event.content);
+              const SEARCH_IDS_DONE = new Set(['location-search', 'supplier-search']);
+              const threadOutputType = activeThreadRef.current?.output_type;
+              const threadIsDoc = threadOutputType
+                ? (DOCUMENT_OUTPUT_TYPES.has(threadOutputType) || !SEARCH_IDS_DONE.has(threadOutputType))
+                : false;
+              const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content);
               setMessages((prev) =>
                 prev.map(m =>
                   m.id === placeholderId
