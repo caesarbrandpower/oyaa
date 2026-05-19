@@ -130,11 +130,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setActiveThreadBoth(thread);
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const isDoc = thread.output_type ? DOCUMENT_OUTPUT_TYPES.has(thread.output_type) : false;
-      setMessages((msgs ?? []).map((m) => ({
-        ...m,
-        attachments: [],
-        ...(m.role === 'assistant' ? { isDocument: isDoc, streaming: false } : {}),
-      })));
+      let firstUserReplaced = false;
+      setMessages((msgs ?? []).map((m) => {
+        const base = { ...m, attachments: [] };
+        if (m.role === 'assistant') return { ...base, isDocument: isDoc, streaming: false };
+        if (isDoc && !firstUserReplaced && thread.title) {
+          firstUserReplaced = true;
+          return { ...base, content: thread.title };
+        }
+        return base;
+      }));
     }
     loadThread();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,9 +183,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       .order('created_at', { ascending: true });
 
     const isDoc = thread.output_type ? DOCUMENT_OUTPUT_TYPES.has(thread.output_type) : false;
-    const enriched = (data ?? []).map(msg =>
-      msg.role === 'assistant' ? { ...msg, isDocument: isDoc, streaming: false } : msg
-    );
+    let firstUserReplaced = false;
+    const enriched = (data ?? []).map(msg => {
+      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc, streaming: false };
+      if (isDoc && !firstUserReplaced && thread.title) {
+        firstUserReplaced = true;
+        return { ...msg, content: thread.title };
+      }
+      return msg;
+    });
     setMessages(enriched);
     setSendingState(false);
   }
