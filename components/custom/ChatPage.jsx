@@ -9,6 +9,12 @@ import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
+
+function looksLikeDocument(content) {
+  if (!content || content.length < 300) return false;
+  const headings = content.match(/^#{1,3}\s+.+$/gm) || [];
+  return headings.length >= 2;
+}
 import DocumentView from './DocumentView';
 import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
@@ -135,7 +141,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       let firstUserReplaced = false;
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
-        if (m.role === 'assistant') return { ...base, isDocument: isDoc, streaming: false };
+        if (m.role === 'assistant') return { ...base, isDocument: isDoc || looksLikeDocument(m.content), streaming: false };
         if (isDoc && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
@@ -190,7 +196,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
-      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc, streaming: false };
+      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc || looksLikeDocument(msg.content), streaming: false };
       if (isDoc && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
@@ -294,6 +300,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 )
               );
             } else if (event.type === 'done') {
+              const finalIsDocument = isDocument || looksLikeDocument(event.content);
               setMessages((prev) =>
                 prev.map(m =>
                   m.id === placeholderId
@@ -302,14 +309,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                         role: 'assistant',
                         content: event.content,
                         streaming: false,
-                        isDocument,
+                        isDocument: finalIsDocument,
                         created_at: new Date().toISOString(),
                       }
                     : m
                 )
               );
               setSendingState(false);
-              if (isDocument && activeThreadRef.current?.id) {
+              if (finalIsDocument && activeThreadRef.current?.id) {
                 setPendingTitleGen({
                   threadId: activeThreadRef.current.id,
                   content: event.content,
