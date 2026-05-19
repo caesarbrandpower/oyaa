@@ -63,11 +63,18 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
                 )}
               </>
             ) : msg.streaming ? (
-              /* Live streaming tekst */
-              <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
-                {msg.streamContent}
-                <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 animate-pulse" />
-              </p>
+              msg.isDocument ? (
+                /* Document in opbouw — geen streaming tekst tonen */
+                <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
+                  Waybetter is aan het werk...
+                </p>
+              ) : (
+                /* Gewone chat — live streaming tekst */
+                <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
+                  {msg.streamContent}
+                  <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 animate-pulse" />
+                </p>
+              )
             ) : msg.isDocument ? (
               /* Document-kaart */
               <DocumentCard
