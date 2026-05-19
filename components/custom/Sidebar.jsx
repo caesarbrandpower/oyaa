@@ -25,6 +25,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const [editingTitle, setEditingTitle] = useState('');
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
@@ -74,6 +75,19 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         </button>
       </div>
 
+      {/* Zoekbalk */}
+      <div className="px-3 pb-2">
+        <div className="flex items-center gap-2 h-8 px-3 bg-white/[0.04] border border-white/[0.06] rounded-lg">
+          <Search className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={2} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Zoeken..."
+            className="flex-1 bg-transparent text-[12px] text-white placeholder-white/25 outline-none"
+          />
+        </div>
+      </div>
+
       {/* Projecten sectie */}
       {projects.length > 0 && (
         <div className="px-3 pb-2">
@@ -104,7 +118,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         </span>
       </div>
 
-      {/* Threads lijst — max 8 */}
+      {/* Threads lijst — max 8, gefilterd */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {threads.length === 0 ? (
           <p className="text-[12px] text-white/20 px-2 py-2">
@@ -113,7 +127,11 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         ) : (
           <>
             <ul className="space-y-0.5">
-              {threads.slice(0, 8).map((thread) => (
+              {threads.filter((t) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return t.title?.toLowerCase().includes(q) || t.client?.toLowerCase().includes(q);
+              }).slice(0, 8).map((thread) => (
                 <li key={thread.id}>
                   {editingThreadId === thread.id ? (
                     <input
