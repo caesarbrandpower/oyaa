@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, ClipboardList, PenLine, BarChart2, Search,
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
-  MoreHorizontal, X, Mic,
+  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush,
 } from 'lucide-react';
 import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
@@ -18,6 +18,9 @@ const ICON_COMPONENTS = {
   'file-text':      FileText,
   'pen-line':       PenLine,
   'bar-chart-2':    BarChart2,
+  'clipboard':      Clipboard,
+  'send':           Send,
+  'paintbrush':     Paintbrush,
 };
 
 function formatDate(dateStr) {

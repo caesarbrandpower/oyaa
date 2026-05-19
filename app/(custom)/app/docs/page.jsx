@@ -22,7 +22,7 @@ export default async function DocsArchivePage() {
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
-    .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation'])
+    .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation', 'account-to-pm', 'field-briefing', 'external-debrief', 'account-to-creation'])
     .order('updated_at', { ascending: false });
 
   // Opname-threads (audio_url aanwezig, nog geen gegenereerd document)

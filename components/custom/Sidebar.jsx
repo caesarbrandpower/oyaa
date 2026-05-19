@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut } from 'lucide-react';
+import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -13,6 +13,10 @@ function getThreadIcon(thread) {
     case 'project-briefing':    return FileText;
     case 'account-pm-briefing': return PenLine;
     case 'evaluation':          return BarChart2;
+    case 'account-to-pm':       return PenLine;
+    case 'field-briefing':      return Clipboard;
+    case 'external-debrief':    return Send;
+    case 'account-to-creation': return Paintbrush;
     default:                    return MessageSquare;
   }
 }
