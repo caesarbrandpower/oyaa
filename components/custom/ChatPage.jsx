@@ -219,7 +219,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = []) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = []) => {
       if (sendingRef.current) return;
       const userMsgId = 'user-' + Date.now();
       const userMsg = {
@@ -227,7 +227,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         role: 'user',
         content: displayText || taskLabel || messageText,
         created_at: new Date().toISOString(),
-        attachments: imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
+        attachments: [
+          ...imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
+          ...transcriptAttachments.map((a) => ({ type: 'transcript', filename: a.filename, content: a.content })),
+        ],
       };
       setMessages((prev) => [...prev, userMsg]);
       setSendingState(true);
@@ -522,7 +525,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
                 Hoi {user.firstName}. Wat ga je vandaag maken?
               </h1>
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
@@ -539,7 +542,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square } from 'lucide-react';
+import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2 } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 const TEXT_EXTS = ['.pdf', '.docx', '.txt', '.eml'];
@@ -24,10 +24,33 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const pendingAudioIdRef = useRef(null);
+
   const { transcribing, transcribeFile, recording, toggleRecording } = useAudioTranscription({
-    onTranscript: (text) => setValue((prev) => (prev ? prev + ' ' + text : text)),
+    onTranscript: (text) => {
+      const id = pendingAudioIdRef.current;
+      if (id) {
+        // Audio via paperclip → sla op als transcript-attachment
+        setPendingAttachments((prev) =>
+          prev.map((a) => a.id === id ? { ...a, content: text, status: 'ready' } : a)
+        );
+        pendingAudioIdRef.current = null;
+      } else {
+        // Inline mic-dictatie → gewoon in textarea
+        setValue((prev) => (prev ? prev + ' ' + text : text));
+      }
+    },
     onStatus: () => {},
-    onError: (err) => console.error('[ChatInput audio error]', err),
+    onError: (err) => {
+      const id = pendingAudioIdRef.current;
+      if (id) {
+        setPendingAttachments((prev) =>
+          prev.map((a) => a.id === id ? { ...a, status: 'error' } : a)
+        );
+        pendingAudioIdRef.current = null;
+      }
+      console.error('[ChatInput audio error]', err);
+    },
   });
 
   useEffect(() => {
@@ -58,10 +81,14 @@ export default function ChatInput({ onSend, disabled, prefill }) {
 
     const textAtts = readyAttachments.filter((a) => a.type === 'text');
     const imageAtts = readyAttachments.filter((a) => a.type === 'image');
+    const transcriptAtts = readyAttachments.filter((a) => a.type === 'transcript');
 
     let fullText = trimmed;
     for (const att of textAtts) {
       fullText += `\n\n[Bijlage: ${att.filename}]\n${att.content}`;
+    }
+    for (const att of transcriptAtts) {
+      fullText += `\n\n[Transcript: ${att.filename}]\n${att.content}`;
     }
 
     onSend(fullText || readyAttachments.map((a) => a.filename).join(', '), {
@@ -69,6 +96,10 @@ export default function ChatInput({ onSend, disabled, prefill }) {
         filename: a.filename,
         mediaType: a.mediaType,
         data: a.content,
+      })),
+      transcriptAttachments: transcriptAtts.map((a) => ({
+        filename: a.filename,
+        content: a.content,
       })),
     });
 
@@ -84,6 +115,12 @@ export default function ChatInput({ onSend, disabled, prefill }) {
 
     for (const file of files) {
       if (isAudioFile(file)) {
+        const id = Math.random().toString(36).slice(2);
+        pendingAudioIdRef.current = id;
+        setPendingAttachments((prev) => [
+          ...prev,
+          { id, filename: file.name, type: 'transcript', content: '', status: 'loading' },
+        ]);
         transcribeFile(file, false);
         continue;
       }
@@ -160,6 +197,8 @@ export default function ChatInput({ onSend, disabled, prefill }) {
             >
               {att.type === 'image' ? (
                 <ImageIcon className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+              ) : att.type === 'transcript' ? (
+                <Mic2 className="w-3 h-3 shrink-0" strokeWidth={1.75} />
               ) : (
                 <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
               )}

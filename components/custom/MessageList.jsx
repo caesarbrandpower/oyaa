@@ -1,15 +1,56 @@
 // components/custom/MessageList.jsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
-import { Image as ImageIcon, FileText } from 'lucide-react';
+import { Image as ImageIcon, FileText, Mic2, X, Copy, Check } from 'lucide-react';
 import DocumentCard from './DocumentCard';
+
+function TranscriptModal({ filename, content, onClose }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div
+        className="relative z-10 w-full max-w-xl bg-[#1a1a1a] border border-white/[0.10] rounded-2xl shadow-2xl flex flex-col max-h-[80vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <Mic2 className="w-4 h-4 text-white/40" strokeWidth={1.75} />
+            <span className="text-[13px] font-medium text-white/80 truncate">{filename}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            >
+              {copied ? <><Check className="w-3 h-3" strokeWidth={2} /> Gekopieerd</> : <><Copy className="w-3 h-3" strokeWidth={1.75} /> Kopieer</>}
+            </button>
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-colors">
+              <X className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">
+          <p className="text-[13px] text-white/60 leading-relaxed whitespace-pre-wrap">{content}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 marked.setOptions({ breaks: true });
 
 export default function MessageList({ messages, sending, onOpenDocument }) {
   const bottomRef = useRef(null);
+  const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,6 +61,14 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
   const isStreaming = lastMsg?.streaming === true;
 
   return (
+    <>
+    {openTranscript && (
+      <TranscriptModal
+        filename={openTranscript.filename}
+        content={openTranscript.content}
+        onClose={() => setOpenTranscript(null)}
+      />
+    )}
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
       {messages.map((msg) => (
         <div
@@ -47,18 +96,29 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
                 <span className="whitespace-pre-wrap">{msg.content}</span>
                 {msg.attachments?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {msg.attachments.map((att, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 text-[10px] text-white/40 border border-white/[0.08] rounded-md px-1.5 py-0.5"
-                      >
-                        {att.type === 'image'
-                          ? <ImageIcon className="w-2.5 h-2.5" strokeWidth={1.75} />
-                          : <FileText className="w-2.5 h-2.5" strokeWidth={1.75} />
-                        }
-                        {att.filename}
-                      </span>
-                    ))}
+                    {msg.attachments.map((att, i) =>
+                      att.type === 'transcript' ? (
+                        <button
+                          key={i}
+                          onClick={() => setOpenTranscript({ filename: att.filename, content: att.content })}
+                          className="inline-flex items-center gap-1.5 text-[11px] text-white/55 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08] hover:text-white/80 rounded-lg px-2.5 py-1 transition-colors"
+                        >
+                          <Mic2 className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                          Transcript — {att.filename}
+                        </button>
+                      ) : (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 text-[10px] text-white/40 border border-white/[0.08] rounded-md px-1.5 py-0.5"
+                        >
+                          {att.type === 'image'
+                            ? <ImageIcon className="w-2.5 h-2.5" strokeWidth={1.75} />
+                            : <FileText className="w-2.5 h-2.5" strokeWidth={1.75} />
+                          }
+                          {att.filename}
+                        </span>
+                      )
+                    )}
                   </div>
                 )}
               </>
@@ -111,5 +171,6 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
 
       <div ref={bottomRef} />
     </div>
+    </>
   );
 }
