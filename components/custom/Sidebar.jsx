@@ -269,10 +269,10 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                       className="w-full px-2 py-2 rounded-lg text-[12px] bg-white/[0.06] border border-white/[0.15] text-white outline-none"
                     />
                   ) : (
-                    <div className="relative group">
+                    <div className="flex items-center group">
                       <button
                         onClick={() => onSelectThread(thread)}
-                        className={`w-full text-left px-2 py-1.5 pr-7 rounded-lg text-[12px] leading-snug transition-colors flex items-center gap-2 ${
+                        className={`flex-1 min-w-0 text-left px-2 py-1.5 rounded-lg text-[12px] leading-snug transition-colors flex items-center gap-2 ${
                           activeThreadId === thread.id
                             ? 'bg-white/[0.08] text-white'
                             : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
@@ -283,7 +283,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setThreadMenu(thread.id); setDeleteConfirmId(null); }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
+                        className="shrink-0 mr-1 w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <MoreHorizontal className="w-3 h-3" strokeWidth={2} />
                       </button>
