@@ -1,10 +1,10 @@
 // components/custom/Sidebar.jsx
 'use client';
 
-import { useState } from 'react';
-import { Plus, Search, Folder, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Search, Folder, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 function getThreadIcon(thread) {
   if (thread.audio_url) return Mic;
@@ -19,13 +19,32 @@ function getThreadIcon(thread) {
 
 export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, projects = [] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef(null);
 
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
     : user.email.slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    function handleClick(e) {
+      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [accountOpen]);
+
+  async function handleSignOut() {
+    const { createClient } = await import('@/lib/supabase-browser');
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -173,14 +192,35 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         </Link>
       </div>
 
-      {/* User initials */}
-      <div className="px-4 py-4 border-t border-white/[0.06]">
-        <div className="flex items-center gap-2.5">
+      {/* Account */}
+      <div className="px-3 py-3 border-t border-white/[0.06] relative" ref={accountRef}>
+        {accountOpen && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl p-3 z-50">
+            <p className="text-[13px] font-semibold text-white truncate">{user.firstName}</p>
+            <p className="text-[11px] text-white/40 truncate mt-0.5">{user.email}</p>
+            {tenant?.name && (
+              <p className="text-[11px] text-white/25 truncate mt-0.5">{tenant.name}</p>
+            )}
+            <div className="border-t border-white/[0.06] mt-2.5 pt-2">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 text-[12px] text-red-400/80 hover:text-red-400 transition-colors py-0.5"
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                Uitloggen
+              </button>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => setAccountOpen((v) => !v)}
+          className="w-full flex items-center gap-2.5 hover:bg-white/[0.04] rounded-lg px-1 py-1 transition-colors"
+        >
           <div className="w-7 h-7 rounded-full bg-orange/20 border border-orange/30 flex items-center justify-center shrink-0">
             <span className="text-[10px] font-bold text-orange">{initials}</span>
           </div>
           <span className="text-[12px] text-white/40 truncate">{user.email}</span>
-        </div>
+        </button>
       </div>
     </div>
   );
