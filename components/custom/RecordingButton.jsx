@@ -236,12 +236,12 @@ export default function RecordingButton() {
         disabled={isTranscribing}
         className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
           isRecording
-            ? 'bg-red-600/10 border border-red-600/25 text-red-400'
+            ? 'bg-red-600 text-white animate-pulse'
             : isTranscribing
             ? 'bg-white/[0.04] border border-white/[0.08] text-white/30'
-            : 'bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/[0.15] hover:bg-white/[0.06]'
+            : 'bg-orange text-white hover:bg-[#e03d00]'
         }`}
-        style={!isRecording && !isTranscribing ? { boxShadow: '0 0 10px rgba(240, 72, 0, 0.18), 0 0 0 1px rgba(240, 72, 0, 0.08)' } : undefined}
+        style={!isRecording && !isTranscribing ? { boxShadow: '0 0 12px rgba(255, 77, 0, 0.6)' } : undefined}
         title={isRecording ? 'Opname bezig — klik voor opties' : 'Opname starten'}
       >
         {isTranscribing ? (
