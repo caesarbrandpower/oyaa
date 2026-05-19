@@ -236,9 +236,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setSendingState(true);
 
       const placeholderId = 'streaming-' + Date.now();
+      const SEARCH_IDS_PLACEHOLDER = new Set(['location-search', 'supplier-search']);
+      const effectiveType = outputType ?? activeThreadRef.current?.output_type ?? null;
+      const placeholderIsDoc = effectiveType
+        ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
+        : false;
       setMessages((prev) => [
         ...prev,
-        { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: false, content: '' },
+        { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '' },
       ]);
 
       const controller = new AbortController();
