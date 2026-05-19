@@ -80,6 +80,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [moveInputValue, setMoveInputValue] = useState('');
   const [renameMode, setRenameMode] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null); // threadId
   const moveMenuRef = useRef(null);
 
   // Sluit move-menu bij klik buiten
@@ -136,6 +137,13 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     setMoveInputValue('');
     setRenameMode(false);
     setRenameValue('');
+    setDeleteConfirmId(null);
+  }
+
+  async function handleDeleteDoc(threadId) {
+    await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+    closeMoveMenu();
+    setThreads((prev) => prev.filter((t) => t.id !== threadId));
   }
 
   async function handleRename(threadId) {
@@ -271,7 +279,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   </p>
                 </>
               )}
-              {!renameMode && (<>
+              {!renameMode && !deleteConfirmId && (<>
               {allClientNames
                 .filter(c => c !== (thread.client || 'Overige'))
                 .map(name => (
@@ -325,7 +333,34 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   </button>
                 )}
               </div>
+              <div className="border-t border-white/[0.06] mt-1 pt-1">
+                <button
+                  onClick={() => setDeleteConfirmId(thread.id)}
+                  className="w-full text-left px-3 py-2 text-red-400/70 hover:text-red-400 hover:bg-white/[0.06] transition-colors"
+                >
+                  Verwijderen
+                </button>
+              </div>
               </>)}
+              {deleteConfirmId === thread.id && (
+                <div className="px-3 py-2">
+                  <p className="text-[11px] text-white/50 leading-snug mb-2">Weet je het zeker? Dit verwijdert ook alle berichten en documenten in dit gesprek.</p>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="flex-1 py-1.5 rounded-lg text-[10px] text-white/50 bg-white/[0.06] hover:bg-white/[0.09] transition-colors"
+                    >
+                      Annuleren
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDoc(thread.id)}
+                      className="flex-1 py-1.5 rounded-lg text-[10px] text-red-400 bg-red-950/40 hover:bg-red-950/60 transition-colors"
+                    >
+                      Verwijderen
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

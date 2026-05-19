@@ -168,6 +168,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
   }
 
+  function handleDeleteThread(threadId) {
+    setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    if (activeThreadRef.current?.id === threadId) {
+      handleNewThread();
+    }
+  }
+
   function handleNewThread() {
     abortRef.current?.abort();
     setActiveThreadBoth(null);
@@ -393,6 +400,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           onNewThread={handleNewThread}
           onSelectThread={handleSelectThread}
           onRenameThread={handleRenameThread}
+          onDeleteThread={handleDeleteThread}
           projects={projects}
         />
       </aside>

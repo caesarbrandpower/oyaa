@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut } from 'lucide-react';
+import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -17,7 +17,7 @@ function getThreadIcon(thread) {
   }
 }
 
-export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, projects = [] }) {
+export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [] }) {
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
@@ -27,6 +27,9 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const accountRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openProject, setOpenProject] = useState(null);
+  const [threadMenu, setThreadMenu] = useState(null); // thread.id | null
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null); // thread.id | null
+  const threadMenuRef = useRef(null);
 
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
@@ -40,6 +43,23 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [accountOpen]);
+
+  useEffect(() => {
+    if (!threadMenu) return;
+    function handleClick(e) {
+      if (threadMenuRef.current && threadMenuRef.current.contains(e.target)) return;
+      setThreadMenu(null);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [threadMenu]);
+
+  async function handleDeleteThread(threadId) {
+    await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+    setDeleteConfirmId(null);
+    setThreadMenu(null);
+    onDeleteThread?.(threadId);
+  }
 
   async function handleSignOut() {
     const { createClient } = await import('@/lib/supabase-browser');
@@ -180,7 +200,41 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                 return t.title?.toLowerCase().includes(q) || t.client?.toLowerCase().includes(q);
               }).slice(0, 8).map((thread) => (
                 <li key={thread.id}>
-                  {editingThreadId === thread.id ? (
+                  {deleteConfirmId === thread.id ? (
+                    <div ref={threadMenuRef} className="px-2 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+                      <p className="text-[10px] text-white/40 leading-snug mb-2">Weet je het zeker? Dit verwijdert ook alle berichten en documenten in dit gesprek.</p>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="flex-1 py-1.5 rounded-md text-[10px] text-white/50 bg-white/[0.06] hover:bg-white/[0.09] transition-colors"
+                        >
+                          Annuleren
+                        </button>
+                        <button
+                          onClick={() => handleDeleteThread(thread.id)}
+                          className="flex-1 py-1.5 rounded-md text-[10px] text-red-400 bg-red-950/40 hover:bg-red-950/60 transition-colors"
+                        >
+                          Verwijderen
+                        </button>
+                      </div>
+                    </div>
+                  ) : threadMenu === thread.id ? (
+                    <div ref={threadMenuRef} className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/[0.04]">
+                      <span className="flex-1 text-[11px] text-white/50 truncate min-w-0">{thread.title}</span>
+                      <button
+                        onClick={() => { setEditingTitle(thread.title || ''); setEditingThreadId(thread.id); setThreadMenu(null); }}
+                        className="shrink-0 px-2 py-1 rounded text-[10px] text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                      >
+                        Hernoemen
+                      </button>
+                      <button
+                        onClick={() => { setDeleteConfirmId(thread.id); setThreadMenu(null); }}
+                        className="shrink-0 px-2 py-1 rounded text-[10px] text-red-400/70 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                      >
+                        Verwijderen
+                      </button>
+                    </div>
+                  ) : editingThreadId === thread.id ? (
                     <input
                       value={editingTitle}
                       onChange={(e) => setEditingTitle(e.target.value)}
@@ -215,18 +269,25 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                       className="w-full px-2 py-2 rounded-lg text-[12px] bg-white/[0.06] border border-white/[0.15] text-white outline-none"
                     />
                   ) : (
-                    <button
-                      onClick={() => onSelectThread(thread)}
-                      onDoubleClick={() => { setEditingTitle(thread.title || ''); setEditingThreadId(thread.id); }}
-                      className={`w-full text-left px-2 py-1.5 rounded-lg text-[12px] leading-snug transition-colors flex items-center gap-2 ${
-                        activeThreadId === thread.id
-                          ? 'bg-white/[0.08] text-white'
-                          : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
-                      }`}
-                    >
-                      {(() => { const Icon = getThreadIcon(thread); return <Icon className="w-3.5 h-3.5 shrink-0 opacity-50" strokeWidth={1.5} />; })()}
-                      <span className="truncate">{thread.title}</span>
-                    </button>
+                    <div className="relative group">
+                      <button
+                        onClick={() => onSelectThread(thread)}
+                        className={`w-full text-left px-2 py-1.5 pr-7 rounded-lg text-[12px] leading-snug transition-colors flex items-center gap-2 ${
+                          activeThreadId === thread.id
+                            ? 'bg-white/[0.08] text-white'
+                            : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
+                        }`}
+                      >
+                        {(() => { const Icon = getThreadIcon(thread); return <Icon className="w-3.5 h-3.5 shrink-0 opacity-50" strokeWidth={1.5} />; })()}
+                        <span className="truncate">{thread.title}</span>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setThreadMenu(thread.id); setDeleteConfirmId(null); }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <MoreHorizontal className="w-3 h-3" strokeWidth={2} />
+                      </button>
+                    </div>
                   )}
                 </li>
               ))}
