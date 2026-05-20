@@ -69,9 +69,9 @@ export default function ChatInput({ onSend, disabled, prefill }) {
         setTranscriptBarProgress((prev) => {
           if (prev < 0) return 0;
           const remaining = 85 - prev;
-          return prev + Math.max(0.3, remaining * 0.025);
+          return prev + Math.max(0.15, remaining * 0.012);
         });
-      }, 250);
+      }, 500);
     } else {
       clearInterval(barIntervalRef.current);
     }
@@ -347,7 +347,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
       </div>
 
       {transcribing && (
-        <p className="text-[11px] text-white/30 mt-1.5 ml-1">Opname wordt omgezet naar tekst...</p>
+        <p className="text-[11px] text-white/30 mt-1.5 ml-1">Wordt getranscribeerd — dit kan even duren...</p>
       )}
     </div>
   );
