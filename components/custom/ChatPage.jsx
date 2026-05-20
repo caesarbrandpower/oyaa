@@ -10,6 +10,14 @@ import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 
+function looksLikePastedTranscript(text) {
+  if (text.length < 500) return false;
+  const headings = (text.match(/^#{1,3}\s/gm) || []).length;
+  if (headings > 1) return false;
+  const mdChars = (text.match(/[*#`[\]]/g) || []).length;
+  return mdChars / text.length < 0.03;
+}
+
 function looksLikeDocument(content) {
   if (!content || content.length < 300) return false;
   const headings = content.match(/^#{1,3}\s+.+$/gm) || [];
@@ -225,6 +233,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = []) => {
       if (sendingRef.current) return;
       const userMsgId = 'user-' + Date.now();
+      const isPastedTranscript = !displayText && !taskLabel && looksLikePastedTranscript(messageText);
       const userMsg = {
         id: userMsgId,
         role: 'user',
@@ -234,6 +243,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           ...imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
           ...transcriptAttachments.map((a) => ({ type: 'transcript', filename: a.filename, content: a.content })),
         ],
+        pastedTranscript: isPastedTranscript,
       };
       setMessages((prev) => [...prev, userMsg]);
       setSendingState(true);

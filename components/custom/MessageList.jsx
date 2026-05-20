@@ -110,7 +110,17 @@ export default function MessageList({ messages, sending, onOpenDocument, outputT
               </div>
             ) : msg.role === 'user' ? (
               <>
-                <span className="whitespace-pre-wrap">{msg.content}</span>
+                {msg.pastedTranscript ? (
+                  <button
+                    onClick={() => setOpenTranscript({ filename: 'Geplakt transcript', content: msg.content })}
+                    className="inline-flex items-center gap-1.5 text-[11px] text-white/55 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08] hover:text-white/80 rounded-lg px-2.5 py-1 transition-colors"
+                  >
+                    <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                    Transcript — geplakt
+                  </button>
+                ) : (
+                  <span className="whitespace-pre-wrap">{msg.content}</span>
+                )}
                 {msg.attachments?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {msg.attachments.map((att, i) =>
