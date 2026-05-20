@@ -70,7 +70,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     const logos = {};
     let pending = uniqueClients.length;
     uniqueClients.forEach(name => {
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${encodeURIComponent(name)}.png`;
+      const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}.png`;
       const img = new Image();
       img.onload = () => {
         logos[name] = url;
@@ -122,18 +123,27 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     return () => document.removeEventListener('mousedown', handleClick);
   }, [moveMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function clientLogoStoragePath(name, ext = 'png') {
+    // Sanitize: lowercase, non-alphanumeric → hyphen, collapse repeats
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return `${slug}.${ext}`;
+  }
+
   async function handleLogoUpload(clientName, file) {
     if (!file) return;
     const { createClient } = await import('@/lib/supabase-browser');
     const supabase = createClient();
-    // NOTE: Supabase Storage bucket 'client-logos' must exist and be public
-    const ext = file.name.split('.').pop().toLowerCase();
-    const path = `${encodeURIComponent(clientName)}.${ext}`;
+    const ext = file.name.split('.').pop().toLowerCase() || 'png';
+    const storagePath = clientLogoStoragePath(clientName, ext);
     const { error } = await supabase.storage
       .from('client-logos')
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (!error && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${path}?t=${Date.now()}`;
+      .upload(storagePath, file, { upsert: true });
+    if (error) {
+      console.error('Logo upload fout:', error.message, error);
+      return;
+    }
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${storagePath}?t=${Date.now()}`;
       setClientLogos(prev => ({ ...prev, [clientName]: publicUrl }));
     }
   }

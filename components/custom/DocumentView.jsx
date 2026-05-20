@@ -526,7 +526,10 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
   const clientLogoUrl = client && process.env.NEXT_PUBLIC_SUPABASE_URL
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${encodeURIComponent(client)}.png`
+    ? (() => {
+        const slug = client.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}.png`;
+      })()
     : null;
 
   useEffect(() => {
