@@ -177,7 +177,7 @@ export async function POST(request) {
         // "Je maakt geen document als je niet genoeg weet"-instructie uit CUSTOM_SYSTEM_PROMPT
         // niet botst met de directe genereeropdracht.
         const systemPrompt = useStructuredPrompt
-          ? 'Je bent een werk-AI bij een bureau. Genereer altijd het gevraagde document volledig en direct op basis van de beschikbare informatie, ook als die beperkt is. Weiger nooit te genereren. Ontbrekende informatie markeer je met [UITZOEKEN INTERN] of [AFSTEMMEN MET KLANT].'
+          ? 'Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Je vraagt NOOIT om meer informatie, ook niet als de input beperkt is. Alles wat ontbreekt markeer je met [UITZOEKEN INTERN] of [AFSTEMMEN MET KLANT]. Begin direct met het document, geen inleiding.'
           : CUSTOM_SYSTEM_PROMPT;
 
         let fullText = '';
