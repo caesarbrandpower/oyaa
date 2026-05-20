@@ -131,21 +131,17 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
 
   async function handleLogoUpload(clientName, file) {
     if (!file) return;
-    const { createClient } = await import('@/lib/supabase-browser');
-    const supabase = createClient();
-    const ext = file.name.split('.').pop().toLowerCase() || 'png';
-    const storagePath = clientLogoStoragePath(clientName, ext);
-    const { error } = await supabase.storage
-      .from('client-logos')
-      .upload(storagePath, file, { upsert: true });
-    if (error) {
-      console.error('Logo upload fout:', error.message, error);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('clientName', clientName);
+    const res = await fetch('/api/upload-client-logo', { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('Logo upload fout:', err.error ?? res.status);
       return;
     }
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${storagePath}?t=${Date.now()}`;
-      setClientLogos(prev => ({ ...prev, [clientName]: publicUrl }));
-    }
+    const { url } = await res.json();
+    if (url) setClientLogos(prev => ({ ...prev, [clientName]: url + `?t=${Date.now()}` }));
   }
 
   async function handleOpenDoc(thread) {

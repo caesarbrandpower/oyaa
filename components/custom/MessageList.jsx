@@ -59,21 +59,17 @@ function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
     if (!files.length) return;
     setUploading(true);
     try {
-      const { createClient } = await import('@/lib/supabase-browser');
-      const supabase = createClient();
-      // NOTE: Supabase Storage bucket 'briefing-media' must exist and be public
-      const newPhotos = [];
-      for (const file of files) {
-        const path = `${messageId}/${Date.now()}-${file.name}`;
-        const { error } = await supabase.storage.from('briefing-media').upload(path, file, { upsert: false });
-        if (!error && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-          newPhotos.push({
-            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/briefing-media/${path}`,
-            name: file.name,
-          });
-        }
+      const formData = new FormData();
+      formData.append('messageId', messageId);
+      files.forEach(f => formData.append('files', f));
+      const res = await fetch('/api/upload-briefing-media', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Foto upload fout:', err.error ?? res.status);
+        return;
       }
-      if (newPhotos.length > 0) {
+      const { photos: newPhotos } = await res.json();
+      if (newPhotos?.length > 0) {
         onExtrasChange(messageId, { photos: [...photos, ...newPhotos], links });
       }
     } finally {
