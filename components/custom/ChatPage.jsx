@@ -343,20 +343,29 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               );
               const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content)
                 || (prevHasDoc && (event.content?.length ?? 0) > 500);
-              setMessages((prev) =>
-                prev.map(m =>
-                  m.id === placeholderId
-                    ? {
-                        id: event.messageId,
-                        role: 'assistant',
-                        content: event.content,
-                        streaming: false,
-                        isDocument: finalIsDocument,
-                        created_at: new Date().toISOString(),
-                      }
-                    : m
-                )
-              );
+              const finalMsg = {
+                id: event.messageId,
+                role: 'assistant',
+                content: event.content,
+                streaming: false,
+                isDocument: finalIsDocument,
+                created_at: new Date().toISOString(),
+              };
+              setMessages((prev) => {
+                const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
+                if (finalIsDocument) {
+                  return [...updated, {
+                    id: 'followup-' + Date.now(),
+                    role: 'assistant',
+                    type: 'followup',
+                    content: 'Zie je al wat je wil aanpassen? Open het document om de markeringen te bekijken en aan te vullen.',
+                    streaming: false,
+                    local: true,
+                    created_at: new Date().toISOString(),
+                  }];
+                }
+                return updated;
+              });
               setSendingState(false);
               if (finalIsDocument && activeThreadRef.current?.id) {
                 setPendingTitleGen({
@@ -416,9 +425,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     ]);
   }
 
-  function handleTranscriptAction(task, transcriptContent) {
-    handleNewThread();
-    handleSend(transcriptContent, task.id, task.label, task.label);
+  function handleTranscriptAction(task, transcriptContent, client) {
+    handleSend(transcriptContent, task.id, task.label, task.label, client);
   }
 
   const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
@@ -563,7 +571,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             <div className="flex items-center justify-center min-h-full">
             <div className="w-full max-w-2xl px-4 md:px-8 py-12">
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
-                Hoi {user.firstName}. Wat ga je vandaag maken?
+                Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Wat ga je vandaag maken?
               </h1>
               <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (

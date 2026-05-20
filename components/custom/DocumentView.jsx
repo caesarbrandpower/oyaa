@@ -49,24 +49,6 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
   });
 }
 
-function parseInlineRuns(text, size, docx) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(?::[^\]]*)?])/);
-  return parts.filter(p => p.length > 0).flatMap(p => {
-    if (p.startsWith('**') && p.endsWith('**')) {
-      return [new docx.TextRun({ text: p.slice(2, -2), bold: true, size })];
-    }
-    const lm = p.match(/^\[([A-Z][A-Z\s]*(?::[^\]]*)?)\]$/);
-    if (lm) {
-      const label = lm[1];
-      const red = isRedLabel(label);
-      return [
-        new docx.TextRun({ text: `[${label}]`, bold: true, size }),
-      ];
-    }
-    return [new docx.TextRun({ text: p.replace(/\*/g, ''), size })];
-  });
-}
-
 async function downloadPdfDoc(content, title) {
   if (!content?.trim()) return;
   const { jsPDF } = await import('jspdf');
@@ -419,6 +401,10 @@ export default function DocumentView({ content, onClose, onImprove }) {
     setEditValue('');
   }
 
+  function handleConfirm(idx) {
+    setLocalContent(prev => replaceOccurrence(prev, LABEL_REGEX, idx, ''));
+  }
+
   useEffect(() => {
     if (highlightedCardIdx === null) return;
     const t = setTimeout(() => setHighlightedCardIdx(null), 2000);
@@ -579,13 +565,29 @@ export default function DocumentView({ content, onClose, onImprove }) {
                           </button>
                         </div>
                       </div>
-                    ) : (
+                    ) : isRed ? (
                       <button
                         onClick={() => { setEditingIdx(idx); setEditValue(''); }}
                         className="mt-2 text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
                       >
-                        {isRed ? '+ Aanvullen' : '✓ Bevestigen'}
+                        + Aanvullen
                       </button>
+                    ) : (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleConfirm(idx)}
+                          className="text-[11px] text-white/40 hover:text-white/70 font-semibold transition-colors"
+                        >
+                          ✓ Bevestigen
+                        </button>
+                        <span className="text-white/15">|</span>
+                        <button
+                          onClick={() => { setEditingIdx(idx); setEditValue(''); }}
+                          className="text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
+                        >
+                          Wijzigen
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
