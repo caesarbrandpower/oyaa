@@ -18,7 +18,7 @@ function isImageFile(file) {
   return IMAGE_EXTS.includes(ext);
 }
 
-export default function ChatInput({ onSend, disabled, prefill }) {
+export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady }) {
   const [value, setValue] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -26,6 +26,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
   const fileInputRef = useRef(null);
 
   const pendingAudioIdRef = useRef(null);
+  const pendingAudioFilenameRef = useRef(null);
   const [transcriptBarProgress, setTranscriptBarProgress] = useState(-1); // -1 = verborgen, 0-100 = actief
   const barIntervalRef = useRef(null);
 
@@ -37,10 +38,13 @@ export default function ChatInput({ onSend, disabled, prefill }) {
         clearInterval(barIntervalRef.current);
         setTranscriptBarProgress(100);
         setTimeout(() => setTranscriptBarProgress(-1), 500);
+        const filename = pendingAudioFilenameRef.current;
         setPendingAttachments((prev) =>
           prev.map((a) => a.id === id ? { ...a, content: text, status: 'ready' } : a)
         );
         pendingAudioIdRef.current = null;
+        pendingAudioFilenameRef.current = null;
+        onTranscriptReady?.(text, filename);
       } else {
         // Inline mic-dictatie → gewoon in textarea
         setValue((prev) => (prev ? prev + ' ' + text : text));
@@ -139,6 +143,7 @@ export default function ChatInput({ onSend, disabled, prefill }) {
       if (isAudioFile(file)) {
         const id = Math.random().toString(36).slice(2);
         pendingAudioIdRef.current = id;
+        pendingAudioFilenameRef.current = file.name;
         setPendingAttachments((prev) => [
           ...prev,
           { id, filename: file.name, type: 'transcript', content: '', status: 'loading' },

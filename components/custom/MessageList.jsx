@@ -48,7 +48,7 @@ function TranscriptModal({ filename, content, onClose }) {
 
 marked.setOptions({ breaks: true });
 
-export default function MessageList({ messages, sending, onOpenDocument }) {
+export default function MessageList({ messages, sending, onOpenDocument, outputTypes = [], onTranscriptAction }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
 
@@ -91,7 +91,24 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
                 : 'flex-1'
             }
           >
-            {msg.role === 'user' ? (
+            {msg.type === 'transcript-prompt' ? (
+              <div className="flex-1">
+                <p className="text-[13px] text-white/60 mb-3">Transcript klaar — wat wil je hiermee maken?</p>
+                {outputTypes.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {outputTypes.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => onTranscriptAction?.(t, msg.transcriptContent)}
+                        className="h-7 px-3 rounded-lg text-[11px] bg-white/[0.06] border border-white/[0.10] text-white/55 hover:text-white hover:bg-white/[0.10] transition-colors"
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : msg.role === 'user' ? (
               <>
                 <span className="whitespace-pre-wrap">{msg.content}</span>
                 {msg.attachments?.length > 0 && (

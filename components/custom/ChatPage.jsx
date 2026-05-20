@@ -389,6 +389,28 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
   }
 
+  function handleTranscriptReady(content, filename) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: 'transcript-prompt-' + Date.now(),
+        role: 'assistant',
+        type: 'transcript-prompt',
+        transcriptContent: content,
+        filename,
+        local: true,
+      },
+    ]);
+  }
+
+  function handleTranscriptAction(task, transcriptContent) {
+    handleNewThread();
+    handleSend(transcriptContent, task.id, task.label, task.label);
+  }
+
+  const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
+  const documentOutputTypes = outputTypes.filter((t) => !SEARCH_IDS_SET.has(t.id));
+
   const isEmptyState = messages.length === 0 && !sending;
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -530,7 +552,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
                 Hoi {user.firstName}. Wat ga je vandaag maken?
               </h1>
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
@@ -539,7 +561,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
             </div>
           ) : (
-            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} />
+            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} outputTypes={documentOutputTypes} onTranscriptAction={handleTranscriptAction} />
           )}
         </div>
 
@@ -547,7 +569,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
             </div>
           </div>
         )}
