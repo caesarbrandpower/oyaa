@@ -4,10 +4,22 @@ import { createClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
+import { normalizeClientName } from '@/lib/utils';
 
 export const maxDuration = 60;
 
-async function detectClientProject(supabase, threadId, message) {
+async function fetchExistingClients(supabase, userId, tenantId) {
+  const query = supabase
+    .from('threads')
+    .select('client')
+    .eq('user_id', userId)
+    .not('client', 'is', null);
+  if (tenantId) query.eq('tenant_id', tenantId);
+  const { data } = await query;
+  return (data ?? []).map((r) => r.client).filter(Boolean);
+}
+
+async function detectClientProject(supabase, threadId, message, userId, tenantId) {
   const Anthropic = (await import('@anthropic-ai/sdk')).default;
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await anthropic.messages.create({
@@ -21,8 +33,9 @@ async function detectClientProject(supabase, threadId, message) {
   const text = response.content[0]?.text?.trim() ?? '';
   const json = JSON.parse(text);
   if (json.client || json.project) {
+    const existingClients = await fetchExistingClients(supabase, userId, tenantId);
     await supabase.from('threads').update({
-      client: json.client ?? null,
+      client: normalizeClientName(json.client, existingClients) ?? null,
       project: json.project ?? null,
     }).eq('id', threadId);
   }
@@ -58,6 +71,11 @@ export async function POST(request) {
 
         if (!activeThreadId) {
           const title = taskLabel || message.trim().slice(0, 60);
+          let normalizedClient = null;
+          if (clientName) {
+            const existingClients = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
+            normalizedClient = normalizeClientName(clientName, existingClients);
+          }
           const { data: newThread, error: threadError } = await supabase
             .from('threads')
             .insert({
@@ -65,7 +83,7 @@ export async function POST(request) {
               tenant_id: tenant?.id ?? null,
               title,
               output_type: outputType ?? null,
-              client: clientName ?? null,
+              client: normalizedClient,
             })
             .select('id')
             .single();
@@ -79,7 +97,7 @@ export async function POST(request) {
 
           // Detecteer klant/project uit directe chat-berichten (fire-and-forget)
           if (!clientName && !outputType) {
-            detectClientProject(supabase, activeThreadId, message).catch(() => {});
+            detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null).catch(() => {});
           }
         }
 
