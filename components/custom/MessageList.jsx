@@ -48,6 +48,34 @@ function TranscriptModal({ filename, content, onClose }) {
 
 marked.setOptions({ breaks: true });
 
+function DocumentPreview({ content, onOpen }) {
+  const [expanded, setExpanded] = useState(false);
+  const blocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
+  const visibleBlocks = expanded ? blocks : blocks.slice(0, 3);
+  const hasMore = blocks.length > 3;
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="custom-prose text-[14px]">
+        {visibleBlocks.map((block, i) => (
+          <div
+            key={i}
+            dangerouslySetInnerHTML={{ __html: marked.parse(block) }}
+          />
+        ))}
+      </div>
+      {hasMore && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="self-start text-[11px] text-white/35 hover:text-white/60 transition-colors"
+        >
+          Toon meer
+        </button>
+      )}
+      <DocumentCard content={content} onOpen={onOpen} />
+    </div>
+  );
+}
+
 export default function MessageList({ messages, sending, onOpenDocument, outputTypes = [], onTranscriptAction }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
@@ -163,8 +191,8 @@ export default function MessageList({ messages, sending, onOpenDocument, outputT
                 </p>
               )
             ) : msg.isDocument ? (
-              /* Document-kaart */
-              <DocumentCard
+              /* Document-preview + kaart */
+              <DocumentPreview
                 content={msg.content}
                 onOpen={() => onOpenDocument?.(msg)}
               />
