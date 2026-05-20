@@ -244,14 +244,14 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
                   att.status === 'error'
                     ? 'bg-red-950/40 border-red-800/40 text-red-400'
                     : att.status === 'loading'
-                    ? 'bg-white/[0.04] border-white/[0.08] text-white/35'
+                    ? 'bg-orange/[0.08] border-orange/[0.35] text-orange/80 animate-pulse'
                     : 'bg-white/[0.06] border-white/[0.12] text-white/65'
                 }`}
               >
                 {att.type === 'image' ? (
                   <ImageIcon className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                 ) : att.type === 'transcript' ? (
-                  <Mic2 className={`w-3 h-3 shrink-0 ${att.status === 'loading' ? 'animate-pulse' : ''}`} strokeWidth={1.75} />
+                  <Mic2 className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                 ) : (
                   <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                 )}
