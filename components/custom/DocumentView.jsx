@@ -487,19 +487,24 @@ export default function DocumentView({ content, onClose, onImprove }) {
           />
         </div>
 
-        {markeringen.length > 0 && (
-          <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
+        <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
             {/* Header */}
             <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
               <span className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.1em] uppercase text-white/30">
                 Markeringen
               </span>
-              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
-                {markeringen.length}
-              </span>
+              {markeringen.length > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
+                  {markeringen.length}
+                </span>
+              )}
             </div>
 
-            {/* Markeringen lijst — click card -> scroll doc pill; click pill -> highlight card */}
+            {markeringen.length === 0 ? (
+              <div className="flex-1 px-4 py-6">
+                <p className="text-[12px] text-white/20 italic">Geen markeringen</p>
+              </div>
+            ) : (
             <div ref={sidebarRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {markeringen.map((label, idx) => {
                 const isRed = isRedLabel(label);
@@ -593,6 +598,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
                 );
               })}
             </div>
+            )}
 
             {/* Verbeteren knop */}
             <div className="px-4 py-4 border-t border-white/[0.06] shrink-0">
@@ -604,7 +610,6 @@ export default function DocumentView({ content, onClose, onImprove }) {
               </button>
             </div>
           </aside>
-        )}
       </div>
     </div>
   );

@@ -251,9 +251,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const placeholderId = 'streaming-' + Date.now();
       const SEARCH_IDS_PLACEHOLDER = new Set(['location-search', 'supplier-search']);
       const effectiveType = outputType ?? activeThreadRef.current?.output_type ?? null;
-      const placeholderIsDoc = effectiveType
+      const prevHasDoc = messagesRef.current.some(
+        m => m.role === 'assistant' && m.isDocument === true
+      );
+      const placeholderIsDoc = prevHasDoc || (effectiveType
         ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
-        : false;
+        : false);
       setMessages((prev) => [
         ...prev,
         { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '' },
@@ -273,6 +276,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             taskLabel,
             client,
             imageAttachments,
+            prevHasDoc,
           }),
           signal: controller.signal,
         });
@@ -337,12 +341,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               const threadIsDoc = threadOutputType
                 ? (DOCUMENT_OUTPUT_TYPES.has(threadOutputType) || !SEARCH_IDS_DONE.has(threadOutputType))
                 : false;
-              // Eerdere DocumentCard in deze thread → follow-up met voldoende inhoud ook als document renderen
-              const prevHasDoc = messagesRef.current.some(
-                m => m.role === 'assistant' && m.isDocument === true && m.id !== placeholderId
-              );
-              const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content)
-                || (prevHasDoc && (event.content?.length ?? 0) > 500);
+              const finalIsDocument = isDocument || threadIsDoc || looksLikeDocument(event.content);
               const finalMsg = {
                 id: event.messageId,
                 role: 'assistant',
@@ -353,18 +352,30 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
-                if (finalIsDocument) {
-                  return [...updated, {
-                    id: 'followup-' + Date.now(),
+                if (!finalIsDocument) return updated;
+                const additions = [{
+                  id: 'followup-' + Date.now(),
+                  role: 'assistant',
+                  type: 'followup',
+                  content: 'Wil je iets aanpassen? Typ het hier, of open het document voor de markeringen.',
+                  streaming: false,
+                  local: true,
+                  created_at: new Date().toISOString(),
+                }];
+                if (client === null && event.detectedClient !== undefined) {
+                  const clientMsg = event.detectedClient
+                    ? `Ik sla dit op onder ${event.detectedClient}. Klopt dat, of wil je een andere map?`
+                    : 'Ik sla dit op onder Overige. Wil je het ergens anders kwijt?';
+                  additions.push({
+                    id: 'client-msg-' + Date.now(),
                     role: 'assistant',
-                    type: 'followup',
-                    content: 'Wil je iets aanpassen? Typ het hier, of open het document voor de markeringen.',
+                    content: clientMsg,
                     streaming: false,
                     local: true,
                     created_at: new Date().toISOString(),
-                  }];
+                  });
                 }
-                return updated;
+                return [...updated, ...additions];
               });
               setSendingState(false);
               if (finalIsDocument && activeThreadRef.current?.id) {

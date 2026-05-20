@@ -34,11 +34,14 @@ async function detectClientProject(supabase, threadId, message, userId, tenantId
   const json = JSON.parse(text);
   if (json.client || json.project) {
     const existingClients = await fetchExistingClients(supabase, userId, tenantId);
+    const normalizedClient = normalizeClientName(json.client, existingClients) ?? null;
     await supabase.from('threads').update({
-      client: normalizeClientName(json.client, existingClients) ?? null,
+      client: normalizedClient,
       project: json.project ?? null,
     }).eq('id', threadId);
+    return normalizedClient;
   }
+  return null;
 }
 
 function writeEvent(controller, data) {
@@ -53,14 +56,14 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, imageAttachments = [] } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName, imageAttachments = [], prevHasDoc = false } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
 
   const tenant = await getTenant();
-  const isDocument = outputType ? DOCUMENT_OUTPUT_TYPES.has(outputType) : false;
+  const isDocument = (outputType ? DOCUMENT_OUTPUT_TYPES.has(outputType) : false) || prevHasDoc;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -95,10 +98,6 @@ export async function POST(request) {
           }
           activeThreadId = newThread.id;
 
-          // Detecteer klant/project uit directe chat-berichten (fire-and-forget)
-          if (!clientName && !outputType) {
-            detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null).catch(() => {});
-          }
         }
 
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });
@@ -231,10 +230,21 @@ export async function POST(request) {
           .update({ updated_at: new Date().toISOString() })
           .eq('id', activeThreadId);
 
+        // Klantdetectie — synchroon zodat resultaat mee in done-event kan
+        let detectedClient;
+        if (!clientName) {
+          try {
+            detectedClient = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
+          } catch {
+            detectedClient = null;
+          }
+        }
+
         writeEvent(controller, {
           type: 'done',
           content: finalContent,
           messageId: savedMsg?.id ?? crypto.randomUUID(),
+          detectedClient, // undefined (niet geprobeerd) | null (niet gevonden) | string (herkend)
         });
 
         controller.close();

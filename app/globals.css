@@ -207,3 +207,22 @@ body {
   border-color: rgba(255,255,255,0.08);
   margin: 1.5rem 0;
 }
+.doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+.doc-prose th,
+.doc-prose td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.doc-prose th {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.90);
+  font-weight: 600;
+}
