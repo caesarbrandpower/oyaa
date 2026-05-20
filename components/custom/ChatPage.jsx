@@ -13,7 +13,10 @@ import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 function looksLikeDocument(content) {
   if (!content || content.length < 300) return false;
   const headings = content.match(/^#{1,3}\s+.+$/gm) || [];
-  return headings.length >= 2;
+  if (headings.length >= 2) return true;
+  // Ook documenten met bold-sectiekoppen detecteren (bijv. **In het kort** of **Actiepunten**)
+  const boldSections = content.match(/^\*\*[^*\n]{2,50}\*\*/gm) || [];
+  return boldSections.length >= 3 && content.length > 500;
 }
 import DocumentView from './DocumentView';
 import TaskSidePanel from './TaskSidePanel';
