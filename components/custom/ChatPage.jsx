@@ -42,7 +42,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const abortRef = useRef(null);
   const [activeDocument, setActiveDocument] = useState(null);
-  // activeDocument: null | { content, outputType, title }
+  // activeDocument: null | { content, outputType, title, client, extras }
+  const [briefingExtras, setBriefingExtras] = useState({});
+  // briefingExtras: { [messageId]: { photos: [{url, name}], links: [{label, url}] } }
   const [chatPrefill, setChatPrefill] = useState(
     initialPrefill ? { text: initialPrefill, id: Date.now() } : null
   );
@@ -136,7 +138,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, created_at, updated_at, audio_url')
+        .select('id, title, output_type, client, created_at, updated_at, audio_url')
         .eq('id', threadParam)
         .single();
       if (!thread) return;
@@ -156,7 +158,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       let firstUserReplaced = false;
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
-        if (m.role === 'assistant') return { ...base, isDocument: isDoc || looksLikeDocument(m.content), streaming: false };
+        if (m.role === 'assistant') return { ...base, isDocument: isDoc || looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
         if (isDoc && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
@@ -173,6 +175,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       content: msg.content,
       outputType: msg.output_type ?? activeThreadRef.current?.output_type ?? null,
       title: null,
+      client: activeThreadRef.current?.client ?? null,
+      extras: briefingExtras[msg.id] ?? null,
     });
   }
 
@@ -218,7 +222,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
-      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc || looksLikeDocument(msg.content), streaming: false };
+      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc || looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
       if (isDoc && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
@@ -348,6 +352,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 content: event.content,
                 streaming: false,
                 isDocument: finalIsDocument,
+                output_type: outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
               };
               setMessages((prev) => {
@@ -465,6 +470,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     {activeDocument && (
       <DocumentView
         content={activeDocument.content}
+        client={activeDocument.client ?? null}
+        tenant={tenant}
+        extras={activeDocument.extras ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
       />
@@ -578,7 +586,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
             </div>
           ) : (
-            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} />
+            <MessageList
+              messages={messages}
+              sending={sending}
+              onOpenDocument={handleOpenDocument}
+              briefingExtras={briefingExtras}
+              onExtrasChange={(messageId, extras) => setBriefingExtras(prev => ({ ...prev, [messageId]: extras }))}
+            />
           )}
         </div>
 

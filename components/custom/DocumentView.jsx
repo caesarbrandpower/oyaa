@@ -49,7 +49,71 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
   });
 }
 
-async function downloadPdfDoc(content, title) {
+// ── Logo / image helpers ──────────────────────────────────────────────────────
+
+async function fetchImageAsBase64(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function fetchImageAsBuffer(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const ab = await res.arrayBuffer();
+    return new Uint8Array(ab);
+  } catch {
+    return null;
+  }
+}
+
+async function getImageDimensions(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 120, h: 40 });
+    img.src = dataUrl;
+  });
+}
+
+function getImageFormat(dataUrl) {
+  if (!dataUrl) return 'PNG';
+  if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) return 'JPEG';
+  return 'PNG';
+}
+
+// ── Inline runs helper for Word export ────────────────────────────────────────
+
+function parseInlineRuns(text, size, docx) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(?::[^\]]*)?])/);
+  return parts.filter(p => p.length > 0).flatMap(p => {
+    if (p.startsWith('**') && p.endsWith('**')) {
+      return [new docx.TextRun({ text: p.slice(2, -2), bold: true, size })];
+    }
+    const lm = p.match(/^\[([A-Z][A-Z\s]*(?::[^\]]*)?)\]$/);
+    if (lm) {
+      return [new docx.TextRun({ text: `[${lm[1]}]`, bold: true, size })];
+    }
+    return [new docx.TextRun({ text: p.replace(/\*/g, ''), size })];
+  });
+}
+
+// ── PDF export ─────────────────────────────────────────────────────────────────
+
+async function downloadPdfDoc(content, title, logos = {}, extras = null) {
   if (!content?.trim()) return;
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -57,9 +121,35 @@ async function downloadPdfDoc(content, title) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const maxWidth = pageWidth - margin * 2;
+  const LOGO_H = 10; // mm
   let y = margin;
 
-  // Collect all unique labels for the summary at the end
+  // ── Logo header ──────────────────────────────────────────────────────────
+  const hasLogos = (logos.chaseBase64 && !logos.chaseBase64.startsWith('data:image/svg'))
+    || (logos.clientBase64 && !logos.clientBase64.startsWith('data:image/svg'));
+
+  if (hasLogos) {
+    doc.setFillColor(248, 248, 247);
+    doc.rect(0, 0, pageWidth, LOGO_H + 8, 'F');
+
+    if (logos.chaseBase64 && !logos.chaseBase64.startsWith('data:image/svg')) {
+      try {
+        const dims = await getImageDimensions(logos.chaseBase64);
+        const w = Math.min((dims.w / dims.h) * LOGO_H, 60);
+        doc.addImage(logos.chaseBase64, getImageFormat(logos.chaseBase64), margin, 4, w, LOGO_H);
+      } catch { /* skip */ }
+    }
+    if (logos.clientBase64 && !logos.clientBase64.startsWith('data:image/svg')) {
+      try {
+        const dims = await getImageDimensions(logos.clientBase64);
+        const w = Math.min((dims.w / dims.h) * LOGO_H, 60);
+        doc.addImage(logos.clientBase64, getImageFormat(logos.clientBase64), pageWidth - margin - w, 4, w, LOGO_H);
+      } catch { /* skip */ }
+    }
+    y = LOGO_H + 14;
+  }
+
+  // ── Collect labels for summary ──────────────────────────────────────────
   const allLabels = [];
   const seenLabels = new Set();
   for (const m of content.matchAll(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g)) {
@@ -69,12 +159,10 @@ async function downloadPdfDoc(content, title) {
     }
   }
 
-  // Split text into normal/bold segments based on label pattern
   function splitSegments(text) {
     const segs = [];
     const re = /(\[[A-Z][A-Z\s]*(:[^\]]*)?])/g;
-    let last = 0;
-    let m;
+    let last = 0, m;
     while ((m = re.exec(text)) !== null) {
       if (m.index > last) segs.push({ text: text.slice(last, m.index), bold: false });
       segs.push({ text: m[1], bold: true });
@@ -84,7 +172,6 @@ async function downloadPdfDoc(content, title) {
     return segs;
   }
 
-  // Render segments inline at current y, return height consumed
   function renderInlineSegments(segs, fontSize, indentX) {
     doc.setFontSize(fontSize);
     let cx = indentX;
@@ -94,15 +181,11 @@ async function downloadPdfDoc(content, title) {
       doc.text(seg.text, cx, y);
       cx += doc.getTextWidth(seg.text);
     }
-    const lineH = fontSize * 0.45 + 1;
-    return lineH + 2;
+    return fontSize * 0.45 + 1 + 2;
   }
 
   function checkPage(needed) {
-    if (y + (needed || 8) > 277) {
-      doc.addPage();
-      y = margin;
-    }
+    if (y + (needed || 8) > 277) { doc.addPage(); y = margin; }
   }
 
   // Title
@@ -110,152 +193,204 @@ async function downloadPdfDoc(content, title) {
   doc.setFontSize(16);
   doc.text(title, margin, y);
   y += 10;
-
-  // Separator line
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, y, pageWidth - margin, y);
   y += 8;
 
-  const lines = content.split('\n');
-  for (const raw of lines) {
+  for (const raw of content.split('\n')) {
     const line = raw.trim();
     checkPage();
-
-    if (line === '') {
-      y += 4;
-      continue;
-    }
+    if (line === '') { y += 4; continue; }
 
     const h1 = line.match(/^#\s+(.+)$/);
     if (h1) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      const text = h1[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim();
-      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      const wrapped = doc.splitTextToSize(h1[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim(), maxWidth);
       checkPage(wrapped.length * 7 + 4);
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * 7 + 4;
-      continue;
+      doc.text(wrapped, margin, y); y += wrapped.length * 7 + 4; continue;
     }
-
     const h2 = line.match(/^##\s+(.+)$/);
     if (h2) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      const text = h2[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim().toUpperCase();
-      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      const wrapped = doc.splitTextToSize(h2[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim().toUpperCase(), maxWidth);
       checkPage(wrapped.length * 6 + 4);
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * 6 + 4;
-      continue;
+      doc.text(wrapped, margin, y); y += wrapped.length * 6 + 4; continue;
     }
-
     const h3 = line.match(/^###\s+(.+)$/);
     if (h3) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      const text = h3[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim();
-      const wrapped = doc.splitTextToSize(text, maxWidth);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      const wrapped = doc.splitTextToSize(h3[1].replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '').trim(), maxWidth);
       checkPage(wrapped.length * 6 + 3);
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * 6 + 3;
-      continue;
+      doc.text(wrapped, margin, y); y += wrapped.length * 6 + 3; continue;
     }
-
-    // List items
     const listItem = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
     if (listItem) {
       doc.setFontSize(10);
       const segs = splitSegments(listItem[1].replace(/\*\*/g, ''));
-      const hasLabel = segs.some(s => s.bold);
       checkPage(7);
-      if (hasLabel) {
+      if (segs.some(s => s.bold)) {
         doc.setFont('helvetica', 'normal');
         doc.text('• ', margin + 5, y);
-        const bulletWidth = doc.getTextWidth('• ');
-        const indentX = margin + 5 + bulletWidth;
-        let cx = indentX;
+        const bw = doc.getTextWidth('• ');
+        let cx = margin + 5 + bw;
         for (const seg of segs) {
           if (!seg.text) continue;
           doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
-          doc.text(seg.text, cx, y);
-          cx += doc.getTextWidth(seg.text);
+          doc.text(seg.text, cx, y); cx += doc.getTextWidth(seg.text);
         }
-        y += 5 + 2;
+        y += 7;
       } else {
         doc.setFont('helvetica', 'normal');
-        const text = segs.map(s => s.text).join('').trim();
-        const wrapped = doc.splitTextToSize('• ' + text, maxWidth - 5);
-        doc.text(wrapped, margin + 5, y);
-        y += wrapped.length * 5 + 2;
+        const wrapped = doc.splitTextToSize('• ' + segs.map(s => s.text).join('').trim(), maxWidth - 5);
+        doc.text(wrapped, margin + 5, y); y += wrapped.length * 5 + 2;
       }
       continue;
     }
-
-    // Regular paragraph
     doc.setFontSize(10);
-    const cleanLine = line.replace(/\*\*/g, '');
-    const segs = splitSegments(cleanLine);
-    const hasLabel = segs.some(s => s.bold);
-    if (!hasLabel) {
+    const segs = splitSegments(line.replace(/\*\*/g, ''));
+    if (!segs.some(s => s.bold)) {
       const text = segs.map(s => s.text).join('').trim();
       if (!text) { y += 3; continue; }
       doc.setFont('helvetica', 'normal');
       const wrapped = doc.splitTextToSize(text, maxWidth);
       checkPage(wrapped.length * 5 + 3);
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * 5 + 3;
+      doc.text(wrapped, margin, y); y += wrapped.length * 5 + 3;
     } else {
       checkPage(7);
       y += renderInlineSegments(segs, 10, margin);
     }
   }
 
-  // Openstaande punten section
+  // ── Openstaande punten ─────────────────────────────────────────────────
   if (allLabels.length > 0) {
-    y += 10;
-    checkPage(20);
+    y += 10; checkPage(20);
     doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 8;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('Openstaande punten', margin, y);
-    y += 8;
+    doc.line(margin, y, pageWidth - margin, y); y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('Openstaande punten', margin, y); y += 8;
     allLabels.forEach((label, i) => {
       checkPage(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      const text = `${i + 1}. ${label}`;
-      const wrapped = doc.splitTextToSize(text, maxWidth);
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * 5 + 3;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      const wrapped = doc.splitTextToSize(`${i + 1}. ${label}`, maxWidth);
+      doc.text(wrapped, margin, y); y += wrapped.length * 5 + 3;
     });
+  }
+
+  // ── Extras (veldbriefing) ──────────────────────────────────────────────
+  if (extras && (extras.photos?.length > 0 || extras.links?.length > 0)) {
+    y += 10; checkPage(20);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y); y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text('Bijlagen', margin, y); y += 10;
+
+    if (extras.photos?.length > 0) {
+      for (const photo of extras.photos) {
+        if (!photo.url) continue;
+        try {
+          const b64 = await fetchImageAsBase64(photo.url);
+          if (b64 && !b64.startsWith('data:image/svg')) {
+            const dims = await getImageDimensions(b64);
+            const ph = 60; // mm
+            const pw = Math.min((dims.w / dims.h) * ph, maxWidth);
+            checkPage(ph + 8);
+            doc.addImage(b64, getImageFormat(b64), margin, y, pw, ph);
+            y += ph + 5;
+            if (photo.name) {
+              doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+              doc.setTextColor(150, 150, 150);
+              doc.text(photo.name, margin, y); y += 6;
+              doc.setTextColor(0, 0, 0);
+            }
+          }
+        } catch { /* skip broken photo */ }
+      }
+    }
+
+    if (extras.links?.length > 0) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.text('Links', margin, y); y += 7;
+      for (const link of extras.links) {
+        if (!link.url) continue;
+        checkPage(7);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.setTextColor(0, 87, 255);
+        const label = link.label || link.url;
+        const wrapped = doc.splitTextToSize(label, maxWidth);
+        doc.text(wrapped, margin, y); y += wrapped.length * 5 + 2;
+        doc.setTextColor(0, 0, 0);
+      }
+    }
   }
 
   doc.save(title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf');
 }
 
-async function downloadWordDoc(content, title) {
+// ── Word export ────────────────────────────────────────────────────────────────
+
+async function downloadWordDoc(content, title, logos = {}, extras = null) {
   if (!content?.trim()) return;
   const docx = await import('docx');
   const paragraphs = [];
 
+  // ── Logo header table ──────────────────────────────────────────────────
+  if (logos.chaseBuffer || logos.clientBuffer) {
+    const makeLogoCell = (buffer, align) => {
+      const children = [];
+      if (buffer) {
+        try {
+          children.push(new docx.ImageRun({
+            data: buffer,
+            transformation: { width: 120, height: 40 },
+            type: 'png',
+          }));
+        } catch { /* skip */ }
+      }
+      return new docx.TableCell({
+        width: { size: 50, type: docx.WidthType.PERCENTAGE },
+        borders: {
+          top: { style: docx.BorderStyle.NONE, size: 0 },
+          bottom: { style: docx.BorderStyle.NONE, size: 0 },
+          left: { style: docx.BorderStyle.NONE, size: 0 },
+          right: { style: docx.BorderStyle.NONE, size: 0 },
+        },
+        children: [new docx.Paragraph({ alignment: align, children })],
+      });
+    };
+    const logoTable = new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      borders: {
+        top: { style: docx.BorderStyle.NONE, size: 0 },
+        bottom: { style: docx.BorderStyle.NONE, size: 0 },
+        left: { style: docx.BorderStyle.NONE, size: 0 },
+        right: { style: docx.BorderStyle.NONE, size: 0 },
+        insideHorizontal: { style: docx.BorderStyle.NONE, size: 0 },
+        insideVertical: { style: docx.BorderStyle.NONE, size: 0 },
+      },
+      rows: [new docx.TableRow({
+        children: [
+          makeLogoCell(logos.chaseBuffer, docx.AlignmentType.LEFT),
+          makeLogoCell(logos.clientBuffer, docx.AlignmentType.RIGHT),
+        ],
+      })],
+    });
+    paragraphs.push(logoTable);
+    paragraphs.push(new docx.Paragraph({ text: '', spacing: { after: 120 } }));
+  }
+
+  // ── Title ──────────────────────────────────────────────────────────────
   paragraphs.push(new docx.Paragraph({
     children: [new docx.TextRun({ text: title, bold: true, size: 28 })],
     spacing: { after: 320 },
     border: { bottom: { color: 'DDDDDD', space: 1, style: docx.BorderStyle.SINGLE, size: 6 } },
   }));
 
-  // Skip the first h1 — it's already rendered as the title paragraph above
   let skipFirstH1 = true;
 
   for (const raw of content.split('\n')) {
     const line = raw.trim();
-    if (line === '') {
-      paragraphs.push(new docx.Paragraph({ text: '', spacing: { after: 60 } }));
-      continue;
-    }
+    if (line === '') { paragraphs.push(new docx.Paragraph({ text: '', spacing: { after: 60 } })); continue; }
     const h1 = line.match(/^#\s+(.+)$/);
     if (h1) {
       if (skipFirstH1) { skipFirstH1 = false; continue; }
@@ -263,8 +398,7 @@ async function downloadWordDoc(content, title) {
         children: [new docx.TextRun({ text: h1[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim(), bold: true, size: 28 })],
         spacing: { before: 240, after: 200 },
         border: { bottom: { color: 'DDDDDD', space: 1, style: docx.BorderStyle.SINGLE, size: 6 } },
-      }));
-      continue;
+      })); continue;
     }
     const h2 = line.match(/^##\s+(.+)$/);
     if (h2) {
@@ -272,26 +406,22 @@ async function downloadWordDoc(content, title) {
         children: [new docx.TextRun({ text: h2[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim().toUpperCase(), bold: true, size: 22, color: '111111' })],
         spacing: { before: 360, after: 120 },
         border: { bottom: { color: 'EEEEEE', space: 1, style: docx.BorderStyle.SINGLE, size: 4 } },
-      }));
-      continue;
+      })); continue;
     }
     const h3 = line.match(/^###\s+(.+)$/);
     if (h3) {
       paragraphs.push(new docx.Paragraph({
         children: [new docx.TextRun({ text: h3[1].replace(/\[([A-Z][A-Z\s]+)\]/g, '').trim(), bold: true, size: 20, color: '444444' })],
         spacing: { before: 200, after: 80 },
-      }));
-      continue;
+      })); continue;
     }
     const heading = line.match(/^\*\*(.+?)\*\*(.*)$/);
     if (heading) {
       const rest = heading[2].replace(/^[\s\-\u2013\u2014]+/, '');
-      // Strip trailing colon to prevent "Klant:: Coca-Cola" when appending ': '
       const labelText = heading[1].replace(/:$/, '');
       const runs = [new docx.TextRun({ text: labelText, bold: true, size: 22 })];
       if (rest) runs.push(new docx.TextRun({ text: ': ' + rest, size: 22 }));
-      paragraphs.push(new docx.Paragraph({ children: runs, spacing: { before: 200, after: 80 } }));
-      continue;
+      paragraphs.push(new docx.Paragraph({ children: runs, spacing: { before: 200, after: 80 } })); continue;
     }
     const listItem = line.match(/^[-*]\s+(.+)$/) || line.match(/^\d+\.\s+(.+)$/);
     if (listItem) {
@@ -299,29 +429,85 @@ async function downloadWordDoc(content, title) {
         children: [new docx.TextRun({ text: '• ', size: 20 }), ...parseInlineRuns(listItem[1], 20, docx)],
         indent: { left: 360 },
         spacing: { after: 80 },
-      }));
-      continue;
+      })); continue;
     }
-    paragraphs.push(new docx.Paragraph({
-      children: parseInlineRuns(line, 20, docx),
-      spacing: { after: 120 },
-    }));
+    paragraphs.push(new docx.Paragraph({ children: parseInlineRuns(line, 20, docx), spacing: { after: 120 } }));
   }
 
-  const wordDoc = new docx.Document({
-    sections: [{ properties: {}, children: paragraphs }],
-  });
+  // ── Extras (veldbriefing) ──────────────────────────────────────────────
+  if (extras && (extras.photos?.length > 0 || extras.links?.length > 0)) {
+    paragraphs.push(new docx.Paragraph({
+      children: [],
+      border: { bottom: { color: 'DDDDDD', space: 1, style: docx.BorderStyle.SINGLE, size: 6 } },
+      spacing: { before: 360, after: 240 },
+    }));
+    paragraphs.push(new docx.Paragraph({
+      children: [new docx.TextRun({ text: 'Bijlagen', bold: true, size: 26 })],
+      spacing: { after: 200 },
+    }));
 
+    if (extras.photos?.length > 0) {
+      for (const photo of extras.photos) {
+        if (!photo.url) continue;
+        try {
+          const buf = await fetchImageAsBuffer(photo.url);
+          if (buf) {
+            paragraphs.push(new docx.Paragraph({
+              children: [new docx.ImageRun({
+                data: buf,
+                transformation: { width: 400, height: 267 },
+                type: 'png',
+              })],
+              spacing: { after: 120 },
+            }));
+            if (photo.name) {
+              paragraphs.push(new docx.Paragraph({
+                children: [new docx.TextRun({ text: photo.name, size: 16, color: '888888' })],
+                spacing: { after: 160 },
+              }));
+            }
+          }
+        } catch { /* skip */ }
+      }
+    }
+
+    if (extras.links?.length > 0) {
+      paragraphs.push(new docx.Paragraph({
+        children: [new docx.TextRun({ text: 'Links', bold: true, size: 22 })],
+        spacing: { before: 160, after: 120 },
+      }));
+      for (const link of extras.links) {
+        if (!link.url) continue;
+        const label = link.label || link.url;
+        try {
+          paragraphs.push(new docx.Paragraph({
+            children: [new docx.ExternalHyperlink({
+              link: link.url,
+              children: [new docx.TextRun({ text: label, style: 'Hyperlink', size: 20 })],
+            })],
+            spacing: { after: 80 },
+          }));
+        } catch {
+          paragraphs.push(new docx.Paragraph({
+            children: [new docx.TextRun({ text: label + ' — ' + link.url, size: 20 })],
+            spacing: { after: 80 },
+          }));
+        }
+      }
+    }
+  }
+
+  const wordDoc = new docx.Document({ sections: [{ properties: {}, children: paragraphs }] });
   const blob = await docx.Packer.toBlob(wordDoc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = title.toLowerCase().replace(/[\s/]+/g, '-') + '.docx';
-  a.click();
+  a.href = url; a.download = title.toLowerCase().replace(/[\s/]+/g, '-') + '.docx'; a.click();
   URL.revokeObjectURL(url);
 }
 
-export default function DocumentView({ content, onClose, onImprove }) {
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function DocumentView({ content, onClose, onImprove, client = null, tenant = null, extras = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -337,6 +523,11 @@ export default function DocumentView({ content, onClose, onImprove }) {
   const title = extractTitle(localContent);
   const markeringen = parseMarkeringen(localContent);
   const bodyHtml = injectLabelHtml(md.parse(localContent));
+
+  const chaseLogoUrl = tenant?.logo_url ?? null;
+  const clientLogoUrl = client && process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${encodeURIComponent(client)}.png`
+    : null;
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -357,7 +548,11 @@ export default function DocumentView({ content, onClose, onImprove }) {
   async function handleDownloadWord() {
     setDownloading(true);
     try {
-      await downloadWordDoc(localContent, title);
+      const [chaseBuffer, clientBuffer] = await Promise.all([
+        fetchImageAsBuffer(chaseLogoUrl),
+        fetchImageAsBuffer(clientLogoUrl),
+      ]);
+      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras);
     } finally {
       setDownloading(false);
     }
@@ -366,19 +561,42 @@ export default function DocumentView({ content, onClose, onImprove }) {
   async function handleDownloadPdf() {
     setDownloadingPdf(true);
     try {
-      await downloadPdfDoc(localContent, title);
+      const [chaseBase64, clientBase64] = await Promise.all([
+        fetchImageAsBase64(chaseLogoUrl),
+        fetchImageAsBase64(clientLogoUrl),
+      ]);
+      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras);
     } finally {
       setDownloadingPdf(false);
     }
   }
 
+  function buildShareContent() {
+    let c = localContent;
+    if (extras?.photos?.length > 0 || extras?.links?.length > 0) {
+      c += '\n\n---\n\n## Bijlagen\n\n';
+      if (extras.photos?.length > 0) {
+        for (const photo of extras.photos) {
+          c += `![${photo.name || 'foto'}](${photo.url})\n\n`;
+        }
+      }
+      if (extras.links?.length > 0) {
+        for (const link of extras.links) {
+          c += `[${link.label || link.url}](${link.url})\n\n`;
+        }
+      }
+    }
+    return c;
+  }
+
   async function handleShare() {
     setSharing(true);
     try {
+      const shareContent = buildShareContent();
       const res = await fetch('/api/share-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: localContent, outputType: null, title }),
+        body: JSON.stringify({ content: shareContent, outputType: null, title, client }),
       });
       const data = await res.json();
       if (data.token) {
@@ -485,6 +703,46 @@ export default function DocumentView({ content, onClose, onImprove }) {
               }
             }}
           />
+
+          {/* Extras section (veldbriefing bijlagen) */}
+          {extras && (extras.photos?.length > 0 || extras.links?.length > 0) && (
+            <div className="max-w-2xl mx-auto mt-8 pt-6 border-t border-white/[0.08]">
+              <h2 className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.1em] uppercase text-white/30 mb-4">
+                Bijlagen
+              </h2>
+              {extras.photos?.length > 0 && (
+                <div className={`grid gap-2 mb-6 ${
+                  extras.photos.length === 1 ? 'grid-cols-1' :
+                  extras.photos.length <= 3 ? 'grid-cols-2' : 'grid-cols-3'
+                }`}>
+                  {extras.photos.map((photo, i) => (
+                    <img
+                      key={i}
+                      src={photo.url}
+                      alt={photo.name || `Foto ${i + 1}`}
+                      className="rounded-lg object-cover w-full aspect-video"
+                    />
+                  ))}
+                </div>
+              )}
+              {extras.links?.length > 0 && (
+                <ul className="space-y-2">
+                  {extras.links.map((link, i) => (
+                    <li key={i}>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[13px] text-orange hover:text-orange/80 transition-colors"
+                      >
+                        {link.label || link.url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
@@ -525,7 +783,7 @@ export default function DocumentView({ content, onClose, onImprove }) {
                         if (pill) {
                           pill.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           pill.classList.remove('marker-pulse');
-                          void pill.offsetWidth; // reflow zodat animatie herstart
+                          void pill.offsetWidth;
                           pill.classList.add('marker-pulse');
                           setTimeout(() => pill.classList.remove('marker-pulse'), 1000);
                         }

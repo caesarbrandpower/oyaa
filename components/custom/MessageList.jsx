@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
-import { Image as ImageIcon, FileText, Mic2, X, Copy, Check } from 'lucide-react';
+import { Image as ImageIcon, FileText, Mic2, X, Copy, Check, Plus, Link, Trash2 } from 'lucide-react';
 import DocumentCard from './DocumentCard';
 
 function TranscriptModal({ filename, content, onClose }) {
@@ -48,6 +48,136 @@ function TranscriptModal({ filename, content, onClose }) {
 
 marked.setOptions({ breaks: true });
 
+function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
+  const { photos = [], links = [] } = extras || {};
+  const [linkDraft, setLinkDraft] = useState({ label: '', url: '' });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function handlePhotoSelect(e) {
+    const files = [...(e.target.files || [])];
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      // NOTE: Supabase Storage bucket 'briefing-media' must exist and be public
+      const newPhotos = [];
+      for (const file of files) {
+        const path = `${messageId}/${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage.from('briefing-media').upload(path, file, { upsert: false });
+        if (!error && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          newPhotos.push({
+            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/briefing-media/${path}`,
+            name: file.name,
+          });
+        }
+      }
+      if (newPhotos.length > 0) {
+        onExtrasChange(messageId, { photos: [...photos, ...newPhotos], links });
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  function removePhoto(idx) {
+    onExtrasChange(messageId, { photos: photos.filter((_, i) => i !== idx), links });
+  }
+
+  function addLink() {
+    if (!linkDraft.url.trim()) return;
+    onExtrasChange(messageId, {
+      photos,
+      links: [...links, { label: linkDraft.label.trim(), url: linkDraft.url.trim() }],
+    });
+    setLinkDraft({ label: '', url: '' });
+  }
+
+  function removeLink(idx) {
+    onExtrasChange(messageId, { photos, links: links.filter((_, i) => i !== idx) });
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+      <p className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.08em] uppercase text-white/30 mb-3">
+        Bijlagen toevoegen
+      </p>
+
+      {/* Foto grid */}
+      {photos.length > 0 && (
+        <div className={`grid gap-2 mb-3 ${photos.length <= 1 ? 'grid-cols-1' : photos.length <= 3 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          {photos.map((photo, i) => (
+            <div key={i} className="relative group/photo">
+              <img src={photo.url} alt={photo.name} className="rounded-lg object-cover w-full aspect-video" />
+              <button
+                onClick={() => removePhoto(i)}
+                className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity"
+              >
+                <Trash2 className="w-3 h-3 text-white/70" strokeWidth={2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload knop */}
+      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors mb-3 disabled:opacity-40"
+      >
+        <Plus className="w-3 h-3" strokeWidth={2} />
+        {uploading ? 'Uploaden...' : 'Foto toevoegen'}
+      </button>
+
+      {/* Links */}
+      {links.length > 0 && (
+        <div className="space-y-1 mb-3">
+          {links.map((link, i) => (
+            <div key={i} className="flex items-center gap-2 group/link">
+              <Link className="w-3 h-3 text-white/25 shrink-0" strokeWidth={1.75} />
+              <span className="flex-1 text-[12px] text-orange truncate">{link.label || link.url}</span>
+              <button
+                onClick={() => removeLink(i)}
+                className="opacity-0 group-hover/link:opacity-100 w-5 h-5 flex items-center justify-center text-white/30 hover:text-white/60 transition-all"
+              >
+                <Trash2 className="w-3 h-3" strokeWidth={2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Link invoer */}
+      <div className="flex gap-1.5">
+        <input
+          value={linkDraft.label}
+          onChange={e => setLinkDraft(d => ({ ...d, label: e.target.value }))}
+          placeholder="Label (optioneel)"
+          className="w-28 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-[11px] text-white placeholder-white/20 outline-none focus:border-white/[0.20] transition-colors"
+        />
+        <input
+          value={linkDraft.url}
+          onChange={e => setLinkDraft(d => ({ ...d, url: e.target.value }))}
+          onKeyDown={e => { if (e.key === 'Enter') addLink(); }}
+          placeholder="https://..."
+          className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-[11px] text-white placeholder-white/20 outline-none focus:border-white/[0.20] transition-colors"
+        />
+        <button
+          onClick={addLink}
+          disabled={!linkDraft.url.trim()}
+          className="px-3 py-1.5 bg-white/[0.06] rounded-lg text-[11px] text-white/50 hover:text-white hover:bg-white/[0.10] transition-colors disabled:opacity-30"
+        >
+          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DocumentPreview({ content, onOpen }) {
   const [expanded, setExpanded] = useState(false);
   const blocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
@@ -76,7 +206,7 @@ function DocumentPreview({ content, onOpen }) {
   );
 }
 
-export default function MessageList({ messages, sending, onOpenDocument }) {
+export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
 
@@ -174,11 +304,20 @@ export default function MessageList({ messages, sending, onOpenDocument }) {
                 </p>
               )
             ) : msg.isDocument ? (
-              /* Document-preview + kaart */
-              <DocumentPreview
-                content={msg.content}
-                onOpen={() => onOpenDocument?.(msg)}
-              />
+              /* Document-preview + kaart + veldbriefing bijlagen */
+              <div>
+                <DocumentPreview
+                  content={msg.content}
+                  onOpen={() => onOpenDocument?.(msg)}
+                />
+                {msg.output_type === 'field-briefing' && onExtrasChange && (
+                  <FieldBriefingExtras
+                    messageId={msg.id}
+                    extras={briefingExtras[msg.id]}
+                    onExtrasChange={onExtrasChange}
+                  />
+                )}
+              </div>
             ) : (
               /* Gewone markdown */
               <div

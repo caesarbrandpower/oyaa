@@ -28,7 +28,7 @@ function extractTitle(markdown) {
   return firstLine.replace(/[#*_`]/g, '').trim().slice(0, 80) || 'Document';
 }
 
-export default function SharedDocView({ content, title: propTitle, expiresAt }) {
+export default function SharedDocView({ content, title: propTitle, expiresAt, chaseLogoUrl = null, clientLogoUrl = null }) {
   const title = propTitle || extractTitle(content);
   const bodyHtml = injectLabelHtml(md.parse(content));
 
@@ -38,6 +38,28 @@ export default function SharedDocView({ content, title: propTitle, expiresAt }) 
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
+      {/* Logo-balk: Chase links, klant rechts */}
+      {(chaseLogoUrl || clientLogoUrl) && (
+        <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-white/[0.02]">
+          <div className="flex-1">
+            {chaseLogoUrl && (
+              <img src={chaseLogoUrl} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
+            )}
+          </div>
+          <div className="flex items-center justify-end">
+            {clientLogoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={clientLogoUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-8 max-w-[140px] object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
         <h1 className="flex-1 font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">

@@ -226,3 +226,14 @@ body {
   color: rgba(255,255,255,0.90);
   font-weight: 600;
 }
+.doc-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+}
+.doc-prose a {
+  color: #FF4800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

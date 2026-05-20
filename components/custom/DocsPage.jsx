@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, ClipboardList, PenLine, BarChart2, Search,
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
-  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush,
+  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush, Camera,
 } from 'lucide-react';
 import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
@@ -57,8 +57,33 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const router = useRouter();
   const [threads, setThreads] = useState(docThreads);
   const [activeDocument, setActiveDocument] = useState(null);
+  // clientLogos: { [clientName]: string (publicUrl) | null }
+  const [clientLogos, setClientLogos] = useState({});
+  const logoInputRefs = useRef({});
   const [loadingThreadId, setLoadingThreadId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Load client logos from Supabase Storage on mount
+  useEffect(() => {
+    const uniqueClients = [...new Set(docThreads.map(t => t.client).filter(Boolean))];
+    if (uniqueClients.length === 0 || !process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+    const logos = {};
+    let pending = uniqueClients.length;
+    uniqueClients.forEach(name => {
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${encodeURIComponent(name)}.png`;
+      const img = new Image();
+      img.onload = () => {
+        logos[name] = url;
+        if (--pending === 0) setClientLogos({ ...logos });
+      };
+      img.onerror = () => {
+        logos[name] = null;
+        if (--pending === 0) setClientLogos({ ...logos });
+      };
+      img.src = url;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [openFolders, setOpenFolders] = useState(() => {
     // Alleen de map met het meest recente item standaard open
@@ -97,6 +122,22 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     return () => document.removeEventListener('mousedown', handleClick);
   }, [moveMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function handleLogoUpload(clientName, file) {
+    if (!file) return;
+    const { createClient } = await import('@/lib/supabase-browser');
+    const supabase = createClient();
+    // NOTE: Supabase Storage bucket 'client-logos' must exist and be public
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = `${encodeURIComponent(clientName)}.${ext}`;
+    const { error } = await supabase.storage
+      .from('client-logos')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (!error && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${path}?t=${Date.now()}`;
+      setClientLogos(prev => ({ ...prev, [clientName]: publicUrl }));
+    }
+  }
+
   async function handleOpenDoc(thread) {
     setLoadingThreadId(thread.id);
     try {
@@ -111,7 +152,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         .limit(1);
 
       if (data?.[0]?.content) {
-        setActiveDocument({ content: data[0].content, outputType: thread.output_type });
+        setActiveDocument({ content: data[0].content, outputType: thread.output_type, client: thread.client ?? null });
       }
     } finally {
       setLoadingThreadId(null);
@@ -399,6 +440,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       {activeDocument && (
         <DocumentView
           content={activeDocument.content}
+          client={activeDocument.client ?? null}
+          tenant={tenant}
           onClose={() => setActiveDocument(null)}
           onImprove={(prefillText) => {
             setActiveDocument(null);
@@ -508,21 +551,54 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   return (
                     <div key={clientName} id={`folder-${clientName}`} className="rounded-xl border border-white/[0.08] overflow-hidden">
                       {/* Client-map header */}
-                      <button
-                        onClick={() => toggleFolder(clientName)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left"
-                      >
-                        {isOpen
-                          ? <FolderOpen className="w-4 h-4 text-orange/70 shrink-0" strokeWidth={1.5} />
-                          : <Folder className="w-4 h-4 text-white/30 shrink-0" strokeWidth={1.5} />
-                        }
-                        <span className="flex-1 text-[13px] font-semibold text-white/80">{clientName}</span>
-                        <span className="text-[11px] text-white/25 mr-2">{totalDocs}</span>
-                        {isOpen
-                          ? <ChevronDown className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
-                          : <ChevronRight className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
-                        }
-                      </button>
+                      <div className="flex items-center group/folder">
+                        <button
+                          onClick={() => toggleFolder(clientName)}
+                          className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left"
+                        >
+                          {isOpen
+                            ? <FolderOpen className="w-4 h-4 text-orange/70 shrink-0" strokeWidth={1.5} />
+                            : <Folder className="w-4 h-4 text-white/30 shrink-0" strokeWidth={1.5} />
+                          }
+                          {clientLogos[clientName] && (
+                            <img
+                              src={clientLogos[clientName]}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-4 max-w-[48px] object-contain shrink-0"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          )}
+                          <span className="flex-1 text-[13px] font-semibold text-white/80">{clientName}</span>
+                          <span className="text-[11px] text-white/25 mr-2">{totalDocs}</span>
+                          {isOpen
+                            ? <ChevronDown className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
+                            : <ChevronRight className="w-3.5 h-3.5 text-white/20" strokeWidth={2} />
+                          }
+                        </button>
+                        {clientName !== 'Overige' && (
+                          <>
+                            <input
+                              ref={el => { logoInputRefs.current[clientName] = el; }}
+                              type="file"
+                              accept=".png,.svg,image/png,image/svg+xml"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleLogoUpload(clientName, file);
+                                e.target.value = '';
+                              }}
+                            />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); logoInputRefs.current[clientName]?.click(); }}
+                              title="Logo uploaden"
+                              className="opacity-0 group-hover/folder:opacity-100 mr-3 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+                            >
+                              <Camera className="w-3.5 h-3.5" strokeWidth={1.5} />
+                            </button>
+                          </>
+                        )}
+                      </div>
 
                       {isOpen && (
                         <div className="border-t border-white/[0.05]">
