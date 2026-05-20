@@ -66,7 +66,7 @@ function DocumentPreview({ content, onOpen }) {
       {hasMore && !expanded && (
         <button
           onClick={() => setExpanded(true)}
-          className="self-start text-[11px] text-white/35 hover:text-white/60 transition-colors"
+          className="self-start text-[12px] text-white/60 hover:text-white/90 underline decoration-white/25 hover:decoration-white/60 transition-colors"
         >
           Toon volledige samenvatting
         </button>
@@ -76,36 +76,7 @@ function DocumentPreview({ content, onOpen }) {
   );
 }
 
-function TranscriptPromptMessage({ msg, outputTypes, onTranscriptAction }) {
-  const [clientName, setClientName] = useState('');
-  return (
-    <div className="flex-1">
-      <p className="text-[13px] text-white/60 mb-3">Transcript klaar — wat wil je hiermee maken?</p>
-      {outputTypes.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {outputTypes.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onTranscriptAction?.(t, msg.transcriptContent, clientName.trim() || null)}
-              className="h-7 px-3 rounded-lg text-[11px] bg-white/[0.06] border border-white/[0.10] text-white/55 hover:text-white hover:bg-white/[0.10] transition-colors"
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-      <input
-        type="text"
-        value={clientName}
-        onChange={(e) => setClientName(e.target.value)}
-        placeholder="Klant (optioneel)"
-        className="w-full max-w-[240px] bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-[12px] text-white placeholder-white/25 outline-none focus:border-white/[0.20] transition-colors"
-      />
-    </div>
-  );
-}
-
-export default function MessageList({ messages, sending, onOpenDocument, outputTypes = [], onTranscriptAction }) {
+export default function MessageList({ messages, sending, onOpenDocument }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
 
@@ -148,9 +119,7 @@ export default function MessageList({ messages, sending, onOpenDocument, outputT
                 : 'flex-1'
             }
           >
-            {msg.type === 'transcript-prompt' ? (
-              <TranscriptPromptMessage msg={msg} outputTypes={outputTypes} onTranscriptAction={onTranscriptAction} />
-            ) : msg.role === 'user' ? (
+            {msg.role === 'user' ? (
               <>
                 {msg.pastedTranscript ? (
                   <button

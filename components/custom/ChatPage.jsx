@@ -358,7 +358,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                     id: 'followup-' + Date.now(),
                     role: 'assistant',
                     type: 'followup',
-                    content: 'Zie je al wat je wil aanpassen? Open het document om de markeringen te bekijken en aan te vullen.',
+                    content: 'Wil je iets aanpassen? Typ het hier, of open het document voor de markeringen.',
                     streaming: false,
                     local: true,
                     created_at: new Date().toISOString(),
@@ -411,26 +411,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
   }
 
-  function handleTranscriptReady(content, filename) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: 'transcript-prompt-' + Date.now(),
-        role: 'assistant',
-        type: 'transcript-prompt',
-        transcriptContent: content,
-        filename,
-        local: true,
-      },
-    ]);
-  }
-
-  function handleTranscriptAction(task, transcriptContent, client) {
-    handleSend(transcriptContent, task.id, task.label, task.label, client);
+  function handleTranscriptReady() {
+    // Geen actie — tussenstap vervalt volledig
   }
 
   const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
-  const documentOutputTypes = outputTypes.filter((t) => !SEARCH_IDS_SET.has(t.id));
 
   const isEmptyState = messages.length === 0 && !sending;
 
@@ -582,7 +567,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
             </div>
           ) : (
-            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} outputTypes={documentOutputTypes} onTranscriptAction={handleTranscriptAction} />
+            <MessageList messages={messages} sending={sending} onOpenDocument={handleOpenDocument} />
           )}
         </div>
 
