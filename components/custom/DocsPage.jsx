@@ -71,17 +71,27 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     let pending = uniqueClients.length;
     uniqueClients.forEach(name => {
       const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}.png`;
+      const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}`;
+      const pngUrl = base + '.png';
+      const svgUrl = base + '.svg';
       const img = new Image();
       img.onload = () => {
-        logos[name] = url;
+        logos[name] = pngUrl;
         if (--pending === 0) setClientLogos({ ...logos });
       };
       img.onerror = () => {
-        logos[name] = null;
-        if (--pending === 0) setClientLogos({ ...logos });
+        const svg = new Image();
+        svg.onload = () => {
+          logos[name] = svgUrl;
+          if (--pending === 0) setClientLogos({ ...logos });
+        };
+        svg.onerror = () => {
+          logos[name] = null;
+          if (--pending === 0) setClientLogos({ ...logos });
+        };
+        svg.src = svgUrl;
       };
-      img.src = url;
+      img.src = pngUrl;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -111,6 +121,11 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [renameValue, setRenameValue] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null); // threadId
   const moveMenuRef = useRef(null);
+  const [inlineRenameId, setInlineRenameId] = useState(null); // threadId
+  const [inlineRenameValue, setInlineRenameValue] = useState('');
+  const [folderMenu, setFolderMenu] = useState(null); // clientName | null
+  const [folderMenuError, setFolderMenuError] = useState(false);
+  const folderMenuRef = useRef(null);
 
   // Sluit move-menu bij klik buiten
   useEffect(() => {
@@ -118,10 +133,14 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       if (moveMenu && moveMenuRef.current && !moveMenuRef.current.contains(e.target)) {
         closeMoveMenu();
       }
+      if (folderMenu && folderMenuRef.current && !folderMenuRef.current.contains(e.target)) {
+        setFolderMenu(null);
+        setFolderMenuError(false);
+      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [moveMenu]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [moveMenu, folderMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function clientLogoStoragePath(name, ext = 'png') {
     // Sanitize: lowercase, non-alphanumeric → hyphen, collapse repeats
@@ -149,16 +168,25 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     try {
       const { createClient } = await import('@/lib/supabase-browser');
       const supabase = createClient();
-      const { data } = await supabase
-        .from('messages')
-        .select('content')
-        .eq('thread_id', thread.id)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const [{ data: msgs }, { data: threadData }] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('id, content')
+          .eq('thread_id', thread.id)
+          .eq('role', 'assistant')
+          .order('created_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('threads')
+          .select('field_briefing_extras')
+          .eq('id', thread.id)
+          .single(),
+      ]);
 
-      if (data?.[0]?.content) {
-        setActiveDocument({ content: data[0].content, outputType: thread.output_type, client: thread.client ?? null });
+      if (msgs?.[0]?.content) {
+        const messageId = msgs[0].id;
+        const extras = threadData?.field_briefing_extras?.[messageId] ?? null;
+        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras });
       }
     } finally {
       setLoadingThreadId(null);
@@ -270,29 +298,71 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           !isLast ? 'border-b border-white/[0.05]' : ''
         }`}
       >
+        {/* Icon — opent doc */}
         <button
           onClick={() => isRecording ? router.push('/app?thread=' + thread.id) : handleOpenDoc(thread)}
           disabled={isLoading}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+          className="shrink-0 disabled:opacity-50"
         >
-          <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${
+          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${
             isRecording
               ? 'bg-white/[0.05] border border-white/[0.10]'
               : 'bg-orange/10 border border-orange/20'
           }`}>
             <Icon className={`w-3.5 h-3.5 ${isRecording ? 'text-white/40' : 'text-orange'}`} strokeWidth={1.5} />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-white/80 truncate">{thread.title}</p>
-            <p className="text-[11px] text-white/30 mt-0.5">{typeInfo.label}</p>
-          </div>
-          <div className="shrink-0 flex items-center gap-2">
-            <span className="text-[11px] text-white/25">{formatDate(thread.updated_at || thread.created_at)}</span>
-            {isLoading
-              ? <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin" />
-              : <ChevronRight className="w-3.5 h-3.5 text-white/15" strokeWidth={2} />
-            }
-          </div>
+        </button>
+
+        {/* Titel — klik om inline te hernoemen */}
+        <div className="flex-1 min-w-0">
+          {inlineRenameId === thread.id ? (
+            <div className="flex gap-1.5 items-center">
+              <input
+                autoFocus
+                value={inlineRenameValue}
+                onChange={e => setInlineRenameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const newTitle = inlineRenameValue.trim();
+                    setInlineRenameId(null);
+                    if (newTitle && newTitle !== thread.title) {
+                      fetch(`/api/threads/${thread.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: newTitle }),
+                      }).catch(() => {});
+                      setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, title: newTitle } : t));
+                    }
+                  }
+                  if (e.key === 'Escape') setInlineRenameId(null);
+                }}
+                onBlur={() => setInlineRenameId(null)}
+                className="flex-1 bg-white/[0.06] border border-white/[0.15] rounded-lg px-2 py-1 text-[12px] text-white placeholder-white/25 outline-none focus:border-white/[0.30] min-w-0"
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setInlineRenameId(thread.id); setInlineRenameValue(thread.title || ''); }}
+              className="w-full text-left"
+              title="Klik om te hernoemen"
+            >
+              <p className="text-[13px] font-medium text-white/80 truncate">{thread.title}</p>
+              <p className="text-[11px] text-white/30 mt-0.5">{typeInfo.label}</p>
+            </button>
+          )}
+        </div>
+
+        {/* Datum + chevron — opent doc */}
+        <button
+          onClick={() => isRecording ? router.push('/app?thread=' + thread.id) : handleOpenDoc(thread)}
+          disabled={isLoading}
+          className="shrink-0 flex items-center gap-2 disabled:opacity-50"
+        >
+          <span className="text-[11px] text-white/25">{formatDate(thread.updated_at || thread.created_at)}</span>
+          {isLoading
+            ? <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin" />
+            : <ChevronRight className="w-3.5 h-3.5 text-white/15" strokeWidth={2} />
+          }
         </button>
 
         {/* Verplaatsen — 3-puntjes */}
@@ -310,7 +380,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                 setRenameValue('');
               }
             }}
-            className="w-6 h-6 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100"
+            className="w-6 h-6 flex items-center justify-center rounded text-white/20 hover:text-white/60 hover:bg-white/[0.06] transition-colors"
           >
             <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
           </button>
@@ -598,10 +668,57 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                             <button
                               onClick={(e) => { e.stopPropagation(); logoInputRefs.current[clientName]?.click(); }}
                               title="Logo uploaden"
-                              className="opacity-0 group-hover/folder:opacity-100 mr-3 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+                              className="opacity-0 group-hover/folder:opacity-100 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
                             >
                               <Camera className="w-3.5 h-3.5" strokeWidth={1.5} />
                             </button>
+                            {/* Map 3-dots menu */}
+                            <div
+                              ref={folderMenu === clientName ? folderMenuRef : null}
+                              className="relative mr-2"
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (folderMenu === clientName) {
+                                    setFolderMenu(null);
+                                    setFolderMenuError(false);
+                                  } else {
+                                    setFolderMenu(clientName);
+                                    setFolderMenuError(false);
+                                  }
+                                }}
+                                title="Mapopties"
+                                className="opacity-0 group-hover/folder:opacity-100 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+                              >
+                                <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
+                              </button>
+                              {folderMenu === clientName && (
+                                <div className="absolute right-0 top-7 z-50 w-52 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
+                                  {folderMenuError ? (
+                                    <div className="px-3 py-2.5">
+                                      <p className="text-[11px] text-white/50 leading-snug">
+                                        Verplaats eerst alle {totalDocs} document{totalDocs !== 1 ? 'en' : ''} naar een andere map.
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (totalDocs > 0) {
+                                          setFolderMenuError(true);
+                                        } else {
+                                          setFolderMenu(null);
+                                        }
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-red-400/70 hover:text-red-400 hover:bg-white/[0.06] transition-colors"
+                                    >
+                                      Map verwijderen
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </>
                         )}
                       </div>

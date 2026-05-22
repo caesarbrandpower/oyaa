@@ -125,26 +125,24 @@ async function downloadPdfDoc(content, title, logos = {}, extras = null) {
   let y = margin;
 
   // ── Logo header ──────────────────────────────────────────────────────────
-  const hasLogos = (logos.chaseBase64 && !logos.chaseBase64.startsWith('data:image/svg'))
-    || (logos.clientBase64 && !logos.clientBase64.startsWith('data:image/svg'));
-
-  if (hasLogos) {
+  // Note: SVG check removed — try/catch inside handles unsupported formats
+  if (logos.chaseBase64 || logos.clientBase64) {
     doc.setFillColor(248, 248, 247);
     doc.rect(0, 0, pageWidth, LOGO_H + 8, 'F');
 
-    if (logos.chaseBase64 && !logos.chaseBase64.startsWith('data:image/svg')) {
+    if (logos.chaseBase64) {
       try {
         const dims = await getImageDimensions(logos.chaseBase64);
         const w = Math.min((dims.w / dims.h) * LOGO_H, 60);
         doc.addImage(logos.chaseBase64, getImageFormat(logos.chaseBase64), margin, 4, w, LOGO_H);
-      } catch { /* skip */ }
+      } catch { /* skip SVG or unsupported format */ }
     }
-    if (logos.clientBase64 && !logos.clientBase64.startsWith('data:image/svg')) {
+    if (logos.clientBase64) {
       try {
         const dims = await getImageDimensions(logos.clientBase64);
         const w = Math.min((dims.w / dims.h) * LOGO_H, 60);
         doc.addImage(logos.clientBase64, getImageFormat(logos.clientBase64), pageWidth - margin - w, 4, w, LOGO_H);
-      } catch { /* skip */ }
+      } catch { /* skip SVG or unsupported format */ }
     }
     y = LOGO_H + 14;
   }
@@ -525,12 +523,23 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const bodyHtml = injectLabelHtml(md.parse(localContent));
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
-  const clientLogoUrl = client && process.env.NEXT_PUBLIC_SUPABASE_URL
-    ? (() => {
-        const slug = client.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}.png`;
-      })()
-    : null;
+
+  // Resolve client logo URL: try PNG first, then SVG
+  const [clientLogoUrl, setClientLogoUrl] = useState(null);
+  useEffect(() => {
+    if (!client || !process.env.NEXT_PUBLIC_SUPABASE_URL) { setClientLogoUrl(null); return; }
+    const slug = client.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${slug}`;
+    const img = new Image();
+    img.onload = () => setClientLogoUrl(base + '.png');
+    img.onerror = () => {
+      const svg = new Image();
+      svg.onload = () => setClientLogoUrl(base + '.svg');
+      svg.onerror = () => setClientLogoUrl(null);
+      svg.src = base + '.svg';
+    };
+    img.src = base + '.png';
+  }, [client]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };

@@ -30,7 +30,7 @@ export async function PATCH(request, { params }) {
 
   const { id } = await params;
   const body = await request.json();
-  const { client, project, title } = body;
+  const { client, project, title, field_briefing_extras } = body;
 
   const { data: thread } = await supabase
     .from('threads')
@@ -45,6 +45,7 @@ export async function PATCH(request, { params }) {
   if ('client' in body) updateData.client = client ?? null;
   if ('project' in body) updateData.project = project ?? null;
   if (title?.trim()) updateData.title = title.trim();
+  if ('field_briefing_extras' in body) updateData.field_briefing_extras = field_briefing_extras ?? null;
 
   await supabase.from('threads').update(updateData).eq('id', id);
 

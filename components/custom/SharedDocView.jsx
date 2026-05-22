@@ -54,7 +54,15 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
                 alt=""
                 aria-hidden="true"
                 className="h-8 max-w-[140px] object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => {
+                  // Probeer SVG-variant als PNG mislukt
+                  const src = e.currentTarget.src;
+                  if (src.endsWith('.png')) {
+                    e.currentTarget.src = src.replace(/\.png$/, '.svg');
+                  } else {
+                    e.currentTarget.style.display = 'none';
+                  }
+                }}
               />
             )}
           </div>

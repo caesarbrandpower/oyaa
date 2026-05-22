@@ -138,7 +138,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, client, created_at, updated_at, audio_url')
+        .select('id, title, output_type, client, field_briefing_extras, created_at, updated_at, audio_url')
         .eq('id', threadParam)
         .single();
       if (!thread) return;
@@ -150,6 +150,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         .order('created_at', { ascending: true });
 
       setActiveThreadBoth(thread);
+      setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
       const isDoc = thread.output_type
@@ -198,6 +199,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     abortRef.current?.abort();
     setActiveThreadBoth(null);
     setMessages([]);
+    setBriefingExtras({});
     setSendingState(false);
     setSidebarOpen(false);
   }
@@ -210,11 +212,19 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
     const { createClient } = await import('@/lib/supabase-browser');
     const supabase = createClient();
-    const { data } = await supabase
-      .from('messages')
-      .select('id, role, content, created_at')
-      .eq('thread_id', thread.id)
-      .order('created_at', { ascending: true });
+    const [{ data }, { data: threadData }] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('id, role, content, created_at')
+        .eq('thread_id', thread.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('threads')
+        .select('field_briefing_extras')
+        .eq('id', thread.id)
+        .single(),
+    ]);
+    setBriefingExtras(threadData?.field_briefing_extras || {});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
     const isDoc = thread.output_type
@@ -251,6 +261,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       };
       setMessages((prev) => [...prev, userMsg]);
       setSendingState(true);
+
+      // Fix 4C: veldbriefing foto-interceptor
+      const currentOutputType = outputType ?? activeThreadRef.current?.output_type ?? null;
+      if (currentOutputType === 'field-briefing' && /foto|fotos|foto's|afbeelding|afbeeldingen|upload|toevoeg|bijvoeg/i.test(messageText)) {
+        setMessages(prev => [...prev, {
+          id: 'local-' + Date.now(),
+          role: 'assistant',
+          content: "Foto's toevoegen doe je via de knop in het veldbriefing-formulier hieronder.",
+          streaming: false,
+          local: true,
+          created_at: new Date().toISOString(),
+        }]);
+        setSendingState(false);
+        return;
+      }
 
       const placeholderId = 'streaming-' + Date.now();
       const SEARCH_IDS_PLACEHOLDER = new Set(['location-search', 'supplier-search']);
@@ -591,7 +616,19 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               sending={sending}
               onOpenDocument={handleOpenDocument}
               briefingExtras={briefingExtras}
-              onExtrasChange={(messageId, extras) => setBriefingExtras(prev => ({ ...prev, [messageId]: extras }))}
+              onExtrasChange={(messageId, extras) => {
+                setBriefingExtras(prev => {
+                  const updated = { ...prev, [messageId]: extras };
+                  if (activeThreadRef.current?.id) {
+                    fetch(`/api/threads/${activeThreadRef.current.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ field_briefing_extras: updated }),
+                    }).catch(() => {});
+                  }
+                  return updated;
+                });
+              }}
             />
           )}
         </div>
