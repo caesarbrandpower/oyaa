@@ -53,6 +53,7 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
   const [linkDraft, setLinkDraft] = useState({ label: '', url: '' });
   const [uploading, setUploading] = useState(false);
   const [uploadedFeedback, setUploadedFeedback] = useState(false);
+  const [newlyUploadedIds, setNewlyUploadedIds] = useState(new Set());
   const fileInputRef = useRef(null);
 
   async function handlePhotoSelect(e) {
@@ -72,8 +73,15 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
       const { photos: newPhotos } = await res.json();
       if (newPhotos?.length > 0) {
         onExtrasChange(messageId, { photos: [...photos, ...newPhotos], links });
+        const newIds = new Set(newPhotos.map(p => p.url));
+        setNewlyUploadedIds(prev => new Set([...prev, ...newIds]));
+        setTimeout(() => setNewlyUploadedIds(prev => {
+          const next = new Set(prev);
+          newIds.forEach(id => next.delete(id));
+          return next;
+        }), 3000);
         setUploadedFeedback(true);
-        setTimeout(() => setUploadedFeedback(false), 2500);
+        setTimeout(() => setUploadedFeedback(false), 3000);
       }
     } finally {
       setUploading(false);
@@ -110,6 +118,11 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
           {photos.map((photo, i) => (
             <div key={i} className="relative group/photo">
               <img src={photo.url} alt={photo.name} className="rounded-lg object-cover w-full aspect-video" />
+              {newlyUploadedIds.has(photo.url) && (
+                <div className="absolute top-1 left-1 w-5 h-5 bg-green-500/90 rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                </div>
+              )}
               <button
                 onClick={() => removePhoto(i)}
                 className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity"
@@ -185,7 +198,7 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
   );
 }
 
-function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, outputType, outputTypeLabel }) {
+function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel }) {
   const [expanded, setExpanded] = useState(false);
   const blocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
   const visibleBlocks = expanded ? blocks : blocks.slice(0, 3);
@@ -208,6 +221,14 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
           Toon volledige samenvatting
         </button>
       )}
+      {hasMore && expanded && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="self-start text-[12px] text-white/40 hover:text-white/70 underline decoration-white/20 hover:decoration-white/50 transition-colors"
+        >
+          Inklappen
+        </button>
+      )}
       {/* Bijlagen sectie — voor alle documenttypes, boven exportknoppen */}
       {onExtrasChange && (
         <ExtrasSection
@@ -221,6 +242,7 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
         onOpen={onOpen}
         tenant={tenant}
         client={client}
+        project={project}
         extras={extras}
         outputType={outputType}
         outputTypeLabel={outputTypeLabel}
@@ -229,7 +251,7 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
   );
 }
 
-export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, tenant = null, threadClient = null, outputTypes = [] }) {
+export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, tenant = null, threadClient = null, threadProject = null, outputTypes = [] }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null);
 
@@ -334,6 +356,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 onExtrasChange={onExtrasChange}
                 tenant={tenant}
                 client={threadClient}
+                project={threadProject}
                 outputType={msg.output_type}
                 outputTypeLabel={msgOutputTypeLabel}
               />

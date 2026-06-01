@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Copy, ExternalLink, Download, Share2 } from 'lucide-react';
+import { FileText, Copy, ExternalLink, Download, Share2, Check } from 'lucide-react';
 import {
   downloadWordDoc,
   downloadPdfDoc,
@@ -10,26 +10,21 @@ import {
   fetchImageAsBase64,
   fetchImageAsBuffer,
   buildFilename,
+  buildChaseTitle,
 } from '@/lib/doc-export';
 
 function extractTitle(markdown) {
   const headingMatch = markdown.match(/^#{1,3}\s+(.+)$/m);
   if (headingMatch) return headingMatch[1].trim();
+  const boldFirst = markdown.match(/^\*\*([^*\n]+)\*\*\s*$/m);
+  if (boldFirst) return boldFirst[1].replace(/:$/, '').trim();
   const firstLine = markdown.split('\n').find(l => l.trim().length > 0) || '';
   return firstLine.replace(/[#*_`]/g, '').trim().slice(0, 80);
 }
 
-function extractPreview(markdown) {
-  const stripped = markdown
-    .replace(/^#{1,6}\s+.+$/gm, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/^\s*[-*+]\s+/gm, '')
-    .replace(/\[([A-Z][A-Z\s?]+)\]/g, '')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
-  return stripped.slice(0, 150) + (stripped.length > 150 ? '...' : '');
+function countMarkers(markdown) {
+  const matches = markdown.match(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g);
+  return matches ? matches.length : 0;
 }
 
 function buildClientLogoUrl(client) {
@@ -43,6 +38,7 @@ export default function DocumentCard({
   onOpen,
   tenant = null,
   client = null,
+  project = null,
   extras = null,
   outputType = null,
   outputTypeLabel = null,
@@ -52,14 +48,24 @@ export default function DocumentCard({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareLabel, setShareLabel] = useState('Deel als link');
-  const docTitle = extractTitle(content);
-  const preview = extractPreview(content);
+  const [shareDone, setShareDone] = useState(false);
+
+  const contentTitle = extractTitle(content);
+  const chaseTitle = buildChaseTitle(outputType, client, project) || contentTitle;
+  const markerCount = countMarkers(content);
+
+  // Preview: type + client + project + markers
+  const previewParts = [outputTypeLabel, client, project].filter(Boolean);
+  const previewBase = previewParts.length > 0 ? previewParts.join(' voor ') : contentTitle;
+  const preview = markerCount > 0
+    ? `${previewBase}. ${markerCount} punt${markerCount === 1 ? '' : 'en'} om aan te vullen.`
+    : previewBase;
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
   const clientLogoUrl = buildClientLogoUrl(client);
 
   function getFilename(ext) {
-    return buildFilename(outputTypeLabel, client, docTitle, ext);
+    return buildFilename(outputTypeLabel, client, project, ext);
   }
 
   function handleCopy(e) {
@@ -81,7 +87,7 @@ export default function DocumentCard({
         fetchImageAsBuffer(chaseLogoUrl),
         fetchImageAsBuffer(clientLogoUrl),
       ]);
-      await downloadWordDoc(content, docTitle, { chaseBuffer, clientBuffer }, extras, getFilename('docx'));
+      await downloadWordDoc(content, contentTitle, { chaseBuffer, clientBuffer }, extras, getFilename('docx'), outputType, client, project);
     } finally {
       setWordLoading(false);
     }
@@ -95,7 +101,7 @@ export default function DocumentCard({
         fetchImageAsBase64(chaseLogoUrl),
         fetchImageAsBase64(clientLogoUrl),
       ]);
-      await downloadPdfDoc(content, docTitle, { chaseBase64, clientBase64 }, extras, getFilename('pdf'));
+      await downloadPdfDoc(content, contentTitle, { chaseBase64, clientBase64 }, extras, getFilename('pdf'), outputType, client, project);
     } finally {
       setPdfLoading(false);
     }
@@ -105,11 +111,12 @@ export default function DocumentCard({
     e.stopPropagation();
     setShareLoading(true);
     try {
-      const url = await shareDocument(content, docTitle, client);
+      const url = await shareDocument(content, chaseTitle, client, extras);
       if (url) {
         await navigator.clipboard.writeText(url).catch(() => {});
-        setShareLabel('Link gekopieerd!');
-        setTimeout(() => setShareLabel('Deel als link'), 3000);
+        setShareDone(true);
+        setShareLabel('Gekopieerd!');
+        setTimeout(() => { setShareLabel('Deel als link'); setShareDone(false); }, 3000);
       }
     } finally {
       setShareLoading(false);
@@ -124,7 +131,7 @@ export default function DocumentCard({
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug mb-1 truncate">
-            {docTitle}
+            {chaseTitle}
           </p>
           <p className="text-[12px] text-white/45 leading-relaxed line-clamp-2">
             {preview}
@@ -167,7 +174,7 @@ export default function DocumentCard({
           disabled={shareLoading}
           className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
         >
-          <Share2 className="w-3 h-3" strokeWidth={2} />
+          {shareDone ? <Check className="w-3 h-3 text-green-400" strokeWidth={2.5} /> : <Share2 className="w-3 h-3" strokeWidth={2} />}
           {shareLoading ? 'Bezig...' : shareLabel}
         </button>
       </div>

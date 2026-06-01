@@ -60,14 +60,14 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
 
 // ── PDF export (lokale versie vervangen door gedeelde — zie lib/doc-export.js) ─
 
-async function downloadPdfDoc(content, title, logos = {}, extras = null, filename = null) {
-  return sharedDownloadPdf(content, title, logos, extras, filename);
+async function downloadPdfDoc(content, title, logos = {}, extras = null, filename = null, outputType = null, client = null, project = null) {
+  return sharedDownloadPdf(content, title, logos, extras, filename, outputType, client, project);
 }
 
 // ── Word export (lokale versie vervangen door gedeelde — zie lib/doc-export.js)
 
-async function downloadWordDoc(content, title, logos = {}, extras = null, filename = null) {
-  return sharedDownloadWord(content, title, logos, extras, filename);
+async function downloadWordDoc(content, title, logos = {}, extras = null, filename = null, outputType = null, client = null, project = null) {
+  return sharedDownloadWord(content, title, logos, extras, filename, outputType, client, project);
 }
 
 // ── (legacy PDF en Word functies verwijderd — zie lib/doc-export.js) ──────────
@@ -464,7 +464,7 @@ async function _unusedWordDoc(content, title, logos = {}, extras = null) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DocumentView({ content, onClose, onImprove, client = null, tenant = null, extras = null, outputTypeLabel = null }) {
+export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -523,8 +523,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBuffer(chaseLogoUrl),
         fetchImageAsBuffer(clientLogoUrl),
       ]);
-      const filename = buildFilename(outputTypeLabel, client, title, 'docx');
-      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename);
+      const filename = buildFilename(outputTypeLabel, client, project, 'docx');
+      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
     } finally {
       setDownloading(false);
     }
@@ -537,8 +537,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBase64(chaseLogoUrl),
         fetchImageAsBase64(clientLogoUrl),
       ]);
-      const filename = buildFilename(outputTypeLabel, client, title, 'pdf');
-      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename);
+      const filename = buildFilename(outputTypeLabel, client, project, 'pdf');
+      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename, outputType, client, project);
     } finally {
       setDownloadingPdf(false);
     }
@@ -569,7 +569,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
       const res = await fetch('/api/share-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: shareContent, outputType: null, title, client }),
+        body: JSON.stringify({ content: shareContent, outputType, title, client }),
       });
       const data = await res.json();
       if (data.token) {

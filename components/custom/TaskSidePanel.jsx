@@ -73,7 +73,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     setImageAttachments(prev => [...prev, ...newAttachments]);
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     let prompt;
     let displayText;
     if (isSearch) {
@@ -89,7 +89,24 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         ? `${task.label} voor ${project.trim()}`
         : task.label;
     }
-    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null, imageAttachments);
+    // Convert File objects to base64 — File cannot be JSON-serialized
+    const processedAttachments = await Promise.all(
+      imageAttachments.map((att) => {
+        if (!att.file) return Promise.resolve(att);
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({
+            filename: att.filename,
+            data: reader.result.split(',')[1],
+            mediaType: att.file.type || 'image/jpeg',
+          });
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(att.file);
+        });
+      })
+    );
+    const validAttachments = processedAttachments.filter(Boolean).filter(a => a.data);
+    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null, validAttachments);
   }
 
   function handleDirectChat() {

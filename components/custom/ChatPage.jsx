@@ -180,6 +180,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       outputTypeLabel: otLabel,
       title: null,
       client: activeThreadRef.current?.client ?? null,
+      project: activeThreadRef.current?.project ?? null,
       extras: briefingExtras[msg.id] ?? null,
     });
   }
@@ -501,8 +502,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       <DocumentView
         content={activeDocument.content}
         client={activeDocument.client ?? null}
+        project={activeDocument.project ?? null}
         tenant={tenant}
         extras={activeDocument.extras ?? null}
+        outputType={activeDocument.outputType ?? null}
         outputTypeLabel={activeDocument.outputTypeLabel ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
@@ -624,6 +627,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               briefingExtras={briefingExtras}
               tenant={tenant}
               threadClient={activeThread?.client ?? null}
+              threadProject={activeThread?.project ?? null}
               outputTypes={outputTypes}
               onExtrasChange={(messageId, extras) => {
                 setBriefingExtras(prev => {
