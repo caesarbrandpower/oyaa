@@ -16,6 +16,6 @@ export function middleware(request) {
 }
 
 export const config = {
-  // Alle pagina-requests, maar niet static assets of API-routes
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|sw.js|manifest.json|icon-).*)'],
+  // Alle pagina-requests, maar niet static assets, API-routes, of publieke doc-links
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|sw.js|manifest.json|icon-|doc/).*)'],
 };

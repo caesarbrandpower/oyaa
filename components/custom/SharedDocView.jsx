@@ -1,7 +1,7 @@
 // components/custom/SharedDocView.jsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
 
 const md = new Marked({ breaks: true });
@@ -32,6 +32,19 @@ function extractTitle(markdown) {
 export default function SharedDocView({ content, title: propTitle, expiresAt, chaseLogoUrl = null, clientLogoUrl = null }) {
   const title = propTitle || extractTitle(content);
   const bodyHtml = injectLabelHtml(md.parse(content));
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const bodyRef = useRef(null);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    function onClick(e) {
+      const img = e.target.closest('img');
+      if (img) setLightboxSrc(img.src);
+    }
+    el.addEventListener('click', onClick);
+    return () => el.removeEventListener('click', onClick);
+  }, [bodyHtml]);
 
   const expiryDate = expiresAt
     ? new Date(expiresAt).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -84,10 +97,27 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
         <div
+          ref={bodyRef}
           className="max-w-2xl mx-auto doc-prose"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />
       </div>
+
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxSrc(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxSrc}
+            alt=""
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

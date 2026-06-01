@@ -7,6 +7,8 @@ import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react'
 import {
   fetchImageAsBase64,
   fetchImageAsBuffer,
+  fetchLogoBase64,
+  fetchLogoBuffer,
   downloadPdfDoc as sharedDownloadPdf,
   downloadWordDoc as sharedDownloadWord,
   buildFilename,
@@ -521,7 +523,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
         fetchImageAsBuffer(chaseLogoUrl),
-        fetchImageAsBuffer(clientLogoUrl),
+        fetchLogoBuffer(clientLogoUrl),
       ]);
       const filename = buildFilename(outputTypeLabel, client, project, 'docx');
       await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
@@ -535,7 +537,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     try {
       const [chaseBase64, clientBase64] = await Promise.all([
         fetchImageAsBase64(chaseLogoUrl),
-        fetchImageAsBase64(clientLogoUrl),
+        fetchLogoBase64(clientLogoUrl),
       ]);
       const filename = buildFilename(outputTypeLabel, client, project, 'pdf');
       await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename, outputType, client, project);

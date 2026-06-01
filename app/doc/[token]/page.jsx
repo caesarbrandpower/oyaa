@@ -1,12 +1,12 @@
 // app/doc/[token]/page.jsx
-import { createClient } from '@/lib/supabase-server';
+import { createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 import { notFound } from 'next/navigation';
 import SharedDocView from '@/components/custom/SharedDocView';
 
 export default async function SharedDocPage({ params }) {
   const { token } = await params;
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   const [{ data }, tenant] = await Promise.all([
     supabase

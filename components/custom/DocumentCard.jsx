@@ -7,6 +7,8 @@ import {
   downloadWordDoc,
   downloadPdfDoc,
   shareDocument,
+  fetchLogoBase64,
+  fetchLogoBuffer,
   fetchImageAsBase64,
   fetchImageAsBuffer,
   buildFilename,
@@ -85,7 +87,7 @@ export default function DocumentCard({
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
         fetchImageAsBuffer(chaseLogoUrl),
-        fetchImageAsBuffer(clientLogoUrl),
+        fetchLogoBuffer(clientLogoUrl),
       ]);
       await downloadWordDoc(content, contentTitle, { chaseBuffer, clientBuffer }, extras, getFilename('docx'), outputType, client, project);
     } finally {
@@ -99,7 +101,7 @@ export default function DocumentCard({
     try {
       const [chaseBase64, clientBase64] = await Promise.all([
         fetchImageAsBase64(chaseLogoUrl),
-        fetchImageAsBase64(clientLogoUrl),
+        fetchLogoBase64(clientLogoUrl),
       ]);
       await downloadPdfDoc(content, contentTitle, { chaseBase64, clientBase64 }, extras, getFilename('pdf'), outputType, client, project);
     } finally {

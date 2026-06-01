@@ -231,6 +231,7 @@ body {
   height: auto;
   border-radius: 0.5rem;
   margin: 0.5rem 0;
+  cursor: pointer;
 }
 .doc-prose a {
   color: #FF4800;
