@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { X, Mic, Square, Paperclip, Copy, Check } from 'lucide-react';
+import { X, Mic, Square, Paperclip, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 // Search tasks use a 2-step flow (description + confirm) and a simpler prompt.
@@ -37,7 +37,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [uploadedFilename, setUploadedFilename] = useState('');
+  const [imageAttachments, setImageAttachments] = useState([]);
   const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   const handleTranscript = useCallback((text) => {
     setTranscript((prev) => prev ? prev + ' ' + text : text);
@@ -63,6 +65,14 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     if (isAudioFile(file)) transcribeFile(file, false);
   }
 
+  function handleImageChange(e) {
+    const files = [...(e.target.files || [])];
+    if (!files.length) return;
+    e.target.value = '';
+    const newAttachments = files.map(f => ({ filename: f.name, file: f }));
+    setImageAttachments(prev => [...prev, ...newAttachments]);
+  }
+
   function handleGenerate() {
     let prompt;
     let displayText;
@@ -79,7 +89,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         ? `${task.label} voor ${project.trim()}`
         : task.label;
     }
-    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null);
+    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null, imageAttachments);
   }
 
   function handleDirectChat() {
@@ -175,8 +185,41 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                 Bronnen toevoegen
               </label>
               <p className="text-[12px] text-white/35 mb-4 leading-relaxed">
-                Upload een audio-opname of gebruik de microfoon. De tekst wordt automatisch omgezet en meegestuurd.
+                Upload een audio-opname, gebruik de microfoon, of voeg foto's en bestanden toe als extra context.
               </p>
+
+              {/* Foto-upload */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageChange}
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="flex items-center gap-2 h-9 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors mb-2"
+              >
+                <ImageIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Foto toevoegen
+              </button>
+              {imageAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {imageAttachments.map((att, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-white/[0.06] rounded-lg px-2.5 py-1">
+                      <ImageIcon className="w-3 h-3 text-orange/70" strokeWidth={1.75} />
+                      <span className="text-[11px] text-white/50 truncate max-w-[100px]">{att.filename}</span>
+                      <button
+                        onClick={() => setImageAttachments(prev => prev.filter((_, j) => j !== i))}
+                        className="text-white/25 hover:text-white/60 ml-0.5"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"

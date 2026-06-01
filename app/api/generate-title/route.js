@@ -7,7 +7,7 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
 
-  const { threadId, content, outputType } = await request.json();
+  const { threadId, content, outputType, outputTypeLabel } = await request.json();
   if (!threadId || !content?.trim()) {
     return Response.json({ error: 'threadId en content zijn verplicht.' }, { status: 400 });
   }
@@ -29,7 +29,7 @@ export async function POST(request) {
       max_tokens: 40,
       messages: [{
         role: 'user',
-        content: `Genereer een beknopte titel voor dit document. Maximaal 6 woorden, format: "[documenttype] — [klant of project]". Geef alleen de titel terug, geen uitleg of aanhalingstekens.\n\nDocumenttype: ${outputType ?? 'document'}\n\nInhoud (begin):\n${content.slice(0, 1200)}`,
+        content: `Genereer een beknopte titel voor dit document. Maximaal 6 woorden, format: "[documenttype] — [klant of project]". Geef alleen de titel terug, geen uitleg of aanhalingstekens.\n\nDocumenttype: ${outputTypeLabel || outputType || 'document'}\n\nInhoud (begin):\n${content.slice(0, 1200)}`,
       }],
     });
 

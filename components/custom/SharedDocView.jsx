@@ -13,11 +13,12 @@ function isRedLabel(label) {
 }
 
 function injectLabelHtml(html) {
-  return html.replace(/\[([A-Z][A-Z\s]+)\]/g, (_, label) => {
+  return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
+    const displayLabel = label.split(':')[0].trim();
     if (isRedLabel(label)) {
-      return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#CC2200;color:#fff;margin:0 2px;font-family:var(--font-lexend)">${label}</span>`;
+      return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#CC2200;color:#fff;margin:0 2px;font-family:var(--font-lexend)">${displayLabel}</span>`;
     }
-    return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#F59E0B;color:#7C4A00;margin:0 2px;font-family:var(--font-lexend)">${label}</span>`;
+    return `<span style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#F59E0B;color:#7C4A00;margin:0 2px;font-family:var(--font-lexend)">${displayLabel}</span>`;
   });
 }
 

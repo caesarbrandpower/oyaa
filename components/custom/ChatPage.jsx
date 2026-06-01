@@ -59,12 +59,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
     if (!pendingTitleGen) return;
-    const { threadId, content, outputType, userMsgId, fallbackTitle } = pendingTitleGen;
+    const { threadId, content, outputType, outputTypeLabel, userMsgId, fallbackTitle } = pendingTitleGen;
     setPendingTitleGen(null);
     fetch('/api/generate-title', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadId, content, outputType }),
+      body: JSON.stringify({ threadId, content, outputType, outputTypeLabel }),
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -172,9 +172,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }, []);
 
   function handleOpenDocument(msg) {
+    const ot = msg.output_type ?? activeThreadRef.current?.output_type ?? null;
+    const otLabel = outputTypes.find(t => t.id === ot)?.label ?? null;
     setActiveDocument({
       content: msg.content,
-      outputType: msg.output_type ?? activeThreadRef.current?.output_type ?? null,
+      outputType: ot,
+      outputTypeLabel: otLabel,
       title: null,
       client: activeThreadRef.current?.client ?? null,
       extras: briefingExtras[msg.id] ?? null,
@@ -387,7 +390,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   id: 'followup-' + Date.now(),
                   role: 'assistant',
                   type: 'followup',
-                  content: 'Wil je iets aanpassen? Typ het hier, of open het document voor de markeringen.',
+                  content: 'Klaar om het document compleet te maken? Vul direct aan via de chat hieronder, of gebruik de knop Aanvullen om alle openstaande punten langs te gaan.',
                   streaming: false,
                   local: true,
                   created_at: new Date().toISOString(),
@@ -409,10 +412,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               });
               setSendingState(false);
               if (finalIsDocument && activeThreadRef.current?.id) {
+                const outputTypeLabel = outputTypes.find(t => t.id === outputType)?.label ?? null;
                 setPendingTitleGen({
                   threadId: activeThreadRef.current.id,
                   content: event.content,
                   outputType,
+                  outputTypeLabel,
                   userMsgId,
                   fallbackTitle: displayText || taskLabel,
                 });
@@ -439,10 +444,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = []) {
     setActiveTask(null);
     handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel, displayText, client); // reads null from ref — no setTimeout needed
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments); // reads null from ref — no setTimeout needed
   }
 
   function handleTaskPanelClose(prefillText) {
@@ -498,6 +503,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         client={activeDocument.client ?? null}
         tenant={tenant}
         extras={activeDocument.extras ?? null}
+        outputTypeLabel={activeDocument.outputTypeLabel ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
       />
@@ -616,6 +622,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               sending={sending}
               onOpenDocument={handleOpenDocument}
               briefingExtras={briefingExtras}
+              tenant={tenant}
+              threadClient={activeThread?.client ?? null}
+              outputTypes={outputTypes}
               onExtrasChange={(messageId, extras) => {
                 setBriefingExtras(prev => {
                   const updated = { ...prev, [messageId]: extras };

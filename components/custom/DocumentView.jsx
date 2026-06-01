@@ -4,6 +4,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
 import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react';
+import {
+  fetchImageAsBase64,
+  fetchImageAsBuffer,
+  downloadPdfDoc as sharedDownloadPdf,
+  downloadWordDoc as sharedDownloadWord,
+  buildFilename,
+} from '@/lib/doc-export';
 
 const md = new Marked({ breaks: true });
 
@@ -18,10 +25,12 @@ function injectLabelHtml(html) {
   const baseStyle = 'display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;margin:0 2px;cursor:pointer;font-family:var(--font-lexend)';
   return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
     const currentIdx = idx++;
+    // Toon alleen het sleutelwoord (voor de dubbele punt) — volledige tekst staat in het paneel rechts
+    const displayLabel = label.split(':')[0].trim();
     if (isRedLabel(label)) {
-      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${label}</span>`;
+      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${displayLabel}</span>`;
     }
-    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${label}</span>`;
+    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${displayLabel}</span>`;
   });
 }
 
@@ -49,71 +58,21 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
   });
 }
 
-// ── Logo / image helpers ──────────────────────────────────────────────────────
+// ── PDF export (lokale versie vervangen door gedeelde — zie lib/doc-export.js) ─
 
-async function fetchImageAsBase64(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
+async function downloadPdfDoc(content, title, logos = {}, extras = null, filename = null) {
+  return sharedDownloadPdf(content, title, logos, extras, filename);
 }
 
-async function fetchImageAsBuffer(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const ab = await res.arrayBuffer();
-    return new Uint8Array(ab);
-  } catch {
-    return null;
-  }
+// ── Word export (lokale versie vervangen door gedeelde — zie lib/doc-export.js)
+
+async function downloadWordDoc(content, title, logos = {}, extras = null, filename = null) {
+  return sharedDownloadWord(content, title, logos, extras, filename);
 }
 
-async function getImageDimensions(dataUrl) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => resolve({ w: 120, h: 40 });
-    img.src = dataUrl;
-  });
-}
+// ── (legacy PDF en Word functies verwijderd — zie lib/doc-export.js) ──────────
 
-function getImageFormat(dataUrl) {
-  if (!dataUrl) return 'PNG';
-  if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) return 'JPEG';
-  return 'PNG';
-}
-
-// ── Inline runs helper for Word export ────────────────────────────────────────
-
-function parseInlineRuns(text, size, docx) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\[[A-Z][A-Z\s]*(?::[^\]]*)?])/);
-  return parts.filter(p => p.length > 0).flatMap(p => {
-    if (p.startsWith('**') && p.endsWith('**')) {
-      return [new docx.TextRun({ text: p.slice(2, -2), bold: true, size })];
-    }
-    const lm = p.match(/^\[([A-Z][A-Z\s]*(?::[^\]]*)?)\]$/);
-    if (lm) {
-      return [new docx.TextRun({ text: `[${lm[1]}]`, bold: true, size })];
-    }
-    return [new docx.TextRun({ text: p.replace(/\*/g, ''), size })];
-  });
-}
-
-// ── PDF export ─────────────────────────────────────────────────────────────────
-
-async function downloadPdfDoc(content, title, logos = {}, extras = null) {
+async function _unused(content, title, logos = {}, extras = null) {
   if (!content?.trim()) return;
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -325,9 +284,9 @@ async function downloadPdfDoc(content, title, logos = {}, extras = null) {
   doc.save(title.toLowerCase().replace(/[\s/]+/g, '-') + '.pdf');
 }
 
-// ── Word export ────────────────────────────────────────────────────────────────
+// ── Word export (legacy — vervangen door proxy hierboven) ─────────────────────
 
-async function downloadWordDoc(content, title, logos = {}, extras = null) {
+async function _unusedWordDoc(content, title, logos = {}, extras = null) {
   if (!content?.trim()) return;
   const docx = await import('docx');
   const paragraphs = [];
@@ -505,7 +464,7 @@ async function downloadWordDoc(content, title, logos = {}, extras = null) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DocumentView({ content, onClose, onImprove, client = null, tenant = null, extras = null }) {
+export default function DocumentView({ content, onClose, onImprove, client = null, tenant = null, extras = null, outputTypeLabel = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -564,7 +523,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBuffer(chaseLogoUrl),
         fetchImageAsBuffer(clientLogoUrl),
       ]);
-      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras);
+      const filename = buildFilename(outputTypeLabel, client, title, 'docx');
+      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename);
     } finally {
       setDownloading(false);
     }
@@ -577,7 +537,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBase64(chaseLogoUrl),
         fetchImageAsBase64(clientLogoUrl),
       ]);
-      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras);
+      const filename = buildFilename(outputTypeLabel, client, title, 'pdf');
+      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename);
     } finally {
       setDownloadingPdf(false);
     }

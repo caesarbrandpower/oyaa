@@ -48,10 +48,11 @@ function TranscriptModal({ filename, content, onClose }) {
 
 marked.setOptions({ breaks: true });
 
-function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
+function ExtrasSection({ messageId, extras, onExtrasChange }) {
   const { photos = [], links = [] } = extras || {};
   const [linkDraft, setLinkDraft] = useState({ label: '', url: '' });
   const [uploading, setUploading] = useState(false);
+  const [uploadedFeedback, setUploadedFeedback] = useState(false);
   const fileInputRef = useRef(null);
 
   async function handlePhotoSelect(e) {
@@ -71,6 +72,8 @@ function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
       const { photos: newPhotos } = await res.json();
       if (newPhotos?.length > 0) {
         onExtrasChange(messageId, { photos: [...photos, ...newPhotos], links });
+        setUploadedFeedback(true);
+        setTimeout(() => setUploadedFeedback(false), 2500);
       }
     } finally {
       setUploading(false);
@@ -118,16 +121,24 @@ function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
         </div>
       )}
 
-      {/* Upload knop */}
+      {/* Upload knop + feedback */}
       <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors mb-3 disabled:opacity-40"
-      >
-        <Plus className="w-3 h-3" strokeWidth={2} />
-        {uploading ? 'Uploaden...' : 'Foto toevoegen'}
-      </button>
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors disabled:opacity-40"
+        >
+          <Plus className="w-3 h-3" strokeWidth={2} />
+          {uploading ? 'Uploaden...' : 'Foto toevoegen'}
+        </button>
+        {uploadedFeedback && (
+          <span className="flex items-center gap-1 text-[11px] text-green-400/80">
+            <Check className="w-3 h-3" strokeWidth={2.5} />
+            Opgeslagen
+          </span>
+        )}
+      </div>
 
       {/* Links */}
       {links.length > 0 && (
@@ -174,7 +185,7 @@ function FieldBriefingExtras({ messageId, extras, onExtrasChange }) {
   );
 }
 
-function DocumentPreview({ content, onOpen }) {
+function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, outputType, outputTypeLabel }) {
   const [expanded, setExpanded] = useState(false);
   const blocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
   const visibleBlocks = expanded ? blocks : blocks.slice(0, 3);
@@ -197,20 +208,35 @@ function DocumentPreview({ content, onOpen }) {
           Toon volledige samenvatting
         </button>
       )}
-      <DocumentCard content={content} onOpen={onOpen} />
+      {/* Bijlagen sectie — voor alle documenttypes, boven exportknoppen */}
+      {onExtrasChange && (
+        <ExtrasSection
+          messageId={messageId}
+          extras={extras}
+          onExtrasChange={onExtrasChange}
+        />
+      )}
+      <DocumentCard
+        content={content}
+        onOpen={onOpen}
+        tenant={tenant}
+        client={client}
+        extras={extras}
+        outputType={outputType}
+        outputTypeLabel={outputTypeLabel}
+      />
     </div>
   );
 }
 
-export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange }) {
+export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, tenant = null, threadClient = null, outputTypes = [] }) {
   const bottomRef = useRef(null);
-  const [openTranscript, setOpenTranscript] = useState(null); // { filename, content }
+  const [openTranscript, setOpenTranscript] = useState(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
-  // Is het laatste bericht een actief streaming-bericht?
   const lastMsg = messages[messages.length - 1];
   const isStreaming = lastMsg?.streaming === true;
 
@@ -224,7 +250,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
       />
     )}
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
-      {messages.map((msg) => (
+      {messages.map((msg) => {
+        const msgOutputTypeLabel = outputTypes.find(t => t.id === msg.output_type)?.label ?? null;
+        return (
         <div
           key={msg.id}
           className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start items-start gap-3'}`}
@@ -288,34 +316,33 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               </>
             ) : msg.streaming ? (
               msg.isDocument ? (
-                /* Document in opbouw — geen streaming tekst tonen */
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
                   Waybetter is aan het werk...
                 </p>
               ) : (
-                /* Gewone chat — live streaming tekst */
                 <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
                   {msg.streamContent}
                   <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 animate-pulse" />
                 </p>
               )
             ) : msg.isDocument ? (
-              /* Document-preview + kaart + veldbriefing bijlagen */
-              <div>
-                <DocumentPreview
-                  content={msg.content}
-                  onOpen={() => onOpenDocument?.(msg)}
-                />
-                {msg.output_type === 'field-briefing' && onExtrasChange && (
-                  <FieldBriefingExtras
-                    messageId={msg.id}
-                    extras={briefingExtras[msg.id]}
-                    onExtrasChange={onExtrasChange}
-                  />
-                )}
+              <DocumentPreview
+                content={msg.content}
+                onOpen={() => onOpenDocument?.(msg)}
+                messageId={msg.id}
+                extras={briefingExtras[msg.id]}
+                onExtrasChange={onExtrasChange}
+                tenant={tenant}
+                client={threadClient}
+                outputType={msg.output_type}
+                outputTypeLabel={msgOutputTypeLabel}
+              />
+            ) : msg.type === 'followup' ? (
+              /* Vervolgzin na document — visueel prominent */
+              <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
+                <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
             ) : (
-              /* Gewone markdown */
               <div
                 className="custom-prose text-[14px]"
                 dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }}
@@ -323,9 +350,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
 
-      {/* Loading dots: toon alleen als sending EN geen actief streaming-bericht */}
       {sending && !isStreaming && (
         <div className="flex justify-start items-start gap-3">
           <img
