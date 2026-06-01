@@ -53,6 +53,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // activeTask: null | task object from enabled_output_types
   const [pendingTitleGen, setPendingTitleGen] = useState(null);
   // pendingTitleGen: null | { threadId, content, outputType }
+  const pendingWizardPhotosRef = useRef([]);
+  // pendingWizardPhotosRef: foto's van wizard stap 2, tijdelijk opgeslagen tot messageId bekend is
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
 
@@ -412,6 +414,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 return [...updated, ...additions];
               });
               setSendingState(false);
+              // Wizard-foto's koppelen aan het gegenereerde document-bericht
+              if (finalIsDocument && pendingWizardPhotosRef.current.length > 0) {
+                const wizardPhotos = pendingWizardPhotosRef.current.map(a => ({
+                  url: `data:${a.mediaType};base64,${a.data}`,
+                  name: a.filename,
+                }));
+                setBriefingExtras(prev => ({
+                  ...prev,
+                  [event.messageId]: { photos: wizardPhotos, links: [] },
+                }));
+                pendingWizardPhotosRef.current = [];
+              }
               if (finalIsDocument && activeThreadRef.current?.id) {
                 const outputTypeLabel = outputTypes.find(t => t.id === outputType)?.label ?? null;
                 setPendingTitleGen({
@@ -447,6 +461,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = []) {
     setActiveTask(null);
+    // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
+    pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously
     handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments); // reads null from ref — no setTimeout needed
   }

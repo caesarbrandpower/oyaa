@@ -38,9 +38,9 @@ function injectLabelHtml(html) {
 
 function extractTitle(markdown) {
   const m = markdown.match(/^#{1,3}\s+(.+)$/m);
-  if (m) return m[1].trim();
+  if (m) return m[1].trim().replace(/→/g, 'naar');
   const firstLine = markdown.split('\n').find(l => l.trim().length > 0) || '';
-  return firstLine.replace(/[#*_`]/g, '').trim().slice(0, 80) || 'Document';
+  return firstLine.replace(/[#*_`]/g, '').replace(/→/g, 'naar').trim().slice(0, 80) || 'Document';
 }
 
 function parseMarkeringen(content) {

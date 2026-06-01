@@ -33,7 +33,7 @@ export async function POST(request) {
       }],
     });
 
-    const title = response.content[0]?.text?.trim().replace(/^["']|["']$/g, '');
+    const title = response.content[0]?.text?.trim().replace(/^["']|["']$/g, '').replace(/→/g, 'naar');
     if (!title) return Response.json({ title: null });
 
     await supabase
