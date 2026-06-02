@@ -96,14 +96,16 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       {/* Header */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
         <div className="flex-1 min-w-0">
-          <div className="font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">
-            {titleMain}
-          </div>
+          {/* Niveau 1 (klein, grijs): documenttype */}
           {titleSub && (
-            <div className="font-[family-name:var(--font-lexend)] text-[11px] text-white/50 truncate">
-              {titleSub}
+            <div className="font-[family-name:var(--font-lexend)] text-[10px] font-medium text-white/35 uppercase tracking-wider truncate">
+              {titleMain}
             </div>
           )}
+          {/* Niveau 2 (groot, wit): klant + project — of de volledige titel als er geen split is */}
+          <div className="font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">
+            {titleSub || titleMain}
+          </div>
         </div>
         {expiryDate && (
           <span className="text-[11px] text-white/30 shrink-0">
@@ -114,11 +116,19 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
-        <div
-          ref={bodyRef}
-          className="max-w-2xl mx-auto doc-prose"
-          dangerouslySetInnerHTML={{ __html: bodyHtml }}
-        />
+        <div className="max-w-2xl mx-auto">
+          {/* Grote kop: klant + project (niveau 2) — altijd bovenaan het document */}
+          {titleSub && (
+            <h1 className="font-[family-name:var(--font-lexend)] text-2xl font-bold text-white mb-6">
+              {titleSub}
+            </h1>
+          )}
+          <div
+            ref={bodyRef}
+            className="doc-prose"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
+        </div>
       </div>
 
       {/* Lightbox */}
