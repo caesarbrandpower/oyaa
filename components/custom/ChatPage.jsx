@@ -445,15 +445,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 return [...updated, ...additions];
               });
               // detectedClient/Project buiten setMessages updater — nooit side effects in een pure updater
-              if (event.detectedClient || event.detectedProject) {
-                const patch = {};
-                if (event.detectedClient) patch.client = event.detectedClient;
-                if (event.detectedProject) patch.project = event.detectedProject;
-                // Capture threadId vóór setActiveThreadBoth om stale ref in updater te voorkomen
-                const currentThreadId = activeThreadRef.current?.id;
-                if (currentThreadId) {
-                  setActiveThreadBoth({ ...activeThreadRef.current, ...patch });
-                  setThreads((prev) => prev.map((t) => t.id === currentThreadId ? { ...t, ...patch } : t));
+              // Altijd client én project samen opslaan — nooit los van elkaar
+              const currentThreadId = activeThreadRef.current?.id;
+              if (currentThreadId) {
+                const hasClient = event.detectedClient !== undefined;
+                const hasProject = event.detectedProject != null; // != dekt zowel null als undefined
+                if (hasClient || hasProject) {
+                  const newClient = hasClient ? event.detectedClient : (activeThreadRef.current?.client ?? null);
+                  const newProject = event.detectedProject ?? null;
+                  setActiveThreadBoth({ ...activeThreadRef.current, client: newClient, project: newProject });
+                  setThreads((prev) => prev.map((t) => t.id === currentThreadId
+                    ? { ...t, client: newClient, project: newProject }
+                    : t));
                 }
               }
               setSendingState(false);
