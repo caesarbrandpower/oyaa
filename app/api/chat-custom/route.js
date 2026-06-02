@@ -160,7 +160,12 @@ export async function POST(request) {
         let claudeMessages;
         if (useStructuredPrompt) {
           const lastUserIdx = anonParts.length - 1;
-          const promptText = CUSTOM_PROMPTS[outputType](anonParts[lastUserIdx]);
+          let promptText = CUSTOM_PROMPTS[outputType](anonParts[lastUserIdx]);
+          // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
+          if (clientName) {
+            const nameRule = `KRITIEKE REGEL: De klantnaam is "${clientName}". Gebruik deze naam EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf hem NOOIT anders.\n\n`;
+            promptText = nameRule + promptText;
+          }
           claudeMessages = [
             {
               role: 'user',
