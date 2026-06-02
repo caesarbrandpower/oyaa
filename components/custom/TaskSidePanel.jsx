@@ -56,7 +56,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         .not('client', 'is', null)
         .order('client');
       if (data) {
-        setKnownClients([...new Set(data.map(r => r.client).filter(Boolean))]);
+        const clients = [...new Set(data.map(r => r.client).filter(Boolean))];
+        console.log('[DEBUG CLIENTS] TaskSidePanel loaded', { count: clients.length, clients });
+        setKnownClients(clients);
       }
     }
     fetchKnownClients();
@@ -140,14 +142,16 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   function handleNext() {
     // Fuzzy check op klantnaam bij stap 1 → stap 2
     if (step === 1 && !isSearch && project.trim()) {
-      const match = fuzzyMatchClient(project.trim(), knownClients);
+      const input = project.trim();
+      const match = fuzzyMatchClient(input, knownClients);
+      console.log('[DEBUG FUZZY] TaskSidePanel', { input, knownClientsCount: knownClients.length, match, isNewClient: !match });
       if (match && !match.confirmed) {
         // Typo van bekende klant
         setClientSuggestion(match.suggestion);
         return;
       }
-      if (!match && knownClients.length > 0) {
-        // Nieuwe klant — vraag bevestiging schrijfwijze
+      if (!match) {
+        // Geen match — nieuwe klant (ook als lijst leeg is)
         setNewClientConfirm(true);
         return;
       }

@@ -87,7 +87,7 @@ export default function DocumentCard({
 
   async function handleWord(e) {
     e.stopPropagation();
-    console.log('[DOWNLOAD] Word DocumentCard', { client, project });
+    console.log('[DEBUG DOWNLOAD] Word DocumentCard', { client, project, outputType, contentTitle });
     setWordLoading(true);
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
@@ -102,7 +102,7 @@ export default function DocumentCard({
 
   async function handlePdf(e) {
     e.stopPropagation();
-    console.log('[PDF CLICK] DocumentCard', { outputType, client, project, clientLogoUrl });
+    console.log('[DEBUG DOWNLOAD] PDF DocumentCard', { client, project, outputType, contentTitle, clientLogoUrl });
     setPdfLoading(true);
     try {
       const [chaseBase64, clientBase64] = await Promise.all([

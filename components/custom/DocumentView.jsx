@@ -519,7 +519,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   async function handleDownloadWord() {
-    console.log('[DOWNLOAD] Word DocumentView', { client, project });
+    console.log('[DEBUG DOWNLOAD] Word DocumentView', { client, project, outputType, title });
     setDownloading(true);
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
@@ -534,7 +534,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   async function handleDownloadPdf() {
-    console.log('[PDF CLICK] DocumentView', { outputType, client, project, clientLogoUrl });
+    console.log('[DEBUG DOWNLOAD] PDF DocumentView', { client, project, outputType, title, clientLogoUrl });
     setDownloadingPdf(true);
     try {
       const [chaseBase64, clientBase64] = await Promise.all([
