@@ -10,20 +10,6 @@ import { fuzzyMatchClient } from '@/lib/client-utils';
 export const maxDuration = 60;
 
 // ── Client/project extractie ───────────────────────────────────────────────────
-async function extractClientProject(text) {
-  try {
-    const ant = new (await import('@anthropic-ai/sdk')).default({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await ant.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 50,
-      messages: [{ role: 'user', content: `Splits dit op in klantnaam en projectnaam. JSON: {"client": string, "project": string|null}. Alleen JSON.\n\nTekst: ${text}` }],
-    });
-    const json = JSON.parse(response.content[0]?.text?.trim() ?? '{}');
-    return { client: json.client ?? text, project: json.project ?? null };
-  } catch {
-    return { client: text, project: null };
-  }
-}
 
 async function fetchExistingClients(supabase, userId, tenantId) {
   const query = supabase
@@ -74,7 +60,7 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], prevHasDoc = false } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], prevHasDoc = false, project: wizardProject = null } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
@@ -123,6 +109,7 @@ export async function POST(request) {
               title,
               output_type: outputType ?? null,
               client: normalizedClient,
+              project: wizardProject?.trim() || null,
             })
             .select('id')
             .single();
@@ -283,26 +270,11 @@ export async function POST(request) {
             detectedClient = null;
           }
         } else if (isFirstTurn) {
-          // Wizard-flow: splits "Coca-Cola Lentecampagne 26" in client + project
-          try {
-            const extracted = await extractClientProject(clientName);
-            // Alleen een echt project opslaan — niet de klantnaam als project gebruiken
-            const projectValue = extracted.project && extracted.project !== clientName
-              ? extracted.project
-              : null;
-            if (projectValue) {
-              detectedProject = projectValue;
-              const updates = { project: detectedProject };
-              if (extracted.client && extracted.client !== clientName) {
-                detectedClient = extracted.client;
-                updates.client = extracted.client;
-              }
-              await supabase.from('threads').update(updates).eq('id', activeThreadId);
-            } else if (extracted.client && extracted.client !== clientName) {
-              detectedClient = extracted.client;
-              await supabase.from('threads').update({ client: extracted.client }).eq('id', activeThreadId);
-            }
-          } catch { /* silent */ }
+          // Wizard-flow: project direct uit het veld — geen AI-extractie nodig
+          if (wizardProject?.trim()) {
+            detectedProject = wizardProject.trim();
+            // Thread al aangemaakt met project — geen extra DB-update nodig
+          }
         }
 
         console.log('[SERVER DONE]', { detectedClient, detectedProject });

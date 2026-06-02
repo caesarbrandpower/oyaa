@@ -31,9 +31,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const totalSteps = isSearch ? 2 : 3;
 
   const [step, setStep] = useState(1);
+  const [clientInput, setClientInput] = useState('');
+  const [projectInput, setProjectInput] = useState('');
   const [description, setDescription] = useState('');
-  const [project, setProject] = useState('');
-  const [background, setBackground] = useState('');
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const [transcriptCopied, setTranscriptCopied] = useState(false);
@@ -104,13 +104,14 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       prompt = `${task.label}: ${description.trim()}`;
       displayText = prompt;
     } else {
-      const parts = [`Maak een ${task.label} voor het volgende:\n\nContext: ${description.trim()}`];
-      if (project.trim()) parts.push(`Project/klant: ${project.trim()}`);
-      if (background.trim()) parts.push(`Achtergrond of extra info:\n${background.trim()}`);
+      const parts = [`Maak een ${task.label}`];
+      if (clientInput.trim()) parts.push(`Klant: ${clientInput.trim()}`);
+      if (projectInput.trim()) parts.push(`Project: ${projectInput.trim()}`);
+      if (description.trim()) parts.push(`Context:\n${description.trim()}`);
       if (transcript.trim()) parts.push(`Aanvullende bronnen/transcriptie:\n${transcript.trim()}`);
       prompt = parts.join('\n\n');
-      displayText = project.trim()
-        ? `${task.label} voor ${project.trim()}`
+      displayText = clientInput.trim()
+        ? `${task.label} voor ${clientInput.trim()}`
         : task.label;
     }
     // Convert File objects to base64 — File cannot be JSON-serialized
@@ -130,7 +131,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       })
     );
     const validAttachments = processedAttachments.filter(Boolean).filter(a => a.data);
-    onGenerate(prompt, task.id, task.label, displayText, project.trim() || null, validAttachments);
+    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null);
   }
 
   function handleDirectChat() {
@@ -141,17 +142,15 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
   function handleNext() {
     // Fuzzy check op klantnaam bij stap 1 → stap 2
-    if (step === 1 && !isSearch && project.trim()) {
-      const input = project.trim();
+    if (step === 1 && !isSearch && clientInput.trim()) {
+      const input = clientInput.trim();
       const match = fuzzyMatchClient(input, knownClients);
       console.log('[DEBUG FUZZY] TaskSidePanel', { input, knownClientsCount: knownClients.length, match, isNewClient: !match });
       if (match && !match.confirmed) {
-        // Typo van bekende klant
         setClientSuggestion(match.suggestion);
         return;
       }
       if (!match) {
-        // Geen match — nieuwe klant (ook als lijst leeg is)
         setNewClientConfirm(true);
         return;
       }
@@ -160,7 +159,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   }
 
   function confirmClientSuggestion() {
-    setProject(clientSuggestion);
+    setClientInput(clientSuggestion);
     setClientSuggestion(null);
     setStep((s) => s + 1);
   }
@@ -267,46 +266,56 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
           {step === 1 && !clientSuggestion && !newClientConfirm && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                  {isSearch ? 'Wat ben je op zoek naar?' : 'Korte omschrijving van de opdracht'}
-                </label>
-                <textarea
-                  autoFocus
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={
-                    isSearch
-                      ? 'Bijv. "Locatie voor een teamdag in Amsterdam voor 20 personen"'
-                      : 'Bijv. "Notulen van het kickoff-gesprek met Heineken over de rebrand"'
-                  }
-                  rows={5}
-                  className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
-                />
-              </div>
-              {!isSearch && (
+              {isSearch ? (
+                <div>
+                  <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                    Wat ben je op zoek naar?
+                  </label>
+                  <textarea
+                    autoFocus
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder='Bijv. "Locatie voor een teamdag in Amsterdam voor 20 personen"'
+                    rows={5}
+                    className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                  />
+                </div>
+              ) : (
                 <>
                   <div>
                     <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                      Klant of project
+                      Klant
                     </label>
-                    <textarea
-                      value={project}
-                      onChange={(e) => setProject(e.target.value)}
-                      placeholder='Bijv. "Coca-Cola HHZH" — optioneel'
-                      rows={2}
-                      className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                    <input
+                      autoFocus
+                      type="text"
+                      value={clientInput}
+                      onChange={(e) => setClientInput(e.target.value)}
+                      placeholder='Bijv. "Coca-Cola"'
+                      className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
                     />
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                      Achtergrond of extra info
+                      Project <span className="text-white/30 font-normal">— optioneel</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={projectInput}
+                      onChange={(e) => setProjectInput(e.target.value)}
+                      placeholder='Bijv. "Zomeractie 26"'
+                      className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-white/60 mb-2">
+                      Omschrijving of achtergrond <span className="text-white/30 font-normal">— optioneel</span>
                     </label>
                     <textarea
-                      value={background}
-                      onChange={(e) => setBackground(e.target.value)}
-                      placeholder='Bijv. gevoelig project, specifieke toon, eerder gemaakte afspraken... — optioneel'
-                      rows={3}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder='Bijv. "Kickoff met de klant gehad, budget is akkoord, locatie nog open"'
+                      rows={4}
                       className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
                     />
                   </div>
@@ -469,16 +478,16 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                     {description || <span className="text-white/30 italic">Niet ingevuld</span>}
                   </p>
                 </div>
-                {!isSearch && project.trim() && (
+                {!isSearch && clientInput.trim() && (
                   <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
-                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Klant/project</p>
-                    <p className="text-[13px] text-white/75">{project}</p>
+                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Klant</p>
+                    <p className="text-[13px] text-white/75">{clientInput}</p>
                   </div>
                 )}
-                {!isSearch && background.trim() && (
+                {!isSearch && projectInput.trim() && (
                   <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
-                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Achtergrond</p>
-                    <p className="text-[12px] text-white/50 line-clamp-3">{background}</p>
+                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Project</p>
+                    <p className="text-[13px] text-white/75">{projectInput}</p>
                   </div>
                 )}
                 {!isSearch && transcript && (
@@ -507,7 +516,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             {!isLastStep ? (
               <button
                 onClick={handleNext}
-                disabled={step === 1 && !description.trim()}
+                disabled={step === 1 && (isSearch ? !description.trim() : !clientInput.trim())}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende

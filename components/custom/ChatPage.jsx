@@ -253,7 +253,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null) => {
       if (sendingRef.current) return;
 
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
@@ -341,6 +341,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             clientConfirmed,
             imageAttachments,
             prevHasDoc,
+            project: wizardProject ?? null,
           }),
           signal: controller.signal,
         });
@@ -531,12 +532,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = []) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null) {
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments); // reads null from ref — no setTimeout needed
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject);
   }
 
   function handleTaskPanelClose(prefillText) {
