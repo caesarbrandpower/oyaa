@@ -36,7 +36,15 @@ function extractTitle(markdown) {
   return firstLine.replace(/[#*_`]/g, '').trim().slice(0, 80) || 'Document';
 }
 
-export default function SharedDocView({ content, title: propTitle, expiresAt, chaseLogoUrl = null, clientLogoUrl = null }) {
+const DOC_TYPE_PREFIX = {
+  'account-to-pm': 'Briefing',
+  'account-to-creation': 'Briefing',
+  'field-briefing': 'Ambassadeursbriefing',
+  'meeting-summary': 'Samenvatting',
+  'external-debrief': 'Evaluatie',
+};
+
+export default function SharedDocView({ content, title: propTitle, expiresAt, chaseLogoUrl = null, clientLogoUrl = null, outputType = null }) {
   const rawTitle = propTitle || extractTitle(content);
   // Split "TYPE — Client Project" into two display levels
   const [titleMain, titleSub] = rawTitle && rawTitle.includes(' \u2014 ')
@@ -67,7 +75,7 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-[#111111]">
         <div className="flex-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={chaseLogoUrl || '/icons/waybetter-icon.svg'} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
+          <img src={chaseLogoUrl || '/logos/chase-amsterdam.svg'} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
         </div>
         <div className="flex items-center justify-end">
           {clientLogoUrl && (
@@ -89,18 +97,11 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
           )}
         </div>
       </div>
-      {/* Header */}
+      {/* Header — alleen documenttype, geen klantnaam */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
         <div className="flex-1 min-w-0">
-          {/* Niveau 1 (klein, grijs): documenttype */}
-          {titleSub && (
-            <div className="font-[family-name:var(--font-lexend)] text-[10px] font-medium text-white/35 uppercase tracking-wider truncate">
-              {titleMain}
-            </div>
-          )}
-          {/* Niveau 2 (groot, wit): klant + project — of de volledige titel als er geen split is */}
-          <div className="font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">
-            {titleSub || titleMain}
+          <div className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white truncate">
+            {titleMain}
           </div>
         </div>
         {expiryDate && (
@@ -113,10 +114,12 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
         <div className="max-w-2xl mx-auto">
-          {/* Grote kop: klant + project (niveau 2) — altijd bovenaan het document */}
+          {/* Grote kop: documenttype prefix + klant + project */}
           {titleSub && (
             <h1 className="font-[family-name:var(--font-lexend)] text-2xl font-bold text-white mb-6">
-              {titleSub}
+              {outputType && DOC_TYPE_PREFIX[outputType]
+                ? `${DOC_TYPE_PREFIX[outputType]} \u2014 ${titleSub}`
+                : titleSub}
             </h1>
           )}
           <div
