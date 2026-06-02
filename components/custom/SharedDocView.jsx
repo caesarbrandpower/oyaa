@@ -100,9 +100,9 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       {/* Header — alleen documenttype, geen klantnaam */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
         <div className="flex-1 min-w-0">
-          <div className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white truncate">
+          <span className="font-[family-name:var(--font-lexend)] text-[10px] font-medium text-white/40 uppercase tracking-widest truncate">
             {titleMain}
-          </div>
+          </span>
         </div>
         {expiryDate && (
           <span className="text-[11px] text-white/30 shrink-0">
