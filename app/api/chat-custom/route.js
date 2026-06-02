@@ -286,20 +286,23 @@ export async function POST(request) {
           // Wizard-flow: splits "Coca-Cola Lentecampagne 26" in client + project
           try {
             const extracted = await extractClientProject(clientName);
-            // Gebruik AI-extracted project, anders de volledige wizard-input als fallback
-            detectedProject = extracted.project || clientName;
-            const updates = { project: detectedProject };
-            // Update client als de extractie een andere (gecorrigeerde) naam geeft
-            if (extracted.client && extracted.client !== clientName) {
+            // Alleen een echt project opslaan — niet de klantnaam als project gebruiken
+            const projectValue = extracted.project && extracted.project !== clientName
+              ? extracted.project
+              : null;
+            if (projectValue) {
+              detectedProject = projectValue;
+              const updates = { project: detectedProject };
+              if (extracted.client && extracted.client !== clientName) {
+                detectedClient = extracted.client;
+                updates.client = extracted.client;
+              }
+              await supabase.from('threads').update(updates).eq('id', activeThreadId);
+            } else if (extracted.client && extracted.client !== clientName) {
               detectedClient = extracted.client;
-              updates.client = extracted.client;
+              await supabase.from('threads').update({ client: extracted.client }).eq('id', activeThreadId);
             }
-            await supabase.from('threads').update(updates).eq('id', activeThreadId);
-          } catch {
-            // Bij fout: gebruik wizard-input direct als project
-            detectedProject = clientName;
-            await supabase.from('threads').update({ project: clientName }).eq('id', activeThreadId);
-          }
+          } catch { /* silent */ }
         }
 
         console.log('[SERVER DONE]', { detectedClient, detectedProject });
