@@ -1,7 +1,7 @@
 // components/custom/TaskSidePanel.jsx
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Mic, Square, Paperclip, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 import { fuzzyMatchClient } from '@/lib/client-utils';
@@ -40,8 +40,27 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [uploadedFilename, setUploadedFilename] = useState('');
   const [imageAttachments, setImageAttachments] = useState([]);
   const [clientSuggestion, setClientSuggestion] = useState(null);
-  // clientSuggestion: null | string — genormaliseerde naam ter bevestiging
+  // clientSuggestion: null | string — bekende klant die lijkt op invoer (fuzzy match)
+  const [newClientConfirm, setNewClientConfirm] = useState(false);
+  // newClientConfirm: true als ingevoerde naam geen match heeft — vraag bevestiging schrijfwijze
+  const [knownClients, setKnownClients] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    async function fetchKnownClients() {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('threads')
+        .select('client')
+        .not('client', 'is', null)
+        .order('client');
+      if (data) {
+        setKnownClients([...new Set(data.map(r => r.client).filter(Boolean))]);
+      }
+    }
+    fetchKnownClients();
+  }, []);
   const imageInputRef = useRef(null);
 
   const handleTranscript = useCallback((text) => {
@@ -121,9 +140,15 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   function handleNext() {
     // Fuzzy check op klantnaam bij stap 1 → stap 2
     if (step === 1 && !isSearch && project.trim()) {
-      const match = fuzzyMatchClient(project.trim());
+      const match = fuzzyMatchClient(project.trim(), knownClients);
       if (match && !match.confirmed) {
+        // Typo van bekende klant
         setClientSuggestion(match.suggestion);
+        return;
+      }
+      if (!match && knownClients.length > 0) {
+        // Nieuwe klant — vraag bevestiging schrijfwijze
+        setNewClientConfirm(true);
         return;
       }
     }
@@ -138,7 +163,17 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
   function rejectClientSuggestion() {
     setClientSuggestion(null);
+    // Terug naar stap 1 zodat gebruiker naam kan corrigeren
+  }
+
+  function confirmNewClient() {
+    setNewClientConfirm(false);
     setStep((s) => s + 1);
+  }
+
+  function rejectNewClient() {
+    setNewClientConfirm(false);
+    // Terug naar stap 1 — project input blijft staan zodat gebruiker kan aanpassen
   }
 
   return (
@@ -193,13 +228,40 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   onClick={rejectClientSuggestion}
                   className="w-full h-10 rounded-xl border border-white/[0.12] text-white/60 text-[13px] hover:text-white hover:bg-white/[0.06] transition-colors"
                 >
-                  Nee, gebruik &ldquo;{project}&rdquo;
+                  Nee, aanpassen
                 </button>
               </div>
             </div>
           )}
 
-          {step === 1 && !clientSuggestion && (
+          {step === 1 && newClientConfirm && (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-4">
+                <p className="text-[13px] text-white/80 leading-relaxed mb-1">
+                  We slaan <span className="font-semibold text-white">&ldquo;{project}&rdquo;</span> op als nieuwe klantnaam. Klopt de schrijfwijze?
+                </p>
+                <p className="text-[11px] text-white/35">
+                  Controleer hoofdletters, koppeltekens en spelling.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={confirmNewClient}
+                  className="w-full h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors"
+                >
+                  Ja, sla op
+                </button>
+                <button
+                  onClick={rejectNewClient}
+                  className="w-full h-10 rounded-xl border border-white/[0.12] text-white/60 text-[13px] hover:text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  Nee, aanpassen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && !clientSuggestion && !newClientConfirm && (
             <div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-semibold text-white/60 mb-2">
@@ -426,9 +488,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
           )}
         </div>
 
-        {/* Footer — verborgen tijdens client-bevestigingsstap */}
+        {/* Footer — verborgen tijdens client-bevestigingsstappen */}
         <div className="px-5 py-4 border-t border-white/[0.06] shrink-0 space-y-2">
-          {!clientSuggestion && (
+          {!clientSuggestion && !newClientConfirm && (
           <div className="flex gap-2">
             {step > 1 && (
               <button

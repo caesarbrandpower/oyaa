@@ -90,9 +90,17 @@ export async function POST(request) {
 
         // Fuzzy matching — vóór thread aanmaken, als naam niet bevestigd is
         if (clientName && !clientConfirmed) {
-          const match = fuzzyMatchClient(clientName);
+          const existingForFuzzy = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
+          const match = fuzzyMatchClient(clientName, existingForFuzzy);
           if (match && !match.confirmed) {
-            writeEvent(controller, { type: 'confirm', suggestion: match.suggestion, original: clientName });
+            // Typo van bekende klant — vraag bevestiging
+            writeEvent(controller, { type: 'confirm', confirmType: 'fuzzy', suggestion: match.suggestion, original: clientName });
+            controller.close();
+            return;
+          }
+          if (!match) {
+            // Volledig nieuwe klant — vraag bevestiging van schrijfwijze
+            writeEvent(controller, { type: 'confirm', confirmType: 'new_client', name: clientName });
             controller.close();
             return;
           }

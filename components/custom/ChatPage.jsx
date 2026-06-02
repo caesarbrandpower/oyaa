@@ -256,7 +256,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false) => {
       if (sendingRef.current) return;
 
-      // Bevestigingsflow: gebruiker reageert op "Bedoel je X?"
+      // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
       let isConfirmationResponse = false;
       if (pendingConfirmationRef.current) {
         const pending = pendingConfirmationRef.current;
@@ -267,7 +267,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         outputType = pending.outputType;
         taskLabel = pending.taskLabel;
         displayText = pending.displayText;
-        client = isYes ? pending.suggestion : userResponse;
+        // fuzzy: ja → gebruik suggestion, anders → gebruik userResponse als naam
+        // new_client: ja → gebruik originalName, anders → gebruik userResponse als gecorrigeerde naam
+        if (pending.confirmType === 'new_client') {
+          client = isYes ? pending.originalName : userResponse;
+        } else {
+          client = isYes ? pending.suggestion : userResponse;
+        }
         imageAttachments = pending.imageAttachments;
         clientConfirmed = true;
         isConfirmationResponse = true;
@@ -443,9 +449,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const patch = {};
                 if (event.detectedClient) patch.client = event.detectedClient;
                 if (event.detectedProject) patch.project = event.detectedProject;
-                const updatedThread = { ...activeThreadRef.current, ...patch };
-                setActiveThreadBoth(updatedThread);
-                setThreads((prev) => prev.map((t) => t.id === activeThreadRef.current?.id ? { ...t, ...patch } : t));
+                // Capture threadId vóór setActiveThreadBoth om stale ref in updater te voorkomen
+                const currentThreadId = activeThreadRef.current?.id;
+                if (currentThreadId) {
+                  setActiveThreadBoth({ ...activeThreadRef.current, ...patch });
+                  setThreads((prev) => prev.map((t) => t.id === currentThreadId ? { ...t, ...patch } : t));
+                }
               }
               setSendingState(false);
               // Wizard-foto's koppelen aan het gegenereerde document-bericht
@@ -472,20 +481,24 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 });
               }
             } else if (event.type === 'confirm') {
-              // Fuzzy match gevonden — bevestiging vragen voor document gegenereerd wordt
+              const confirmMessage = event.confirmType === 'new_client'
+                ? `We slaan **${event.name}** op als nieuwe klantnaam. Klopt de schrijfwijze? Typ *ja* om te bevestigen of geef de juiste naam op.`
+                : `Bedoel je **${event.suggestion}**? Bevestig met *ja* of geef de juiste klantnaam op.`;
               setMessages((prev) => [
                 ...prev.filter(m => m.id !== placeholderId),
                 {
                   id: 'confirm-' + Date.now(),
                   role: 'assistant',
-                  content: `Bedoel je **${event.suggestion}**? Bevestig met *ja* of geef de juiste klantnaam op.`,
+                  content: confirmMessage,
                   streaming: false,
                   local: true,
                   created_at: new Date().toISOString(),
                 },
               ]);
               pendingConfirmationRef.current = {
-                suggestion: event.suggestion,
+                confirmType: event.confirmType ?? 'fuzzy',
+                suggestion: event.suggestion ?? null,
+                originalName: event.name ?? null,
                 messageText,
                 outputType,
                 taskLabel,
