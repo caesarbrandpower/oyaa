@@ -14,9 +14,11 @@ export async function POST(request) {
     return Response.json({ error: 'content is verplicht.' }, { status: 400 });
   }
 
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
   const { data, error } = await supabase
     .from('shared_documents')
-    .insert({ content, output_type: outputType ?? null, title: title ?? null, client: client ?? null, project: project ?? null })
+    .insert({ content, output_type: outputType ?? null, title: title ?? null, client: client ?? null, project: project ?? null, expires_at: expiresAt })
     .select('token')
     .single();
 
