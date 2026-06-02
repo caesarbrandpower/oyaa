@@ -11,7 +11,7 @@ export default async function SharedDocPage({ params }) {
   const [{ data }, tenant] = await Promise.all([
     supabase
       .from('shared_documents')
-      .select('content, output_type, title, expires_at, client')
+      .select('content, output_type, title, expires_at, client, project')
       .eq('token', token)
       .gt('expires_at', new Date().toISOString())
       .single(),
@@ -21,6 +21,7 @@ export default async function SharedDocPage({ params }) {
   if (!data) notFound();
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
+  // Gebruik alleen de klantnaam (niet project) voor de logo-slug
   const clientLogoUrl = data.client
     ? (() => {
         const slug = data.client.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');

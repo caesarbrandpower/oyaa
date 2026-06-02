@@ -8,6 +8,57 @@ import { normalizeClientName } from '@/lib/utils';
 
 export const maxDuration = 60;
 
+// ── Fuzzy matching ─────────────────────────────────────────────────────────────
+function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return dp[a.length][b.length];
+}
+
+// Bekende Chase-klanten — voeg hier nieuwe klanten toe bij onboarding
+const KNOWN_CLIENTS = [
+  'Coca-Cola', 'Red Bull', 'Oatly', 'ANWB', 'Albert Heijn', 'Nike', 'Adidas',
+  'Heineken', 'ING', 'ABN AMRO', 'Philips', 'Shell', 'Unilever', 'KPN',
+];
+
+const CANONICAL_CLIENTS = Object.fromEntries(KNOWN_CLIENTS.map(n => [n.toLowerCase(), n]));
+
+function fuzzyMatchClient(input) {
+  if (!input) return null;
+  const inputLower = input.toLowerCase().trim();
+  if (CANONICAL_CLIENTS[inputLower]) return { name: CANONICAL_CLIENTS[inputLower], confirmed: true };
+  for (const known of KNOWN_CLIENTS) {
+    const distance = levenshtein(inputLower, known.toLowerCase());
+    const threshold = Math.floor(known.length * 0.25);
+    if (distance > 0 && distance <= threshold) {
+      return { name: known, confirmed: false, suggestion: known };
+    }
+  }
+  return null;
+}
+
+// ── Client/project extractie ───────────────────────────────────────────────────
+async function extractClientProject(text) {
+  try {
+    const ant = new (await import('@anthropic-ai/sdk')).default({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await ant.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 50,
+      messages: [{ role: 'user', content: `Splits dit op in klantnaam en projectnaam. JSON: {"client": string, "project": string|null}. Alleen JSON.\n\nTekst: ${text}` }],
+    });
+    const json = JSON.parse(response.content[0]?.text?.trim() ?? '{}');
+    return { client: json.client ?? text, project: json.project ?? null };
+  } catch {
+    return { client: text, project: null };
+  }
+}
+
 async function fetchExistingClients(supabase, userId, tenantId) {
   const query = supabase
     .from('threads')
@@ -35,13 +86,14 @@ async function detectClientProject(supabase, threadId, message, userId, tenantId
   if (json.client || json.project) {
     const existingClients = await fetchExistingClients(supabase, userId, tenantId);
     const normalizedClient = normalizeClientName(json.client, existingClients) ?? null;
+    const detectedProject = json.project ?? null;
     await supabase.from('threads').update({
       client: normalizedClient,
-      project: json.project ?? null,
+      project: detectedProject,
     }).eq('id', threadId);
-    return normalizedClient;
+    return { client: normalizedClient, project: detectedProject };
   }
-  return null;
+  return { client: null, project: null };
 }
 
 function writeEvent(controller, data) {
@@ -56,7 +108,7 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, imageAttachments = [], prevHasDoc = false } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], prevHasDoc = false } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
@@ -69,6 +121,16 @@ export async function POST(request) {
     async start(controller) {
       try {
         const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+        // Fuzzy matching — vóór thread aanmaken, als naam niet bevestigd is
+        if (clientName && !clientConfirmed) {
+          const match = fuzzyMatchClient(clientName);
+          if (match && !match.confirmed) {
+            writeEvent(controller, { type: 'confirm', suggestion: match.suggestion, original: clientName });
+            controller.close();
+            return;
+          }
+        }
 
         let activeThreadId = threadId;
 
@@ -237,19 +299,38 @@ export async function POST(request) {
 
         // Klantdetectie — synchroon zodat resultaat mee in done-event kan
         let detectedClient;
+        let detectedProject = null;
         if (!clientName) {
           try {
-            detectedClient = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
+            const detected = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
+            detectedClient = detected.client;
+            detectedProject = detected.project;
           } catch {
             detectedClient = null;
           }
+        } else if (isFirstTurn) {
+          // Wizard-flow: splits "Coca-Cola Lentecampagne 26" in client + project
+          try {
+            const extracted = await extractClientProject(clientName);
+            if (extracted.project) {
+              detectedProject = extracted.project;
+              const updates = { project: detectedProject };
+              // Update client als de extractie een andere (gecorrigeerde) naam geeft
+              if (extracted.client && extracted.client !== clientName) {
+                detectedClient = extracted.client;
+                updates.client = extracted.client;
+              }
+              await supabase.from('threads').update(updates).eq('id', activeThreadId);
+            }
+          } catch { /* silent */ }
         }
 
         writeEvent(controller, {
           type: 'done',
           content: finalContent,
           messageId: savedMsg?.id ?? crypto.randomUUID(),
-          detectedClient, // undefined (niet geprobeerd) | null (niet gevonden) | string (herkend)
+          detectedClient, // undefined | null | string
+          detectedProject, // null | string
         });
 
         controller.close();

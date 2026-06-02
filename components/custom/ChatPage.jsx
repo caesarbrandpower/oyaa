@@ -55,6 +55,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingTitleGen: null | { threadId, content, outputType }
   const pendingWizardPhotosRef = useRef([]);
   // pendingWizardPhotosRef: foto's van wizard stap 2, tijdelijk opgeslagen tot messageId bekend is
+  const pendingConfirmationRef = useRef(null);
+  // pendingConfirmationRef: { suggestion, messageText, outputType, taskLabel, displayText, imageAttachments }
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
 
@@ -251,8 +253,25 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = []) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false) => {
       if (sendingRef.current) return;
+
+      // Bevestigingsflow: gebruiker reageert op "Bedoel je X?"
+      let isConfirmationResponse = false;
+      if (pendingConfirmationRef.current) {
+        const pending = pendingConfirmationRef.current;
+        pendingConfirmationRef.current = null;
+        const userResponse = messageText.trim();
+        const isYes = /^(ja|yes|jep|yep|ok|okay|klopt|correct)$/i.test(userResponse);
+        messageText = pending.messageText;
+        outputType = pending.outputType;
+        taskLabel = pending.taskLabel;
+        displayText = pending.displayText;
+        client = isYes ? pending.suggestion : userResponse;
+        imageAttachments = pending.imageAttachments;
+        clientConfirmed = true;
+        isConfirmationResponse = true;
+      }
       const userMsgId = 'user-' + Date.now();
       const isPastedTranscript = !displayText && !taskLabel && looksLikePastedTranscript(messageText);
       const userMsg = {
@@ -266,7 +285,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         ],
         pastedTranscript: isPastedTranscript,
       };
-      setMessages((prev) => [...prev, userMsg]);
+      if (!isConfirmationResponse) {
+        setMessages((prev) => [...prev, userMsg]);
+      }
       setSendingState(true);
 
       // Fix 4C: veldbriefing foto-interceptor
@@ -311,6 +332,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             outputType: outputType ?? activeThreadRef.current?.output_type ?? null,
             taskLabel,
             client,
+            clientConfirmed,
             imageAttachments,
             prevHasDoc,
           }),
@@ -416,11 +438,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }
                 return [...updated, ...additions];
               });
-              // detectedClient buiten setMessages updater — nooit side effects in een pure updater
-              if (event.detectedClient) {
-                const updatedThread = { ...activeThreadRef.current, client: event.detectedClient };
+              // detectedClient/Project buiten setMessages updater — nooit side effects in een pure updater
+              if (event.detectedClient || event.detectedProject) {
+                const patch = {};
+                if (event.detectedClient) patch.client = event.detectedClient;
+                if (event.detectedProject) patch.project = event.detectedProject;
+                const updatedThread = { ...activeThreadRef.current, ...patch };
                 setActiveThreadBoth(updatedThread);
-                setThreads((prev) => prev.map((t) => t.id === activeThreadRef.current?.id ? { ...t, client: event.detectedClient } : t));
+                setThreads((prev) => prev.map((t) => t.id === activeThreadRef.current?.id ? { ...t, ...patch } : t));
               }
               setSendingState(false);
               // Wizard-foto's koppelen aan het gegenereerde document-bericht
@@ -446,6 +471,28 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   fallbackTitle: displayText || taskLabel,
                 });
               }
+            } else if (event.type === 'confirm') {
+              // Fuzzy match gevonden — bevestiging vragen voor document gegenereerd wordt
+              setMessages((prev) => [
+                ...prev.filter(m => m.id !== placeholderId),
+                {
+                  id: 'confirm-' + Date.now(),
+                  role: 'assistant',
+                  content: `Bedoel je **${event.suggestion}**? Bevestig met *ja* of geef de juiste klantnaam op.`,
+                  streaming: false,
+                  local: true,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+              pendingConfirmationRef.current = {
+                suggestion: event.suggestion,
+                messageText,
+                outputType,
+                taskLabel,
+                displayText,
+                imageAttachments,
+              };
+              setSendingState(false);
             } else if (event.type === 'error') {
               setMessages((prev) => prev.filter(m => m.id !== placeholderId));
               setSendingState(false);

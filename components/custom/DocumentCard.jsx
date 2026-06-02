@@ -87,6 +87,7 @@ export default function DocumentCard({
 
   async function handleWord(e) {
     e.stopPropagation();
+    console.log('[DOWNLOAD] Word DocumentCard', { client, project });
     setWordLoading(true);
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
@@ -118,7 +119,7 @@ export default function DocumentCard({
     e.stopPropagation();
     setShareLoading(true);
     try {
-      const url = await shareDocument(content, chaseTitle, client, extras, outputType);
+      const url = await shareDocument(content, chaseTitle, client, extras, outputType, project);
       if (url) {
         await navigator.clipboard.writeText(url).catch(() => {});
         setShareDone(true);

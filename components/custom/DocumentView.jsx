@@ -519,6 +519,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   async function handleDownloadWord() {
+    console.log('[DOWNLOAD] Word DocumentView', { client, project });
     setDownloading(true);
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
