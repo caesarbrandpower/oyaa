@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, ClipboardList, PenLine, BarChart2, Search,
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
-  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush, Camera,
+  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush, Camera, LayoutGrid,
 } from 'lucide-react';
 import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
@@ -256,6 +256,15 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const tree = buildFolderTree(threads);
   const clients = sortedClients(tree);
   const allClientNames = clients.filter(c => c !== 'Overige');
+
+  // Afleiden van sidebarProjects uit huidige threads state — automatisch in sync na verwijdering
+  const sidebarProjects = (() => {
+    const counts = {};
+    for (const t of threads) {
+      if (t.client) counts[t.client] = (counts[t.client] || 0) + 1;
+    }
+    return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+  })();
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window === 'undefined') return 200;
@@ -548,7 +557,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           activeThreadId={null}
           onNewThread={() => router.push('/app')}
           onSelectThread={(t) => router.push('/app?thread=' + t.id)}
-          projects={projects}
+          projects={sidebarProjects}
         />
       </aside>
 

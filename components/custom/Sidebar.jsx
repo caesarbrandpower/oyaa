@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush } from 'lucide-react';
+import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -28,6 +28,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [accountOpen, setAccountOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(8);
   const accountRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openProject, setOpenProject] = useState(null);
@@ -181,7 +182,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
               href="/app/docs"
               className="block px-2 py-1 mt-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
             >
-              Alle projecten...
+              Alle klantmappen...
             </Link>
           </div>
         );
@@ -207,7 +208,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                 if (!searchQuery.trim()) return true;
                 const q = searchQuery.toLowerCase();
                 return t.title?.toLowerCase().includes(q) || t.client?.toLowerCase().includes(q);
-              }).slice(0, 8).map((thread) => (
+              }).slice(0, visibleCount).map((thread) => (
                 <li key={thread.id}>
                   {editingThreadId === thread.id ? (
                     <input
@@ -264,29 +265,30 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                 </li>
               ))}
             </ul>
-            {threads.length > 8 && (
-              <Link
-                href="/app/docs"
-                className="block px-2 py-1.5 mt-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+            {threads.length > visibleCount && (
+              <button
+                onClick={() => setVisibleCount(v => v + 10)}
+                className="block w-full text-left px-2 py-1.5 mt-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
               >
                 Toon meer...
-              </Link>
+              </button>
             )}
           </>
         )}
       </div>
 
-      {/* Alle documenten */}
+      {/* Klantmappen */}
       <div className="px-3 pb-2">
         <Link
           href="/app/docs"
-          className={`block w-full text-left px-2 py-1.5 text-[12px] rounded-lg transition-colors ${
+          className={`flex items-center gap-2 w-full px-2.5 py-2 text-[12px] font-medium rounded-lg border transition-colors ${
             isDocsActive
-              ? 'bg-white/[0.08] text-white'
-              : 'text-white/35 hover:text-white/70 hover:bg-white/[0.04]'
+              ? 'bg-white/[0.08] text-white border-white/[0.12]'
+              : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
           }`}
         >
-          Alle documenten
+          <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+          Klantmappen
         </Link>
       </div>
 
