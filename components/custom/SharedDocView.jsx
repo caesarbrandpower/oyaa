@@ -4,7 +4,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
 
-const md = new Marked({ breaks: true });
+const md = new Marked({
+  breaks: true,
+  renderer: {
+    link({ href, text }) {
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    },
+  },
+});
 
 const LABEL_REGEX = /\[([A-Z][A-Z\s]+)\]/g;
 
@@ -30,7 +37,11 @@ function extractTitle(markdown) {
 }
 
 export default function SharedDocView({ content, title: propTitle, expiresAt, chaseLogoUrl = null, clientLogoUrl = null }) {
-  const title = propTitle || extractTitle(content);
+  const rawTitle = propTitle || extractTitle(content);
+  // Split "TYPE — Client Project" into two display levels
+  const [titleMain, titleSub] = rawTitle && rawTitle.includes(' \u2014 ')
+    ? rawTitle.split(' \u2014 ')
+    : [rawTitle, null];
   const bodyHtml = injectLabelHtml(md.parse(content));
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const bodyRef = useRef(null);
@@ -54,7 +65,7 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
       {/* Logo-balk: Chase links, klant rechts */}
       {(chaseLogoUrl || clientLogoUrl) && (
-        <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-white/[0.02]">
+        <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-[#111111]">
           <div className="flex-1">
             {chaseLogoUrl && (
               <img src={chaseLogoUrl} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
@@ -84,9 +95,16 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       )}
       {/* Header */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
-        <h1 className="flex-1 font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">
-          {title}
-        </h1>
+        <div className="flex-1 min-w-0">
+          <div className="font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white truncate">
+            {titleMain}
+          </div>
+          {titleSub && (
+            <div className="font-[family-name:var(--font-lexend)] text-[11px] text-white/50 truncate">
+              {titleSub}
+            </div>
+          )}
+        </div>
         {expiryDate && (
           <span className="text-[11px] text-white/30 shrink-0">
             Geldig t/m {expiryDate}

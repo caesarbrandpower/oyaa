@@ -113,7 +113,7 @@ export default function DocumentCard({
     e.stopPropagation();
     setShareLoading(true);
     try {
-      const url = await shareDocument(content, chaseTitle, client, extras);
+      const url = await shareDocument(content, chaseTitle, client, extras, outputType);
       if (url) {
         await navigator.clipboard.writeText(url).catch(() => {});
         setShareDone(true);

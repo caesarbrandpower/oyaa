@@ -35,6 +35,7 @@ export default async function SharedDocPage({ params }) {
       expiresAt={data.expires_at}
       chaseLogoUrl={chaseLogoUrl}
       clientLogoUrl={clientLogoUrl}
+      outputType={data.output_type ?? null}
     />
   );
 }
