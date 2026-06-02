@@ -53,15 +53,19 @@ export default function DocumentCard({
   const [shareDone, setShareDone] = useState(false);
 
   const contentTitle = extractTitle(content);
-  const chaseTitle = buildChaseTitle(outputType, client, project) || contentTitle;
+  const rawChaseTitle = buildChaseTitle(outputType, client, project);
+  // Splits "BRIEFING ACCOUNT NAAR PM — Coca-Cola Lenteactie 26" in twee niveaus
+  const [titleLevel1, titleLevel2] = rawChaseTitle && rawChaseTitle.includes(' \u2014 ')
+    ? rawChaseTitle.split(' \u2014 ')
+    : [rawChaseTitle || contentTitle, null];
+  // chaseTitle voor shareDocument (met em dash, zodat SharedDocView kan splitsen)
+  const chaseTitle = rawChaseTitle || contentTitle;
   const markerCount = countMarkers(content);
 
-  // Preview: type + client + project + markers
-  const previewParts = [outputTypeLabel, client, project].filter(Boolean);
-  const previewBase = previewParts.length > 0 ? previewParts.join(' voor ') : contentTitle;
+  // Preview: alleen markerinfo (type en klant staan al in de twee niveaus)
   const preview = markerCount > 0
-    ? `${previewBase}. ${markerCount} punt${markerCount === 1 ? '' : 'en'} om aan te vullen.`
-    : previewBase;
+    ? `${markerCount} punt${markerCount === 1 ? '' : 'en'} om aan te vullen.`
+    : null;
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
   const clientLogoUrl = buildClientLogoUrl(client);
@@ -132,12 +136,19 @@ export default function DocumentCard({
           <FileText className="w-4 h-4 text-orange" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug mb-1 truncate">
-            {chaseTitle}
+          <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug truncate">
+            {titleLevel1}
           </p>
-          <p className="text-[12px] text-white/45 leading-relaxed line-clamp-2">
-            {preview}
-          </p>
+          {titleLevel2 && (
+            <p className="font-[family-name:var(--font-lexend)] text-[11px] text-white/50 leading-snug mb-1 truncate">
+              {titleLevel2}
+            </p>
+          )}
+          {preview && (
+            <p className="text-[12px] text-white/45 leading-relaxed mt-1">
+              {preview}
+            </p>
+          )}
         </div>
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-wrap items-center gap-1.5">
