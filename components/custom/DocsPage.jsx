@@ -124,7 +124,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [inlineRenameId, setInlineRenameId] = useState(null); // threadId
   const [inlineRenameValue, setInlineRenameValue] = useState('');
   const [folderMenu, setFolderMenu] = useState(null); // clientName | null
-  const [folderMenuError, setFolderMenuError] = useState(false);
+  const [folderDeleteConfirm, setFolderDeleteConfirm] = useState(null); // clientName | null
   const folderMenuRef = useRef(null);
 
   // Sluit move-menu bij klik buiten
@@ -135,7 +135,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       }
       if (folderMenu && folderMenuRef.current && !folderMenuRef.current.contains(e.target)) {
         setFolderMenu(null);
-        setFolderMenuError(false);
+        setFolderDeleteConfirm(null);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -222,6 +222,14 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
     closeMoveMenu();
     setThreads((prev) => prev.filter((t) => t.id !== threadId));
+  }
+
+  async function handleDeleteFolder(clientName) {
+    const toDelete = threads.filter(t => (t.client || 'Overige') === clientName);
+    await Promise.all(toDelete.map(t => fetch(`/api/threads/${t.id}`, { method: 'DELETE' })));
+    setThreads((prev) => prev.filter(t => (t.client || 'Overige') !== clientName));
+    setFolderMenu(null);
+    setFolderDeleteConfirm(null);
   }
 
   async function handleRename(threadId) {
@@ -386,7 +394,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-7 z-50 w-48 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
+            <div className="absolute right-0 top-7 z-[9999] w-48 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
               {renameMode ? (
                 <div className="px-3 py-2 flex gap-1.5">
                   <input
@@ -610,7 +618,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                 {filteredThreads.length === 0 ? (
                   <p className="text-[13px] text-white/25 italic">Geen documenten gevonden.</p>
                 ) : (
-                  <div className="rounded-xl border border-white/[0.08] overflow-hidden">
+                  <div className="rounded-xl border border-white/[0.08]">
                     {filteredThreads.map((t, i) => renderDocRow(t, i === filteredThreads.length - 1))}
                   </div>
                 )}
@@ -625,7 +633,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                   const isOpen = openFolders.has(clientName);
 
                   return (
-                    <div key={clientName} id={`folder-${clientName}`} className="rounded-xl border border-white/[0.08] overflow-hidden">
+                    <div key={clientName} id={`folder-${clientName}`} className="rounded-xl border border-white/[0.08]">
                       {/* Client-map header */}
                       <div className="flex items-center group/folder">
                         <button
@@ -682,10 +690,10 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                                   e.stopPropagation();
                                   if (folderMenu === clientName) {
                                     setFolderMenu(null);
-                                    setFolderMenuError(false);
+                                    setFolderDeleteConfirm(null);
                                   } else {
                                     setFolderMenu(clientName);
-                                    setFolderMenuError(false);
+                                    setFolderDeleteConfirm(null);
                                   }
                                 }}
                                 title="Mapopties"
@@ -694,23 +702,31 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                                 <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
                               </button>
                               {folderMenu === clientName && (
-                                <div className="absolute right-0 top-7 z-50 w-52 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
-                                  {folderMenuError ? (
+                                <div className="absolute right-0 top-7 z-[9999] w-52 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl py-1 text-[12px]">
+                                  {folderDeleteConfirm === clientName ? (
                                     <div className="px-3 py-2.5">
-                                      <p className="text-[11px] text-white/50 leading-snug">
-                                        Verplaats eerst alle {totalDocs} document{totalDocs !== 1 ? 'en' : ''} naar een andere map.
+                                      <p className="text-[11px] text-white/60 leading-snug mb-2.5">
+                                        Weet je zeker dat je <span className="text-white font-semibold">{clientName}</span> wilt verwijderen?
+                                        {totalDocs > 0 && <> Dit verwijdert ook alle <span className="text-white font-semibold">{totalDocs} document{totalDocs !== 1 ? 'en' : ''}</span> erin.</>}
                                       </p>
+                                      <div className="flex gap-1.5">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setFolderDeleteConfirm(null); }}
+                                          className="flex-1 py-1.5 rounded-lg text-[10px] text-white/50 bg-white/[0.06] hover:bg-white/[0.09] transition-colors"
+                                        >
+                                          Annuleren
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleDeleteFolder(clientName); }}
+                                          className="flex-1 py-1.5 rounded-lg text-[10px] text-red-400 bg-red-950/40 hover:bg-red-950/60 transition-colors"
+                                        >
+                                          Verwijderen
+                                        </button>
+                                      </div>
                                     </div>
                                   ) : (
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (totalDocs > 0) {
-                                          setFolderMenuError(true);
-                                        } else {
-                                          setFolderMenu(null);
-                                        }
-                                      }}
+                                      onClick={(e) => { e.stopPropagation(); setFolderDeleteConfirm(clientName); }}
                                       className="w-full text-left px-3 py-2 text-red-400/70 hover:text-red-400 hover:bg-white/[0.06] transition-colors"
                                     >
                                       Map verwijderen
