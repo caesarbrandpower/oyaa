@@ -63,36 +63,32 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
-      {/* Logo-balk: Chase links, klant rechts */}
-      {(chaseLogoUrl || clientLogoUrl) && (
-        <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-[#111111]">
-          <div className="flex-1">
-            {chaseLogoUrl && (
-              <img src={chaseLogoUrl} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
-            )}
-          </div>
-          <div className="flex items-center justify-end">
-            {clientLogoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={clientLogoUrl}
-                alt=""
-                aria-hidden="true"
-                className="h-8 max-w-[140px] object-contain"
-                onError={(e) => {
-                  // Probeer SVG-variant als PNG mislukt
-                  const src = e.currentTarget.src;
-                  if (src.endsWith('.png')) {
-                    e.currentTarget.src = src.replace(/\.png$/, '.svg');
-                  } else {
-                    e.currentTarget.style.display = 'none';
-                  }
-                }}
-              />
-            )}
-          </div>
+      {/* Logo-balk: Chase links, klant rechts — altijd zichtbaar */}
+      <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-[#111111]">
+        <div className="flex-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={chaseLogoUrl || '/icons/waybetter-icon.svg'} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" />
         </div>
-      )}
+        <div className="flex items-center justify-end">
+          {clientLogoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={clientLogoUrl}
+              alt=""
+              aria-hidden="true"
+              className="h-8 max-w-[140px] object-contain"
+              onError={(e) => {
+                const src = e.currentTarget.src;
+                if (src.endsWith('.png')) {
+                  e.currentTarget.src = src.replace(/\.png$/, '.svg');
+                } else {
+                  e.currentTarget.style.display = 'none';
+                }
+              }}
+            />
+          )}
+        </div>
+      </div>
       {/* Header */}
       <header className="shrink-0 h-14 flex items-center px-4 md:px-6 border-b border-white/[0.06] gap-3">
         <div className="flex-1 min-w-0">

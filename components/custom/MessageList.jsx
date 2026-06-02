@@ -190,11 +190,18 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
 
 function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel }) {
   const [expanded, setExpanded] = useState(false);
-  const blocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
+  const rawBlocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
+  // Strip eerste kop (bijv. "## Projectoverzicht") — die staat al als outputTypeLabel
+  const blocks = rawBlocks[0]?.trim().match(/^#{1,3}\s/) ? rawBlocks.slice(1) : rawBlocks;
   const visibleBlocks = expanded ? blocks : blocks.slice(0, 3);
   const hasMore = blocks.length > 3;
   return (
     <div className="flex flex-col gap-3">
+      {outputTypeLabel && (
+        <p className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.08em] uppercase text-white/30">
+          {outputTypeLabel}
+        </p>
+      )}
       <div className="custom-prose text-[14px]">
         {visibleBlocks.map((block, i) => (
           <div
