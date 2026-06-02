@@ -67,7 +67,7 @@ export default function DocumentCard({
   const clientLogoUrl = buildClientLogoUrl(client);
 
   function getFilename(ext) {
-    return buildFilename(outputTypeLabel, client, project, ext);
+    return buildFilename(outputType, client, project, ext);
   }
 
   function handleCopy(e) {

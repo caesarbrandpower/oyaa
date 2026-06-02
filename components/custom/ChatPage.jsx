@@ -140,7 +140,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, client, field_briefing_extras, created_at, updated_at, audio_url')
+        .select('id, title, output_type, client, project, field_briefing_extras, created_at, updated_at, audio_url')
         .eq('id', threadParam)
         .single();
       if (!thread) return;

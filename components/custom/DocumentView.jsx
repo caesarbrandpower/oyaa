@@ -525,7 +525,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBuffer(chaseLogoUrl),
         fetchLogoBuffer(clientLogoUrl),
       ]);
-      const filename = buildFilename(outputTypeLabel, client, project, 'docx');
+      const filename = buildFilename(outputType, client, project, 'docx');
       await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
     } finally {
       setDownloading(false);
@@ -539,7 +539,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         fetchImageAsBase64(chaseLogoUrl),
         fetchLogoBase64(clientLogoUrl),
       ]);
-      const filename = buildFilename(outputTypeLabel, client, project, 'pdf');
+      const filename = buildFilename(outputType, client, project, 'pdf');
       await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename, outputType, client, project);
     } finally {
       setDownloadingPdf(false);
