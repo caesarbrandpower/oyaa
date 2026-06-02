@@ -101,6 +101,7 @@ export default function DocumentCard({
 
   async function handlePdf(e) {
     e.stopPropagation();
+    console.log('[PDF CLICK] DocumentCard', { outputType, client, project, clientLogoUrl });
     setPdfLoading(true);
     try {
       const [chaseBase64, clientBase64] = await Promise.all([

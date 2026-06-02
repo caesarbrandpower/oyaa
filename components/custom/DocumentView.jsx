@@ -533,6 +533,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   async function handleDownloadPdf() {
+    console.log('[PDF CLICK] DocumentView', { outputType, client, project, clientLogoUrl });
     setDownloadingPdf(true);
     try {
       const [chaseBase64, clientBase64] = await Promise.all([

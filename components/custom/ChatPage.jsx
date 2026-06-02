@@ -176,13 +176,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   function handleOpenDocument(msg) {
     const ot = msg.output_type ?? activeThreadRef.current?.output_type ?? null;
     const otLabel = outputTypes.find(t => t.id === ot)?.label ?? null;
+    const threadFromList = threads.find(t => t.id === activeThreadRef.current?.id);
     setActiveDocument({
       content: msg.content,
       outputType: ot,
       outputTypeLabel: otLabel,
       title: null,
-      client: activeThreadRef.current?.client ?? null,
-      project: activeThreadRef.current?.project ?? null,
+      client: threadFromList?.client ?? activeThreadRef.current?.client ?? null,
+      project: threadFromList?.project ?? activeThreadRef.current?.project ?? null,
       extras: briefingExtras[msg.id] ?? null,
     });
   }
@@ -356,6 +357,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   id: event.threadId,
                   title: displayText || taskLabel || messageText.slice(0, 60),
                   output_type: outputType,
+                  client: client ?? null,
+                  project: null,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
@@ -398,7 +401,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   local: true,
                   created_at: new Date().toISOString(),
                 }];
-                if (client === null && event.detectedClient !== undefined) {
+              if (client === null && event.detectedClient !== undefined) {
                   const clientMsg = event.detectedClient
                     ? `Ik sla dit op onder ${event.detectedClient}. Klopt dat, of wil je een andere map?`
                     : 'Ik sla dit op onder Overige. Wil je het ergens anders kwijt?';
@@ -413,6 +416,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }
                 return [...updated, ...additions];
               });
+              // detectedClient buiten setMessages updater — nooit side effects in een pure updater
+              if (event.detectedClient) {
+                const updatedThread = { ...activeThreadRef.current, client: event.detectedClient };
+                setActiveThreadBoth(updatedThread);
+                setThreads((prev) => prev.map((t) => t.id === activeThreadRef.current?.id ? { ...t, client: event.detectedClient } : t));
+              }
               setSendingState(false);
               // Wizard-foto's koppelen aan het gegenereerde document-bericht
               if (finalIsDocument && pendingWizardPhotosRef.current.length > 0) {
@@ -642,8 +651,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               onOpenDocument={handleOpenDocument}
               briefingExtras={briefingExtras}
               tenant={tenant}
-              threadClient={activeThread?.client ?? null}
-              threadProject={activeThread?.project ?? null}
+              threadClient={threads.find(t => t.id === activeThread?.id)?.client ?? activeThread?.client ?? null}
+              threadProject={threads.find(t => t.id === activeThread?.id)?.project ?? activeThread?.project ?? null}
               outputTypes={outputTypes}
               onExtrasChange={(messageId, extras) => {
                 setBriefingExtras(prev => {
