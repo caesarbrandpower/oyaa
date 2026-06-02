@@ -524,7 +524,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             ) : (
               <button
                 onClick={handleGenerate}
-                disabled={!description.trim()}
+                disabled={isSearch ? !description.trim() : !clientInput.trim()}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Genereren
