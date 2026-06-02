@@ -4,6 +4,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { X, Mic, Square, Paperclip, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
+import { fuzzyMatchClient } from '@/lib/client-utils';
 
 // Search tasks use a 2-step flow (description + confirm) and a simpler prompt.
 // These IDs correspond to task.id values from tenant.enabled_output_types.
@@ -38,6 +39,8 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [uploadedFilename, setUploadedFilename] = useState('');
   const [imageAttachments, setImageAttachments] = useState([]);
+  const [clientSuggestion, setClientSuggestion] = useState(null);
+  // clientSuggestion: null | string — genormaliseerde naam ter bevestiging
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
 
@@ -115,6 +118,29 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
   const isLastStep = step === totalSteps;
 
+  function handleNext() {
+    // Fuzzy check op klantnaam bij stap 1 → stap 2
+    if (step === 1 && !isSearch && project.trim()) {
+      const match = fuzzyMatchClient(project.trim());
+      if (match && !match.confirmed) {
+        setClientSuggestion(match.suggestion);
+        return;
+      }
+    }
+    setStep((s) => s + 1);
+  }
+
+  function confirmClientSuggestion() {
+    setProject(clientSuggestion);
+    setClientSuggestion(null);
+    setStep((s) => s + 1);
+  }
+
+  function rejectClientSuggestion() {
+    setClientSuggestion(null);
+    setStep((s) => s + 1);
+  }
+
   return (
     <>
       {/* Overlay backdrop */}
@@ -146,7 +172,34 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {step === 1 && (
+          {step === 1 && clientSuggestion && (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-orange/30 bg-orange/[0.06] px-4 py-4">
+                <p className="text-[13px] text-white/80 leading-relaxed mb-1">
+                  Bedoel je <span className="font-semibold text-white">{clientSuggestion}</span>?
+                </p>
+                <p className="text-[11px] text-white/35">
+                  We herkenden een bekende klantnaam die lijkt op jouw invoer.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={confirmClientSuggestion}
+                  className="w-full h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors"
+                >
+                  Ja, gebruik {clientSuggestion}
+                </button>
+                <button
+                  onClick={rejectClientSuggestion}
+                  className="w-full h-10 rounded-xl border border-white/[0.12] text-white/60 text-[13px] hover:text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  Nee, gebruik &ldquo;{project}&rdquo;
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && !clientSuggestion && (
             <div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-semibold text-white/60 mb-2">
@@ -373,8 +426,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — verborgen tijdens client-bevestigingsstap */}
         <div className="px-5 py-4 border-t border-white/[0.06] shrink-0 space-y-2">
+          {!clientSuggestion && (
           <div className="flex gap-2">
             {step > 1 && (
               <button
@@ -386,7 +440,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             )}
             {!isLastStep ? (
               <button
-                onClick={() => setStep((s) => s + 1)}
+                onClick={handleNext}
                 disabled={step === 1 && !description.trim()}
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
@@ -402,6 +456,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
               </button>
             )}
           </div>
+          )}
           <button
             onClick={handleDirectChat}
             className="w-full text-center text-[11px] text-white/30 hover:text-white/60 transition-colors py-1"

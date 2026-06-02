@@ -5,43 +5,9 @@ import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
+import { fuzzyMatchClient } from '@/lib/client-utils';
 
 export const maxDuration = 60;
-
-// ── Fuzzy matching ─────────────────────────────────────────────────────────────
-function levenshtein(a, b) {
-  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= a.length; i++)
-    for (let j = 1; j <= b.length; j++)
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-  return dp[a.length][b.length];
-}
-
-// Bekende Chase-klanten — voeg hier nieuwe klanten toe bij onboarding
-const KNOWN_CLIENTS = [
-  'Coca-Cola', 'Red Bull', 'Oatly', 'ANWB', 'Albert Heijn', 'Nike', 'Adidas',
-  'Heineken', 'ING', 'ABN AMRO', 'Philips', 'Shell', 'Unilever', 'KPN',
-];
-
-const CANONICAL_CLIENTS = Object.fromEntries(KNOWN_CLIENTS.map(n => [n.toLowerCase(), n]));
-
-function fuzzyMatchClient(input) {
-  if (!input) return null;
-  const inputLower = input.toLowerCase().trim();
-  if (CANONICAL_CLIENTS[inputLower]) return { name: CANONICAL_CLIENTS[inputLower], confirmed: true };
-  for (const known of KNOWN_CLIENTS) {
-    const distance = levenshtein(inputLower, known.toLowerCase());
-    const threshold = Math.floor(known.length * 0.25);
-    if (distance > 0 && distance <= threshold) {
-      return { name: known, confirmed: false, suggestion: known };
-    }
-  }
-  return null;
-}
 
 // ── Client/project extractie ───────────────────────────────────────────────────
 async function extractClientProject(text) {
