@@ -75,7 +75,7 @@ export default function SharedDocView({ content, title: propTitle, expiresAt, ch
       <div className="shrink-0 h-14 flex items-center px-4 md:px-8 border-b border-white/[0.06] bg-[#111111]">
         <div className="flex-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={chaseLogoUrl || '/logos/chase-amsterdam.svg'} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain brightness-0 invert" />
+          <img src={chaseLogoUrl || '/logos/chase-amsterdam.svg'} alt="" aria-hidden="true" className="h-8 max-w-[140px] object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
         <div className="flex items-center justify-end">
           {clientLogoUrl && (
