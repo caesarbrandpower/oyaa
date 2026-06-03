@@ -17,9 +17,23 @@ export async function POST(request) {
     let text = '';
 
     if (ext === 'pdf') {
-      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
-      const result = await pdfParse(buffer);
-      text = result.text;
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(buffer),
+        useSystemFonts: true,
+        disableFontFace: true,
+      });
+      const pdf = await loadingTask.promise;
+      const pageTexts = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pageTexts.push(
+          content.items.filter(item => 'str' in item).map(item => item.str).join(' ')
+        );
+      }
+      text = pageTexts.join('\n\n');
     } else if (ext === 'docx') {
       const mammoth = await import('mammoth');
       const result = await mammoth.default.extractRawText({ buffer });
