@@ -80,21 +80,6 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
-      {/* Logo + bureau naam */}
-      <div className="px-4 py-3 flex items-center border-b border-white/[0.06]">
-        {tenant?.logo_url ? (
-          <img
-            src={tenant.logo_url}
-            alt={tenant.name}
-            className="h-6 w-auto object-contain object-left"
-          />
-        ) : (
-          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-            {tenant?.name ?? 'Waybetter'}
-          </span>
-        )}
-      </div>
-
       {/* Nieuw gesprek */}
       <div className="px-3 pt-3 pb-2">
         <button
