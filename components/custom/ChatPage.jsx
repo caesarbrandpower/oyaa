@@ -655,7 +655,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       {/* Topbalk — één wrapper, één border-b over volledige breedte */}
       <div className="flex h-16 shrink-0 border-b border-white/[0.06]">
         {/* Logo-gedeelte — zelfde breedte als sidebar */}
-        <div className="hidden lg:flex items-center px-4 shrink-0" style={{ width: sidebarWidth }}>
+        <div className="hidden lg:flex items-center px-4 shrink-0 border-r border-white/[0.06]" style={{ width: sidebarWidth }}>
           {tenant?.logo_url ? (
             <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
           ) : (
