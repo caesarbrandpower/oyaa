@@ -188,9 +188,9 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
           setPendingAttachments((prev) =>
             prev.map((a) => (a.id === id ? { ...a, content: data.text, status: 'ready' } : a))
           );
-        } catch {
+        } catch (err) {
           setPendingAttachments((prev) =>
-            prev.map((a) => (a.id === id ? { ...a, status: 'error' } : a))
+            prev.map((a) => (a.id === id ? { ...a, status: 'error', errorMsg: err?.message ?? 'Onbekende fout' } : a))
           );
         }
         continue;
@@ -258,7 +258,7 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
                 <span className="max-w-[160px] truncate">
                   {att.status === 'loading'
                     ? (att.type === 'transcript' ? 'Transcriberen...' : 'Uitlezen...')
-                    : att.status === 'error' ? 'Mislukt'
+                    : att.status === 'error' ? (att.errorMsg || 'Mislukt')
                     : att.filename}
                 </span>
                 {att.type === 'transcript' && att.status === 'loading' ? (

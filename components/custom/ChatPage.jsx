@@ -651,56 +651,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         onImprove={handleCloseDocument}
       />
     )}
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header — full viewport breedte */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
-          aria-label="Menu openen"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        {/* Tenant logo — alleen desktop, links in header */}
-        <div className="hidden lg:flex items-center shrink-0" style={{ width: sidebarWidth - 22 }}>
-          {tenant?.logo_url ? (
-            <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
-          ) : (
-            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-              {tenant?.name ?? 'Waybetter'}
-            </span>
-          )}
-        </div>
-        <div className="flex-1 flex items-center min-w-0">
-          {activeThread && (
-            titleEditing ? (
-              <input
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveTitle();
-                  if (e.key === 'Escape') setTitleEditing(false);
-                }}
-                onBlur={saveTitle}
-                autoFocus
-                className="w-full bg-transparent text-[13px] font-medium text-white outline-none border-b border-white/[0.25] py-0.5 truncate"
-              />
-            ) : (
-              <button
-                onClick={() => { setTitleDraft(activeThread.title || ''); setTitleEditing(true); }}
-                className="text-[13px] font-medium text-white/50 hover:text-white/80 transition-colors truncate max-w-full text-left"
-                title="Klik om te hernoemen"
-              >
-                {activeThread.title}
-              </button>
-            )
-          )}
-        </div>
-        <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
-      </header>
-
-      {/* Sidebar + hoofdgebied */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar */}
       <aside
         style={{ width: sidebarWidth }}
@@ -740,6 +691,42 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       {/* Hoofdgebied */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
+        {/* Header — content-balk rechts */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
+            aria-label="Menu openen"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex-1 flex items-center min-w-0">
+            {activeThread && (
+              titleEditing ? (
+                <input
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveTitle();
+                    if (e.key === 'Escape') setTitleEditing(false);
+                  }}
+                  onBlur={saveTitle}
+                  autoFocus
+                  className="w-full bg-transparent text-[13px] font-medium text-white outline-none border-b border-white/[0.25] py-0.5 truncate"
+                />
+              ) : (
+                <button
+                  onClick={() => { setTitleDraft(activeThread.title || ''); setTitleEditing(true); }}
+                  className="text-[13px] font-medium text-white/50 hover:text-white/80 transition-colors truncate max-w-full text-left"
+                  title="Klik om te hernoemen"
+                >
+                  {activeThread.title}
+                </button>
+              )
+            )}
+          </div>
+          <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+        </header>
 
         {/* Audio player — zichtbaar als de thread een opname heeft */}
         {!isEmptyState && activeThread?.audio_url && (
@@ -833,7 +820,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
           </div>
         )}
-      </div>
       </div>
     </div>
     </>
