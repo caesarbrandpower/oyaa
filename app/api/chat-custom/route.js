@@ -125,14 +125,19 @@ export async function POST(request) {
 
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });
 
-        // Verify thread ownership when threadId was provided by client
+        // Haal thread op voor ownership-check én voor klantnaam bij multi-turn
+        let threadClientFromDb = null;
+        let threadProjectFromDb = null;
         if (threadId) {
           const { data: ownedThread } = await supabase
             .from('threads')
-            .select('id')
+            .select('id, client, project')
             .eq('id', activeThreadId)
             .eq('user_id', user.id)
             .single();
+
+          threadClientFromDb = ownedThread?.client ?? null;
+          threadProjectFromDb = ownedThread?.project ?? null;
 
           if (!ownedThread) {
             writeEvent(controller, { type: 'error', error: 'Geen toegang tot dit gesprek.' });
@@ -171,7 +176,7 @@ export async function POST(request) {
 
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
-        const useStructuredPrompt = isFirstTurn && outputType && CUSTOM_PROMPTS[outputType];
+        const useStructuredPrompt = outputType && CUSTOM_PROMPTS[outputType];
 
         function buildImageBlocks(images) {
           return images.map((img) => ({
@@ -182,11 +187,21 @@ export async function POST(request) {
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          const lastUserIdx = anonParts.length - 1;
-          let promptText = CUSTOM_PROMPTS[outputType](anonParts[lastUserIdx]);
+          // Combineer alle gebruikersberichten voor volledige context (ook geüploade bestanden uit eerdere berichten)
+          const combinedUserContext = allMessages
+            .map((msg, i) => msg.role === 'user' ? (anonParts[i] ?? msg.content) : null)
+            .filter(Boolean)
+            .join('\n\n');
+          let promptText = CUSTOM_PROMPTS[outputType](combinedUserContext);
           // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
-          if (clientName) {
-            const nameRule = `KRITIEKE REGEL: De klantnaam is "${clientName}". Gebruik deze naam EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf hem NOOIT anders.\n\n`;
+          const effectiveClientName = clientName || threadClientFromDb;
+          const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
+          if (effectiveClientName || effectiveProjectName) {
+            const parts = [
+              effectiveClientName ? `De klantnaam is "${effectiveClientName}".` : null,
+              effectiveProjectName ? `De projectnaam is "${effectiveProjectName}".` : null,
+            ].filter(Boolean).join(' ');
+            const nameRule = `KRITIEKE REGEL: ${parts} Gebruik deze naam/namen EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf ze NOOIT anders.\n\n`;
             promptText = nameRule + promptText;
           }
           claudeMessages = [
