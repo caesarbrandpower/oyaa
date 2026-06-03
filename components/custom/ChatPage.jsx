@@ -709,7 +709,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       {/* Sidebar */}
       <aside
         style={{ width: sidebarWidth }}
-        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
