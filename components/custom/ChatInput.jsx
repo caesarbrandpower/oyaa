@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2 } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
-const TEXT_EXTS = ['.pdf', '.docx', '.txt', '.eml'];
+const TEXT_EXTS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
 
 function isTextFile(file) {
@@ -256,7 +256,10 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
                   <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                 )}
                 <span className="max-w-[160px] truncate">
-                  {att.status === 'loading' ? 'Transcriberen...' : att.status === 'error' ? 'Mislukt' : att.filename}
+                  {att.status === 'loading'
+                    ? (att.type === 'transcript' ? 'Transcriberen...' : 'Uitlezen...')
+                    : att.status === 'error' ? 'Mislukt'
+                    : att.filename}
                 </span>
                 {att.type === 'transcript' && att.status === 'loading' ? (
                   <button
@@ -334,7 +337,7 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
           <input
             ref={fileInputRef}
             type="file"
-            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.docx,.txt,.eml,.jpg,.jpeg,.png,.webp"
+            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.jpg,.jpeg,.png,.webp"
             multiple
             className="hidden"
             onChange={handleFileChange}
