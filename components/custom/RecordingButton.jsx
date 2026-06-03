@@ -12,18 +12,35 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// state: idle | choosing | recording | stopping | transcribing
+// state: idle | choosing | recording | stopping | client-selection | transcribing | done
 export default function RecordingButton() {
   const router = useRouter();
   const [uiState, setUiState] = useState('idle');
   const [recordingMode, setRecordingMode] = useState(null); // 'mic' | 'screen'
   const [timer, setTimer] = useState(0);
   const [statusMsg, setStatusMsg] = useState('');
-  const [blobRef] = useState({ current: null });
   const timerRef = useRef(null);
   const popupRef = useRef(null);
   const stopPopupRef = useRef(null);
+  const clientSelectionRef = useRef(null);
   const transcribingRef = useRef(false);
+  const pendingBlobRef = useRef(null); // { blob, mimeType, filename }
+  const [clientPickerValue, setClientPickerValue] = useState('');
+  const [projectPickerValue, setProjectPickerValue] = useState('');
+  const [showNewClientInput, setShowNewClientInput] = useState(false);
+  const [newClientInput, setNewClientInput] = useState('');
+  const [knownClients, setKnownClients] = useState([]);
+  const [successThread, setSuccessThread] = useState(null); // { id, title }
+
+  useEffect(() => {
+    async function fetchClients() {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data } = await supabase.from('threads').select('client').not('client', 'is', null).order('client');
+      if (data) setKnownClients([...new Set(data.map(r => r.client).filter(Boolean))]);
+    }
+    fetchClients();
+  }, []);
 
   // Sluit popup bij klik buiten
   useEffect(() => {
@@ -48,6 +65,17 @@ export default function RecordingButton() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [uiState]);
 
+  useEffect(() => {
+    if (uiState !== 'client-selection') return;
+    function handleClick(e) {
+      if (clientSelectionRef.current && !clientSelectionRef.current.contains(e.target)) {
+        // Niet afsluiten — gebruiker moet een keuze maken of overslaan
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [uiState]);
+
   // Timer tick
   useEffect(() => {
     if (uiState === 'recording') {
@@ -59,7 +87,7 @@ export default function RecordingButton() {
     return () => clearInterval(timerRef.current);
   }, [uiState]);
 
-  async function uploadAndTranscribe(blob, mimeType, filename) {
+  async function uploadAndTranscribe(blob, mimeType, filename, client = null, project = null) {
     if (transcribingRef.current) return;
     transcribingRef.current = true;
     setUiState('transcribing');
@@ -69,6 +97,8 @@ export default function RecordingButton() {
       const audioFile = new File([blob], filename, { type: mimeType });
       const formData = new FormData();
       formData.append('audio', audioFile);
+      if (client) formData.append('client', client);
+      if (project) formData.append('project', project);
 
       const res = await fetch('/api/create-recording-thread', {
         method: 'POST',
@@ -82,10 +112,9 @@ export default function RecordingButton() {
         return;
       }
 
-      setUiState('idle');
+      setSuccessThread({ id: data.threadId, title: data.title });
+      setUiState('done');
       setStatusMsg('');
-      // Open de nieuwe thread in de chat
-      router.push('/app?thread=' + data.threadId);
     } catch {
       setStatusMsg('Netwerkfout bij transcriptie.');
       setTimeout(() => { setUiState('idle'); setStatusMsg(''); }, 3000);
@@ -111,7 +140,12 @@ export default function RecordingButton() {
         micStreamRef.current?.getTracks().forEach((t) => t.stop());
         const blob = new Blob(micChunksRef.current, { type: mimeType });
         const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
-        uploadAndTranscribe(blob, mimeType, `opname.${ext}`);
+        pendingBlobRef.current = { blob, mimeType, filename: `opname.${ext}` };
+        setClientPickerValue('');
+        setProjectPickerValue('');
+        setShowNewClientInput(false);
+        setNewClientInput('');
+        setUiState('client-selection');
       };
       micRecorderRef.current = recorder;
       recorder.start();
@@ -186,14 +220,19 @@ export default function RecordingButton() {
       micStream?.getTracks().forEach((t) => t.stop());
       audioCtx.close();
       const blob = new Blob(screenChunksRef.current, { type: mimeType });
-      uploadAndTranscribe(blob, mimeType, `videocall.${ext}`);
+      pendingBlobRef.current = { blob, mimeType, filename: `videocall.${ext}` };
+      setClientPickerValue('');
+      setProjectPickerValue('');
+      setShowNewClientInput(false);
+      setNewClientInput('');
+      setUiState('client-selection');
     };
 
     // Stop als gebruiker tab-share beëindigt via browser UI
     tabAudioTracks[0].onended = () => {
       if (screenRecorderRef.current?.state === 'recording') {
         screenRecorderRef.current.stop();
-        setUiState('transcribing');
+        // onstop callback handelt de state-transitie af
       }
     };
 
@@ -215,9 +254,17 @@ export default function RecordingButton() {
   }
 
   function handleStopConfirm() {
+    // Stopt de recorder — onstop callback handelt de state-transitie naar 'client-selection' af
     if (recordingMode === 'mic') stopMicRecording();
     else stopScreenRecording();
-    setUiState('transcribing');
+  }
+
+  function handleClientConfirm(skip = false) {
+    const { blob, mimeType, filename } = pendingBlobRef.current || {};
+    if (!blob) return;
+    const client = skip ? null : (showNewClientInput ? newClientInput.trim() || null : clientPickerValue || null);
+    const project = skip ? null : (projectPickerValue.trim() || null);
+    uploadAndTranscribe(blob, mimeType, filename, client, project);
   }
 
   const isRecording = uiState === 'recording';
@@ -236,7 +283,7 @@ export default function RecordingButton() {
         disabled={isTranscribing}
         className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
           isRecording
-            ? 'bg-red-600 text-white animate-pulse'
+            ? 'bg-transparent border-2 border-orange text-white'
             : isTranscribing
             ? 'bg-white/[0.04] border border-white/[0.08] text-white/30'
             : 'bg-orange text-white hover:bg-[#e03d00]'
@@ -251,7 +298,7 @@ export default function RecordingButton() {
         ) : isRecording ? (
           <>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span className="text-[12px] font-medium tabular-nums">{formatTime(timer)}</span>
+            <span className="text-[12px] font-medium">Opname loopt...</span>
           </>
         ) : (
           <>
@@ -313,12 +360,93 @@ export default function RecordingButton() {
             <Square className="w-3.5 h-3.5" strokeWidth={2} />
             Stop opname
           </button>
-          <button
-            onClick={() => setUiState('recording')}
-            className="w-full mt-2 text-center text-[11px] text-white/30 hover:text-white/60 transition-colors py-1"
-          >
-            Doorgaan
-          </button>
+          <p className="text-[11px] text-white/30 text-center mt-2 py-1">
+            Opname loopt, stop wanneer je klaar bent.
+          </p>
+        </div>
+      )}
+
+      {/* Klantkeuze na stoppen opname */}
+      {uiState === 'client-selection' && (
+        <div
+          ref={clientSelectionRef}
+          className="absolute top-12 right-0 z-[200] w-72 bg-[#1a1a1a] border border-white/[0.10] rounded-2xl shadow-2xl p-4 space-y-3"
+        >
+          <p className="text-[12px] font-semibold text-white/70">Voor welke klant is deze opname?</p>
+          {knownClients.length > 0 && !showNewClientInput && (
+            <select
+              value={clientPickerValue}
+              onChange={(e) => {
+                if (e.target.value === '__new__') {
+                  setShowNewClientInput(true);
+                  setClientPickerValue('');
+                } else {
+                  setClientPickerValue(e.target.value);
+                }
+              }}
+              className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[12px] text-white outline-none"
+            >
+              <option value="">— Selecteer klant —</option>
+              {knownClients.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="__new__">+ Nieuwe klant invoeren</option>
+            </select>
+          )}
+          {(showNewClientInput || knownClients.length === 0) && (
+            <input
+              autoFocus
+              value={newClientInput}
+              onChange={(e) => setNewClientInput(e.target.value)}
+              placeholder="Klantnaam..."
+              className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[12px] text-white placeholder-white/25 outline-none focus:border-white/[0.25]"
+            />
+          )}
+          <input
+            value={projectPickerValue}
+            onChange={(e) => setProjectPickerValue(e.target.value)}
+            placeholder="Project — optioneel"
+            className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[12px] text-white placeholder-white/25 outline-none focus:border-white/[0.25]"
+          />
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => handleClientConfirm(false)}
+              className="flex-1 h-9 rounded-xl bg-orange text-white text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
+            >
+              Verwerken
+            </button>
+            <button
+              onClick={() => handleClientConfirm(true)}
+              className="h-9 px-3 rounded-xl border border-white/[0.10] text-white/40 text-[12px] hover:text-white/70 hover:bg-white/[0.05] transition-colors"
+            >
+              Overslaan
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bevestiging na transcriptie */}
+      {uiState === 'done' && successThread && (
+        <div className="absolute top-12 right-0 z-[200] w-72 bg-[#1a1a1a] border border-white/[0.10] rounded-2xl shadow-2xl p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[12px] font-semibold text-white/80 mb-0.5">Transcript klaar</p>
+              <button
+                onClick={() => {
+                  setUiState('idle');
+                  setSuccessThread(null);
+                  router.push('/app?thread=' + successThread.id);
+                }}
+                className="text-[12px] text-orange hover:text-orange/80 transition-colors underline underline-offset-2 text-left"
+              >
+                Bekijk in {successThread.title}
+              </button>
+            </div>
+            <button
+              onClick={() => { setUiState('idle'); setSuccessThread(null); }}
+              className="text-white/25 hover:text-white/60 transition-colors shrink-0 mt-0.5"
+            >
+              <X className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
         </div>
       )}
 

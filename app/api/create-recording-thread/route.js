@@ -32,6 +32,9 @@ export async function POST(request) {
   const audioFile = formData.get('audio');
   if (!audioFile) return Response.json({ error: 'Geen audiobestand.' }, { status: 400 });
 
+  const client = formData.get('client') || null;
+  const project = formData.get('project') || null;
+
   // Transcribeer direct via Whisper API
   const whisperFormData = new FormData();
   whisperFormData.append('file', audioFile);
@@ -60,6 +63,8 @@ export async function POST(request) {
       tenant_id: tenant?.id ?? null,
       title,
       output_type: null,
+      client: client || null,
+      project: project || null,
     })
     .select('id')
     .single();
