@@ -17,8 +17,11 @@ export async function POST(request) {
     let text = '';
 
     if (ext === 'pdf') {
+      const { createRequire } = await import('module');
+      const _require = createRequire(import.meta.url);
+      const workerSrc = _require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      pdfjs.GlobalWorkerOptions.workerSrc = '';
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
       const loadingTask = pdfjs.getDocument({
         data: new Uint8Array(arrayBuffer),
         useWorkerFetch: false,
