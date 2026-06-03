@@ -17,9 +17,33 @@ export async function POST(request) {
     let text = '';
 
     if (ext === 'pdf') {
-      const { extractText } = await import('unpdf');
-      const result = await extractText(new Uint8Array(buffer), { mergePages: true });
-      text = result.text;
+      const { extractTextItems } = await import('unpdf');
+      const result = await extractTextItems(new Uint8Array(buffer));
+      const ROW_TOLERANCE = 3;
+      const pageTexts = result.items.map((pageItems) => {
+        if (!pageItems.length) return '';
+        // Sorteer top-naar-onder (y daalt), dan links-naar-rechts binnen een rij
+        const sorted = [...pageItems]
+          .filter(item => item.str.trim())
+          .sort((a, b) => b.y - a.y || a.x - b.x);
+        const rows = [];
+        let currentRow = [];
+        let currentY = null;
+        for (const item of sorted) {
+          if (currentY === null || Math.abs(item.y - currentY) <= ROW_TOLERANCE) {
+            currentRow.push(item);
+            if (currentY === null) currentY = item.y;
+          } else {
+            rows.push(currentRow);
+            currentRow = [item];
+            currentY = item.y;
+          }
+        }
+        if (currentRow.length) rows.push(currentRow);
+        return rows.map(row => row.map(item => item.str).join(' ')).join('\n');
+      });
+      text = pageTexts.filter(Boolean).join('\n\n');
+      console.log('[extract-text] raw PDF text:\n', text);
     } else if (ext === 'docx') {
       const mammoth = await import('mammoth');
       const result = await mammoth.default.extractRawText({ buffer });
