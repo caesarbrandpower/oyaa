@@ -280,10 +280,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       }
       const userMsgId = 'user-' + Date.now();
       const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && looksLikePastedTranscript(messageText);
+      // Strip bestandsinhoud ([Bijlage: ...] en [Transcript: ...]) uit het zichtbare bericht
+      const visibleContent = displayText || taskLabel || messageText.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
       const userMsg = {
         id: userMsgId,
         role: 'user',
-        content: displayText || taskLabel || messageText,
+        content: visibleContent,
         created_at: new Date().toISOString(),
         attachments: [
           ...imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
