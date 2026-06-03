@@ -65,6 +65,6 @@ export async function POST(request) {
     return Response.json({ text: text.trim(), filename });
   } catch (err) {
     console.error('[extract-text] error:', err);
-    return Response.json({ error: 'Kon bestand niet uitlezen.' }, { status: 500 });
+    return Response.json({ error: `Fout bij uitlezen: ${err?.message ?? String(err)}` }, { status: 500 });
   }
 }

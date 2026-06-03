@@ -662,7 +662,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           <Menu className="w-5 h-5" />
         </button>
         {/* Tenant logo — alleen desktop, links in header */}
-        <div className="hidden lg:flex items-center shrink-0" style={{ width: sidebarWidth - 32 }}>
+        <div className="hidden lg:flex items-center shrink-0" style={{ width: sidebarWidth - 22 }}>
           {tenant?.logo_url ? (
             <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
           ) : (
