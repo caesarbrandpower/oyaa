@@ -661,7 +661,17 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex-1 flex items-center min-w-0 mx-2">
+        {/* Tenant logo — alleen desktop, links in header */}
+        <div className="hidden lg:flex items-center shrink-0" style={{ width: sidebarWidth - 32 }}>
+          {tenant?.logo_url ? (
+            <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
+          ) : (
+            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+              {tenant?.name ?? 'Waybetter'}
+            </span>
+          )}
+        </div>
+        <div className="flex-1 flex items-center min-w-0">
           {activeThread && (
             titleEditing ? (
               <input
