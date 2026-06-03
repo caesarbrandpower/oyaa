@@ -306,26 +306,31 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                   <span className="whitespace-pre-wrap">{msg.content}</span>
                 )}
                 {msg.attachments?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {msg.attachments.map((att, i) =>
                       att.type === 'transcript' ? (
                         <button
                           key={i}
                           onClick={() => setOpenTranscript({ filename: att.filename, content: att.content })}
-                          className="inline-flex items-center gap-1.5 text-[11px] text-white/55 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08] hover:text-white/80 rounded-lg px-2.5 py-1 transition-colors"
+                          className="inline-flex items-center gap-1.5 h-7 pl-2 pr-2.5 rounded-lg text-[11px] font-medium border bg-white/[0.06] border-white/[0.12] text-white/65 hover:bg-white/[0.10] hover:text-white/85 transition-colors"
                         >
                           <Mic2 className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-                          Transcript — {att.filename}
+                          {att.filename}
                         </button>
+                      ) : att.type === 'image' ? (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1.5 h-7 pl-2 pr-2.5 rounded-lg text-[11px] font-medium border bg-white/[0.06] border-white/[0.12] text-white/65"
+                        >
+                          <ImageIcon className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                          {att.filename}
+                        </span>
                       ) : (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-1 text-[10px] text-white/40 border border-white/[0.08] rounded-md px-1.5 py-0.5"
+                          className="inline-flex items-center gap-1.5 h-7 pl-2 pr-2.5 rounded-lg text-[11px] font-medium border bg-white/[0.06] border-white/[0.12] text-white/65"
                         >
-                          {att.type === 'image'
-                            ? <ImageIcon className="w-2.5 h-2.5" strokeWidth={1.75} />
-                            : <FileText className="w-2.5 h-2.5" strokeWidth={1.75} />
-                          }
+                          <FileText className="w-3 h-3 shrink-0" strokeWidth={1.75} />
                           {att.filename}
                         </span>
                       )

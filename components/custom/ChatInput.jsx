@@ -130,6 +130,7 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
         filename: a.filename,
         content: a.content,
       })),
+      textAttachments: textAtts.map((a) => ({ filename: a.filename })),
     });
 
     setValue('');
