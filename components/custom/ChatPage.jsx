@@ -382,7 +382,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               isDocument = event.isDocument ?? false;
 
               setMessages((prev) =>
-                prev.map(m => m.id === placeholderId ? { ...m, isDocument } : m)
+                prev.map(m => m.id === placeholderId
+                  ? { ...m, isDocument, ...(isDocument ? { bufferedStream: true } : {}) }
+                  : m)
               );
 
               if (!activeThreadRef.current) {
@@ -414,24 +416,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 content: event.content,
                 streaming: false,
                 isDocument: finalIsDocument,
+                bufferedStream: bufferedStream || finalIsDocument,
                 output_type: outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
               };
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
                 if (!finalIsDocument) return updated;
-                const additions = [{
-                  id: 'followup-' + Date.now(),
-                  role: 'assistant',
-                  type: 'followup',
-                  content: 'Klaar om het document compleet te maken? Vul direct aan via de chat hieronder, of gebruik de knop Aanvullen om alle openstaande punten langs te gaan.',
-                  streaming: false,
-                  local: true,
-                  created_at: new Date().toISOString(),
-                }];
+                const additions = [];
               if (client === null && event.detectedClient !== undefined) {
-                  const clientMsg = event.detectedClient
-                    ? `Ik sla dit op onder ${event.detectedClient}. Klopt dat, of wil je een andere map?`
+                  const effectiveClientName = event.detectedClient || client;
+                  const clientMsg = effectiveClientName
+                    ? `Ik sla dit op in de map ${effectiveClientName}. Wil je het ergens anders kwijt?`
                     : 'Ik sla dit op onder Overige. Wil je het ergens anders kwijt?';
                   additions.push({
                     id: 'client-msg-' + Date.now(),

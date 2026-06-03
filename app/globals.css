@@ -144,6 +144,10 @@ body {
   border-color: rgba(255,255,255,0.08);
   margin: 1.25rem 0;
 }
+.custom-prose.prose-chat p:last-child {
+  font-weight: 500;
+  color: rgba(255,255,255,0.95);
+}
 
 /* ── FADE-IN — buffered stream respons ── */
 @keyframes fade-in {

@@ -188,6 +188,10 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
   );
 }
 
+function stripDocMarkers(text) {
+  return text.replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '...');
+}
+
 function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel }) {
   const [expanded, setExpanded] = useState(false);
   const rawBlocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
@@ -206,7 +210,7 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
         {visibleBlocks.map((block, i) => (
           <div
             key={i}
-            dangerouslySetInnerHTML={{ __html: marked.parse(block) }}
+            dangerouslySetInnerHTML={{ __html: marked.parse(stripDocMarkers(block)) }}
           />
         ))}
       </div>
@@ -341,7 +345,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             ) : msg.streaming ? (
               (msg.isDocument || msg.bufferedStream) ? (
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
-                  {msg.bufferedStream ? 'Aan het lezen...' : 'Waybetter is aan het werk...'}
+                  {msg.isDocument ? 'Waybetter maakt je briefing...' : 'Aan het lezen...'}
                 </p>
               ) : (
                 <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
@@ -369,7 +373,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               </div>
             ) : (
               <div
-                className="custom-prose text-[14px]"
+                className="custom-prose prose-chat text-[14px]"
                 dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }}
               />
             )}
