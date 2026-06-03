@@ -35,9 +35,11 @@ function buildFolderTree(threads) {
   for (const t of threads) {
     const client = t.client || 'Overige';
     if (!tree[client]) tree[client] = { __direct: [], __projects: {} };
-    if (t.project) {
-      if (!tree[client].__projects[t.project]) tree[client].__projects[t.project] = [];
-      tree[client].__projects[t.project].push(t);
+    // Geen submap als project leeg is of gelijk aan klantnaam
+    const project = (t.project && t.project !== t.client) ? t.project : null;
+    if (project) {
+      if (!tree[client].__projects[project]) tree[client].__projects[project] = [];
+      tree[client].__projects[project].push(t);
     } else {
       tree[client].__direct.push(t);
     }

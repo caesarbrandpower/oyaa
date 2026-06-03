@@ -275,21 +275,21 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             )}
           </>
         )}
-      </div>
 
-      {/* Klantmappen */}
-      <div className="px-3 pb-2">
-        <Link
-          href="/app/docs"
-          className={`flex items-center gap-2 w-full px-2.5 py-2 text-[12px] font-medium rounded-lg border transition-colors ${
-            isDocsActive
-              ? 'bg-white/[0.08] text-white border-white/[0.12]'
-              : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
-          }`}
-        >
-          <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
-          Klantmappen
-        </Link>
+        {/* Klantmappen — binnen scrollbaar gebied zodat het altijd bereikbaar is */}
+        <div className="px-1 pt-2 pb-1">
+          <Link
+            href="/app/docs"
+            className={`flex items-center gap-2 w-full px-2.5 py-2 text-[12px] font-medium rounded-lg border transition-colors ${
+              isDocsActive
+                ? 'bg-white/[0.08] text-white border-white/[0.12]'
+                : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+            Klantmappen
+          </Link>
+        </div>
       </div>
 
       {/* Rechtermuisklik contextmenu */}
