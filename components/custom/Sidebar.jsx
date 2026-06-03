@@ -81,7 +81,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   return (
     <div className="flex flex-col h-full">
       {/* Logo + bureau naam */}
-      <div className="px-4 pt-5 pb-4 border-b border-white/[0.06]">
+      <div className="px-4 pt-5 pb-4">
         {tenant?.logo_url ? (
           <img
             src={tenant.logo_url}

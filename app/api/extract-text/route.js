@@ -17,25 +17,9 @@ export async function POST(request) {
     let text = '';
 
     if (ext === 'pdf') {
-      const { createRequire } = await import('module');
-      const _require = createRequire(import.meta.url);
-      const workerSrc = _require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
-      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-      const loadingTask = pdfjs.getDocument({
-        data: new Uint8Array(arrayBuffer),
-        useWorkerFetch: false,
-        isEvalSupported: false,
-        useSystemFonts: true,
-      });
-      const pdf = await loadingTask.promise;
-      const pageTexts = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        pageTexts.push(content.items.map((item) => item.str).join(' '));
-      }
-      text = pageTexts.join('\n\n');
+      const pdfParse = (await import('pdf-parse')).default;
+      const result = await pdfParse(buffer);
+      text = result.text;
     } else if (ext === 'docx') {
       const mammoth = await import('mammoth');
       const result = await mammoth.default.extractRawText({ buffer });
