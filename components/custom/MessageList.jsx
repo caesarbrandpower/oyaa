@@ -339,9 +339,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 )}
               </>
             ) : msg.streaming ? (
-              msg.isDocument ? (
+              (msg.isDocument || msg.bufferedStream) ? (
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
-                  Waybetter is aan het werk...
+                  {msg.bufferedStream ? 'Aan het lezen...' : 'Waybetter is aan het werk...'}
                 </p>
               ) : (
                 <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">

@@ -323,9 +323,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const placeholderIsDoc = prevHasDoc || (effectiveType
         ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
         : false);
+      const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0;
       setMessages((prev) => [
         ...prev,
-        { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '' },
+        { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream },
       ]);
 
       const controller = new AbortController();
