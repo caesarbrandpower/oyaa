@@ -1,19 +1,6 @@
 // app/api/extract-text/route.js
 export const runtime = 'nodejs';
 
-// pdfjs-dist verwacht browser-globals die niet bestaan in Node.js serverless
-if (typeof globalThis.DOMMatrix === 'undefined') {
-  globalThis.DOMMatrix = class DOMMatrix {
-    constructor() { return new Proxy(this, { get: () => 0 }); }
-  };
-}
-if (typeof globalThis.Path2D === 'undefined') {
-  globalThis.Path2D = class Path2D {};
-}
-if (typeof globalThis.ImageData === 'undefined') {
-  globalThis.ImageData = class ImageData {};
-}
-
 const MAX_CHARS = 12000;
 
 export async function POST(request) {
@@ -30,23 +17,9 @@ export async function POST(request) {
     let text = '';
 
     if (ext === 'pdf') {
-      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-      const loadingTask = pdfjsLib.getDocument({
-        data: new Uint8Array(buffer),
-        useSystemFonts: true,
-        disableFontFace: true,
-      });
-      const pdf = await loadingTask.promise;
-      const pageTexts = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        pageTexts.push(
-          content.items.filter(item => 'str' in item).map(item => item.str).join(' ')
-        );
-      }
-      text = pageTexts.join('\n\n');
+      const { extractText } = await import('unpdf');
+      const result = await extractText(new Uint8Array(buffer), { mergePages: true });
+      text = result.text;
     } else if (ext === 'docx') {
       const mammoth = await import('mammoth');
       const result = await mammoth.default.extractRawText({ buffer });

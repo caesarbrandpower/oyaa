@@ -651,11 +651,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         onImprove={handleCloseDocument}
       />
     )}
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Topbalk — één wrapper, één border-b over volledige breedte */}
-      <div className="flex h-16 shrink-0 border-b border-white/[0.06]">
-        {/* Logo-gedeelte — zelfde breedte als sidebar */}
-        <div className="hidden lg:flex items-center px-4 shrink-0 border-r border-white/[0.06]" style={{ width: sidebarWidth }}>
+    <div className="flex h-full overflow-hidden">
+      {/* Desktop linkerkolom — logo + sidebar, één border-r */}
+      <div
+        className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06]"
+        style={{ width: sidebarWidth }}
+      >
+        <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
           {tenant?.logo_url ? (
             <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
           ) : (
@@ -664,10 +666,61 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </span>
           )}
         </div>
-        {/* Spacer ter breedte van drag handle */}
-        <div className="hidden lg:block w-1.5 shrink-0" />
-        {/* Content-header */}
-        <div className="flex flex-1 items-center gap-3 px-4">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Sidebar
+            tenant={tenant}
+            user={user}
+            threads={threads}
+            activeThreadId={activeThread?.id}
+            onNewThread={handleNewThread}
+            onSelectThread={handleSelectThread}
+            onRenameThread={handleRenameThread}
+            onDeleteThread={handleDeleteThread}
+            projects={projects}
+          />
+        </div>
+      </div>
+
+      {/* Drag handle sidebar resize — alleen desktop */}
+      <div
+        onMouseDown={startResize}
+        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
+        title="Sleep om sidebar te resizen"
+      >
+        <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover/resize:bg-orange/40 transition-colors" />
+      </div>
+
+      {/* Mobile sidebar — fixed overlay */}
+      <aside
+        style={{ width: sidebarWidth }}
+        className={`fixed inset-y-0 left-0 z-40 lg:hidden bg-[#111111] transition-transform duration-200 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <Sidebar
+          tenant={tenant}
+          user={user}
+          threads={threads}
+          activeThreadId={activeThread?.id}
+          onNewThread={handleNewThread}
+          onSelectThread={handleSelectThread}
+          onRenameThread={handleRenameThread}
+          onDeleteThread={handleDeleteThread}
+          projects={projects}
+        />
+      </aside>
+
+      {/* Overlay mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Rechterkolom — header + content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
@@ -702,49 +755,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           </div>
           <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
         </div>
-      </div>
-
-      {/* Sidebar + hoofdgebied */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Sidebar */}
-      <aside
-        style={{ width: sidebarWidth }}
-        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <Sidebar
-          tenant={tenant}
-          user={user}
-          threads={threads}
-          activeThreadId={activeThread?.id}
-          onNewThread={handleNewThread}
-          onSelectThread={handleSelectThread}
-          onRenameThread={handleRenameThread}
-          onDeleteThread={handleDeleteThread}
-          projects={projects}
-        />
-      </aside>
-
-      {/* Drag handle sidebar resize — alleen desktop */}
-      <div
-        onMouseDown={startResize}
-        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
-        title="Sleep om sidebar te resizen"
-      >
-        <div className="absolute inset-y-0 left-0 w-px bg-white/[0.06] group-hover/resize:bg-orange/40 transition-colors" />
-      </div>
-
-      {/* Overlay mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Hoofdgebied */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
         {/* Audio player — zichtbaar als de thread een opname heeft */}
         {!isEmptyState && activeThread?.audio_url && (
