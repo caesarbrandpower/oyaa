@@ -279,7 +279,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         isConfirmationResponse = true;
       }
       const userMsgId = 'user-' + Date.now();
-      const isPastedTranscript = !displayText && !taskLabel && looksLikePastedTranscript(messageText);
+      const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && looksLikePastedTranscript(messageText);
       const userMsg = {
         id: userMsgId,
         role: 'user',
