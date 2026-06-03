@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Mic, Monitor, Square, X } from 'lucide-react';
 import { useAudioTranscription } from '@/lib/use-audio';
 
@@ -26,7 +27,6 @@ export default function RecordingButton() {
   const transcribingRef = useRef(false);
   const pendingBlobRef = useRef(null); // { blob, mimeType, filename }
   const [clientPickerValue, setClientPickerValue] = useState('');
-  const [projectPickerValue, setProjectPickerValue] = useState('');
   const [showNewClientInput, setShowNewClientInput] = useState(false);
   const [newClientInput, setNewClientInput] = useState('');
   const [knownClients, setKnownClients] = useState([]);
@@ -142,7 +142,6 @@ export default function RecordingButton() {
         const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
         pendingBlobRef.current = { blob, mimeType, filename: `opname.${ext}` };
         setClientPickerValue('');
-        setProjectPickerValue('');
         setShowNewClientInput(false);
         setNewClientInput('');
         setUiState('client-selection');
@@ -222,7 +221,6 @@ export default function RecordingButton() {
       const blob = new Blob(screenChunksRef.current, { type: mimeType });
       pendingBlobRef.current = { blob, mimeType, filename: `videocall.${ext}` };
       setClientPickerValue('');
-      setProjectPickerValue('');
       setShowNewClientInput(false);
       setNewClientInput('');
       setUiState('client-selection');
@@ -263,8 +261,7 @@ export default function RecordingButton() {
     const { blob, mimeType, filename } = pendingBlobRef.current || {};
     if (!blob) return;
     const client = skip ? null : (showNewClientInput ? newClientInput.trim() || null : clientPickerValue || null);
-    const project = skip ? null : (projectPickerValue.trim() || null);
-    uploadAndTranscribe(blob, mimeType, filename, client, project);
+    uploadAndTranscribe(blob, mimeType, filename, client, 'Audiobestanden');
   }
 
   const isRecording = uiState === 'recording';
@@ -277,8 +274,6 @@ export default function RecordingButton() {
         onClick={() => {
           if (uiState === 'idle') setUiState('choosing');
           else if (uiState === 'choosing') setUiState('idle');
-          else if (uiState === 'recording') setUiState('stopping');
-          else if (uiState === 'stopping') setUiState('recording');
         }}
         disabled={isTranscribing}
         className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -307,6 +302,20 @@ export default function RecordingButton() {
           </>
         )}
       </button>
+
+      {/* Aparte stop-knop tijdens opname */}
+      {(uiState === 'recording' || uiState === 'stopping') && (
+        <button
+          onClick={() => {
+            if (uiState === 'recording') setUiState('stopping');
+            else setUiState('recording');
+          }}
+          className="ml-1.5 w-7 h-7 rounded-full border border-white/[0.15] bg-white/[0.04] flex items-center justify-center text-white/50 hover:text-white/80 hover:bg-white/[0.08] transition-colors shrink-0"
+          title="Opname stoppen"
+        >
+          <Square className="w-3 h-3" strokeWidth={2} />
+        </button>
+      )}
 
       {/* Keuze-popup: Gesprek / Videocall */}
       {uiState === 'choosing' && (
@@ -429,16 +438,13 @@ export default function RecordingButton() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-[12px] font-semibold text-white/80 mb-0.5">Transcript klaar</p>
-              <button
-                onClick={() => {
-                  setUiState('idle');
-                  setSuccessThread(null);
-                  router.push('/app?thread=' + successThread.id);
-                }}
-                className="text-[12px] text-orange hover:text-orange/80 transition-colors underline underline-offset-2 text-left"
+              <Link
+                href={'/app?thread=' + successThread.id}
+                onClick={() => { setUiState('idle'); setSuccessThread(null); }}
+                className="text-[12px] text-orange hover:text-orange/80 transition-colors underline underline-offset-2"
               >
                 Bekijk in {successThread.title}
-              </button>
+              </Link>
             </div>
             <button
               onClick={() => { setUiState('idle'); setSuccessThread(null); }}

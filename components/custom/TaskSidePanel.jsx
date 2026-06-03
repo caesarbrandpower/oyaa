@@ -382,6 +382,25 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   className="hidden"
                   onChange={handleFileChange}
                 />
+                {uploadedFilename && (
+                  <div className="flex items-center gap-1 bg-white/[0.06] rounded-lg px-2.5 py-1">
+                    {transcribing ? (
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-orange/70 rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <Check className="w-3 h-3 text-orange/70 shrink-0" strokeWidth={2.5} />
+                    )}
+                    <span className="text-[11px] text-white/50 truncate max-w-[120px]">{uploadedFilename}</span>
+                    {!transcribing && (
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFilename('')}
+                        className="text-white/25 hover:text-white/60 transition-colors ml-0.5"
+                      >
+                        <X className="w-3 h-3" strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={toggleRecording}

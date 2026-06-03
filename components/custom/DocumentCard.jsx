@@ -132,6 +132,7 @@ export default function DocumentCard({
   }
 
   return (
+    <>
     <div className="mt-2 border border-white/[0.10] rounded-xl p-4 bg-white/[0.03] max-w-lg">
       <div className="flex items-start gap-3">
         <div className="shrink-0 w-8 h-8 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center mt-0.5">
@@ -194,5 +195,9 @@ export default function DocumentCard({
         </button>
       </div>
     </div>
+    <p className="text-[11px] text-white/30 mt-1.5 max-w-lg leading-relaxed">
+      Waybetter kan fouten maken. Lees het document altijd even na voordat je het verstuurt.
+    </p>
+    </>
   );
 }

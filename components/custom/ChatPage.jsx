@@ -698,7 +698,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             <div className="flex items-center justify-center min-h-full">
             <div className="w-full max-w-2xl px-4 md:px-8 py-12">
               <h1 className="font-[family-name:var(--font-lexend)] text-2xl md:text-3xl font-bold text-white mb-8">
-                Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Wat ga je vandaag maken?
+                Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je vandaag helpen?
               </h1>
               <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
