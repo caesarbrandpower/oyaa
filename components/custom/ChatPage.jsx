@@ -684,7 +684,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       {/* Drag handle sidebar resize — alleen desktop */}
       <div
         onMouseDown={startResize}
-        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
+        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative border-b border-white/[0.06]"
         title="Sleep om sidebar te resizen"
       >
         <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover/resize:bg-orange/40 transition-colors" />
