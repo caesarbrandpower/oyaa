@@ -289,7 +289,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             className={
               msg.role === 'user'
                 ? 'max-w-[75%] bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3 text-[14px] text-white/90 leading-relaxed'
-                : 'flex-1'
+                : `flex-1${!msg.streaming && msg.bufferedStream ? ' animate-fade-in' : ''}`
             }
           >
             {msg.role === 'user' ? (

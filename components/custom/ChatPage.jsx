@@ -8,7 +8,7 @@ import Sidebar from './Sidebar';
 import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
-import { DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
+import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
 
 function looksLikePastedTranscript(text) {
   if (text.length < 500) return false;
@@ -457,6 +457,26 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   setThreads((prev) => prev.map((t) => t.id === currentThreadId
                     ? { ...t, client: newClient, project: newProject }
                     : t));
+                }
+              }
+              // Auto-titel: "[Klant] — [Type]" zodra client + outputType bekend zijn, vóór document-generatie
+              if (!finalIsDocument && currentThreadId) {
+                const effectiveClient = client || activeThreadRef.current?.client;
+                const effectiveOutputType = outputType || activeThreadRef.current?.output_type;
+                const typeLabel = effectiveOutputType ? OUTPUT_TYPE_INFO[effectiveOutputType]?.label : null;
+                if (effectiveClient && typeLabel) {
+                  const newTitle = `${effectiveClient} — ${typeLabel}`;
+                  fetch(`/api/threads/${currentThreadId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle }),
+                  }).catch(() => {});
+                  setThreads(prev => prev.map(t => t.id === currentThreadId ? { ...t, title: newTitle } : t));
+                  if (activeThreadRef.current?.id === currentThreadId) {
+                    const updated = { ...activeThreadRef.current, title: newTitle };
+                    activeThreadRef.current = updated;
+                    setActiveThread(updated);
+                  }
                 }
               }
               setSendingState(false);

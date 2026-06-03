@@ -145,6 +145,15 @@ body {
   margin: 1.25rem 0;
 }
 
+/* ── FADE-IN — buffered stream respons ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out;
+}
+
 /* ── MARKER PULSE — kaart → document highlight ── */
 @keyframes marker-pulse {
   0%   { outline: 2px solid transparent; outline-offset: 3px; }
