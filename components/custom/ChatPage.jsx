@@ -555,6 +555,57 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   const isEmptyState = messages.length === 0 && !sending;
 
+  // --- Opname loading state ---
+  const [recordingPending, setRecordingPending] = useState(false);
+  const [recordingProgress, setRecordingProgress] = useState(0);
+  const recordingProgressRef = useRef(null);
+
+  function handleRecordingStart() {
+    setRecordingPending(true);
+    setRecordingProgress(0);
+    // Simuleer voortgang: 0 → 88% in ~55 seconden
+    recordingProgressRef.current = setInterval(() => {
+      setRecordingProgress(p => {
+        const next = p + (88 / 55);
+        return next >= 88 ? 88 : next;
+      });
+    }, 1000);
+  }
+
+  async function handleRecordingComplete({ threadId, title, transcript }) {
+    clearInterval(recordingProgressRef.current);
+    setRecordingProgress(100);
+
+    const { createClient } = await import('@/lib/supabase-browser');
+    const supabase = createClient();
+    const { data: thread } = await supabase
+      .from('threads')
+      .select('id, title, output_type, client, project, field_briefing_extras, created_at, updated_at, audio_url')
+      .eq('id', threadId)
+      .single();
+
+    if (thread) {
+      setActiveThreadBoth(thread);
+      setBriefingExtras(thread.field_briefing_extras || {});
+      setThreads(prev => prev.some(t => t.id === thread.id) ? prev : [thread, ...prev]);
+    }
+
+    // Toon transcript als user-bericht (direct uit response, niet streaming)
+    setMessages([{
+      id: 'recording-' + threadId,
+      role: 'user',
+      content: transcript,
+      created_at: new Date().toISOString(),
+      attachments: [],
+      isRecordingTranscript: true,
+    }]);
+
+    setTimeout(() => {
+      setRecordingPending(false);
+      setRecordingProgress(0);
+    }, 300);
+  }
+
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window === 'undefined') return 200;
     const saved = parseInt(localStorage.getItem('sidebar-width') || '', 10);
@@ -600,7 +651,46 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         onImprove={handleCloseDocument}
       />
     )}
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header — full viewport breedte */}
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
+          aria-label="Menu openen"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex-1 flex items-center min-w-0 mx-2">
+          {activeThread && (
+            titleEditing ? (
+              <input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveTitle();
+                  if (e.key === 'Escape') setTitleEditing(false);
+                }}
+                onBlur={saveTitle}
+                autoFocus
+                className="w-full bg-transparent text-[13px] font-medium text-white outline-none border-b border-white/[0.25] py-0.5 truncate"
+              />
+            ) : (
+              <button
+                onClick={() => { setTitleDraft(activeThread.title || ''); setTitleEditing(true); }}
+                className="text-[13px] font-medium text-white/50 hover:text-white/80 transition-colors truncate max-w-full text-left"
+                title="Klik om te hernoemen"
+              >
+                {activeThread.title}
+              </button>
+            )
+          )}
+        </div>
+        <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+      </header>
+
+      {/* Sidebar + hoofdgebied */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Sidebar */}
       <aside
         style={{ width: sidebarWidth }}
@@ -639,43 +729,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       )}
 
       {/* Hoofdgebied */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden" style={{ zoom: 1.1 }}>
-        {/* Header — altijd zichtbaar */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
-            aria-label="Menu openen"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex-1 flex items-center min-w-0 mx-2">
-            {activeThread && (
-              titleEditing ? (
-                <input
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveTitle();
-                    if (e.key === 'Escape') setTitleEditing(false);
-                  }}
-                  onBlur={saveTitle}
-                  autoFocus
-                  className="w-full bg-transparent text-[13px] font-medium text-white outline-none border-b border-white/[0.25] py-0.5 truncate"
-                />
-              ) : (
-                <button
-                  onClick={() => { setTitleDraft(activeThread.title || ''); setTitleEditing(true); }}
-                  className="text-[13px] font-medium text-white/50 hover:text-white/80 transition-colors truncate max-w-full text-left"
-                  title="Klik om te hernoemen"
-                >
-                  {activeThread.title}
-                </button>
-              )
-            )}
-          </div>
-          <RecordingButton />
-        </header>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
         {/* Audio player — zichtbaar als de thread een opname heeft */}
         {!isEmptyState && activeThread?.audio_url && (
@@ -694,10 +748,25 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
         {/* Chat content */}
         <div className="flex-1 overflow-y-auto">
-          {isEmptyState ? (
+          {recordingPending ? (
+            /* Opname wordt verwerkt — laadscherm */
+            <div className="flex items-center justify-center min-h-full">
+              <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
+                <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
+                <p className="text-[15px] font-medium text-white/70 mb-2">Transcript wordt gemaakt...</p>
+                <p className="text-[12px] text-white/30 mb-6">Dit duurt gewoonlijk 20 tot 60 seconden.</p>
+                <div className="w-full bg-white/[0.08] rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-1.5 rounded-full bg-orange transition-all duration-1000"
+                    style={{ width: `${recordingProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : isEmptyState ? (
             <div className="flex items-center justify-center min-h-full">
             <div className="w-full max-w-2xl px-4 md:px-8 py-12">
-              <h1 className="font-[family-name:var(--font-lexend)] text-xl font-semibold text-white/60 mb-8">
+              <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-medium text-white/60 mb-8">
                 Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je helpen?
               </h1>
               <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
@@ -709,6 +778,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
             </div>
           ) : (
+            <>
             <MessageList
               messages={messages}
               sending={sending}
@@ -732,17 +802,28 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 });
               }}
             />
+            {/* Na transcript van opname: directe actieknoppen */}
+            {outputTypes.length > 0 && activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
+              <div className="px-4 md:px-8 py-6">
+                <div className="max-w-3xl mx-auto">
+                  <p className="text-[13px] text-white/40 mb-4">Wat wil je hiermee maken?</p>
+                  <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
 
-        {/* Input onderaan (alleen als er al berichten zijn) */}
-        {!isEmptyState && (
+        {/* Input onderaan (alleen als er al berichten zijn en niet in laadscherm) */}
+        {!isEmptyState && !recordingPending && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
               <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
     </>

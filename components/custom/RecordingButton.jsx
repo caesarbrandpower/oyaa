@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { Mic, Square, X } from 'lucide-react';
 
 function formatTime(seconds) {
@@ -11,8 +10,8 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// state: idle | recording | client-selection | transcribing | done
-export default function RecordingButton() {
+// state: idle | recording | client-selection | done
+export default function RecordingButton({ onRecordingStart, onRecordingComplete }) {
   const [uiState, setUiState] = useState('idle');
   const [timer, setTimer] = useState(0);
   const [statusMsg, setStatusMsg] = useState('');
@@ -24,7 +23,6 @@ export default function RecordingButton() {
   const [showNewClientInput, setShowNewClientInput] = useState(false);
   const [newClientInput, setNewClientInput] = useState('');
   const [knownClients, setKnownClients] = useState([]);
-  const [successThread, setSuccessThread] = useState(null); // { id, title }
 
   useEffect(() => {
     async function fetchClients() {
@@ -35,19 +33,6 @@ export default function RecordingButton() {
     }
     fetchClients();
   }, []);
-
-  // Sluit done-popup bij klik buiten
-  useEffect(() => {
-    if (uiState !== 'done') return;
-    function handleClick(e) {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        setUiState('idle');
-        setSuccessThread(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [uiState]);
 
   // Timer tick
   useEffect(() => {
@@ -63,7 +48,6 @@ export default function RecordingButton() {
   async function uploadAndTranscribe(blob, mimeType, filename, client = null) {
     if (transcribingRef.current) return;
     transcribingRef.current = true;
-    setUiState('transcribing');
 
     try {
       const audioFile = new File([blob], filename, { type: mimeType });
@@ -80,15 +64,14 @@ export default function RecordingButton() {
 
       if (data.error) {
         setStatusMsg('Fout: ' + data.error);
-        setTimeout(() => { setUiState('idle'); setStatusMsg(''); }, 3000);
+        setTimeout(() => setStatusMsg(''), 4000);
         return;
       }
 
-      setSuccessThread({ id: data.threadId, title: data.title });
-      setUiState('done');
+      onRecordingComplete?.({ threadId: data.threadId, title: data.title, transcript: data.transcript });
     } catch {
       setStatusMsg('Netwerkfout bij transcriptie.');
-      setTimeout(() => { setUiState('idle'); setStatusMsg(''); }, 3000);
+      setTimeout(() => setStatusMsg(''), 4000);
     } finally {
       transcribingRef.current = false;
     }
@@ -136,34 +119,26 @@ export default function RecordingButton() {
     const { blob, mimeType, filename } = pendingBlobRef.current || {};
     if (!blob) return;
     const client = skip ? null : (showNewClientInput ? newClientInput.trim() || null : clientPickerValue || null);
+    setUiState('idle');
+    onRecordingStart?.();
     uploadAndTranscribe(blob, mimeType, filename, client);
   }
 
   const isRecording = uiState === 'recording';
-  const isTranscribing = uiState === 'transcribing';
-  const isActive = isRecording || uiState === 'client-selection';
 
   return (
-    <div className="relative flex items-center" style={{ zoom: `${1 / 1.1}` }}>
+    <div className="relative flex items-center">
       {/* Hoofd opname-knop */}
       <button
         onClick={() => { if (uiState === 'idle') startMicRecording(); }}
-        disabled={isTranscribing || uiState === 'client-selection'}
-        className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all disabled:cursor-not-allowed ${
-          isActive
-            ? 'bg-transparent border-2 border-orange text-white'
-            : isTranscribing
-            ? 'bg-white/[0.04] border border-white/[0.08] text-white/30 opacity-50'
+        className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all ${
+          isRecording
+            ? 'bg-transparent border-2 border-orange text-white cursor-default'
             : 'bg-orange text-white hover:bg-[#e03d00]'
         }`}
-        title={isActive ? 'Opname bezig' : 'Opname starten'}
+        title={isRecording ? 'Opname bezig' : 'Opname starten'}
       >
-        {isTranscribing ? (
-          <>
-            <div className="w-3 h-3 border-2 border-white/30 border-t-white/60 rounded-full animate-spin" />
-            <span className="text-[12px] font-medium">Verwerken...</span>
-          </>
-        ) : isActive ? (
+        {isRecording ? (
           <>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
             <span className="text-[12px] font-medium">Opname loopt...</span>
@@ -249,34 +224,13 @@ export default function RecordingButton() {
         </div>
       )}
 
-      {/* Bevestiging na transcriptie */}
-      {uiState === 'done' && successThread && (
-        <div ref={popupRef} className="absolute top-12 right-0 z-[200] w-72 bg-[#1a1a1a] border border-white/[0.10] rounded-2xl shadow-2xl p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[12px] font-semibold text-white/80 mb-0.5">Transcript klaar</p>
-              <Link
-                href={'/app?thread=' + successThread.id}
-                onClick={() => { setUiState('idle'); setSuccessThread(null); }}
-                className="text-[12px] text-orange hover:text-orange/80 transition-colors underline underline-offset-2"
-              >
-                Bekijk gesprek
-              </Link>
-            </div>
-            <button
-              onClick={() => { setUiState('idle'); setSuccessThread(null); }}
-              className="text-white/25 hover:text-white/60 transition-colors shrink-0 mt-0.5"
-            >
-              <X className="w-4 h-4" strokeWidth={2} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Statusbericht (bijv. microfoon-fout) */}
+      {/* Foutmelding */}
       {statusMsg && (
         <div className="absolute top-12 right-0 z-[200] w-72 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-xl px-4 py-3 text-[12px] text-white/60">
           {statusMsg}
+          <button onClick={() => setStatusMsg('')} className="absolute top-2 right-2 text-white/25 hover:text-white/60">
+            <X className="w-3.5 h-3.5" strokeWidth={2} />
+          </button>
         </div>
       )}
     </div>
