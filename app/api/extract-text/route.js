@@ -1,6 +1,19 @@
 // app/api/extract-text/route.js
 export const runtime = 'nodejs';
 
+// pdfjs-dist verwacht browser-globals die niet bestaan in Node.js serverless
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() { return new Proxy(this, { get: () => 0 }); }
+  };
+}
+if (typeof globalThis.Path2D === 'undefined') {
+  globalThis.Path2D = class Path2D {};
+}
+if (typeof globalThis.ImageData === 'undefined') {
+  globalThis.ImageData = class ImageData {};
+}
+
 const MAX_CHARS = 12000;
 
 export async function POST(request) {
