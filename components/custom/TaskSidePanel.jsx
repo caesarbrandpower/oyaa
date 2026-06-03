@@ -378,7 +378,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.mp3,.m4a,.wav,.ogg"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -470,14 +470,16 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                 Overzicht
               </label>
               <div className="space-y-3">
+                {(isSearch || description.trim()) && (
                 <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
                   <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">
-                    {isSearch ? 'Zoekopdracht' : 'Opdracht'}
+                    {isSearch ? 'Zoekopdracht' : 'Omschrijving of achtergrond'}
                   </p>
                   <p className="text-[13px] text-white/75 leading-relaxed">
-                    {description || <span className="text-white/30 italic">Niet ingevuld</span>}
+                    {description}
                   </p>
                 </div>
+              )}
                 {!isSearch && clientInput.trim() && (
                   <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
                     <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1">Klant</p>

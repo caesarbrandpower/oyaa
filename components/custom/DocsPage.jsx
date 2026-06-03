@@ -35,8 +35,8 @@ function buildFolderTree(threads) {
   for (const t of threads) {
     const client = t.client || 'Overige';
     if (!tree[client]) tree[client] = { __direct: [], __projects: {} };
-    // Geen submap als project leeg is of gelijk aan klantnaam
-    const project = (t.project && t.project !== t.client) ? t.project : null;
+    // Geen submap als project leeg is of (case-insensitief) gelijk aan klantnaam
+    const project = (t.project && t.project.toLowerCase().trim() !== (t.client || '').toLowerCase().trim()) ? t.project : null;
     if (project) {
       if (!tree[client].__projects[project]) tree[client].__projects[project] = [];
       tree[client].__projects[project].push(t);
@@ -655,15 +655,6 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                             ? <FolderOpen className="w-4 h-4 text-orange/70 shrink-0" strokeWidth={1.5} />
                             : <Folder className="w-4 h-4 text-white/30 shrink-0" strokeWidth={1.5} />
                           }
-                          {clientLogos[clientName] && (
-                            <img
-                              src={clientLogos[clientName]}
-                              alt=""
-                              aria-hidden="true"
-                              className="h-4 max-w-[48px] object-contain shrink-0"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
-                          )}
                           <span className="flex-1 text-[13px] font-semibold text-white/80">{clientName}</span>
                           <span className="text-[11px] text-white/25 mr-2">{totalDocs}</span>
                           {isOpen
@@ -686,7 +677,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                             />
                             <button
                               onClick={(e) => { e.stopPropagation(); logoInputRefs.current[clientName]?.click(); }}
-                              title="Logo uploaden"
+                              title="Logo uploaden — PNG of SVG, minimaal 400px breed, voor de beste kwaliteit in documenten"
                               className="opacity-0 group-hover/folder:opacity-100 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
                             >
                               <Camera className="w-3.5 h-3.5" strokeWidth={1.5} />
