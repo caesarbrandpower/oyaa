@@ -392,7 +392,8 @@ export async function POST(request) {
         controller.close();
 
         // updated_at op de achtergrond — blokt done event niet
-        supabase.from('threads').update({ updated_at: new Date().toISOString() }).eq('id', activeThreadId).catch(() => {});
+        // Supabase geeft een PromiseLike terug zonder .catch() — gebruik .then(null, handler)
+        supabase.from('threads').update({ updated_at: new Date().toISOString() }).eq('id', activeThreadId).then(null, () => {});
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
