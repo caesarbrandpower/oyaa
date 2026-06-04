@@ -382,10 +382,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
             if (event.type === 'meta') {
               isDocument = event.isDocument ?? false;
+              const metaOutputType = event.outputType ?? null;
 
               setMessages((prev) =>
                 prev.map(m => m.id === placeholderId
-                  ? { ...m, isDocument, ...(isDocument ? { bufferedStream: true } : {}) }
+                  ? { ...m, isDocument, ...(isDocument ? { bufferedStream: true } : {}), ...(metaOutputType ? { output_type: metaOutputType } : {}) }
                   : m)
               );
 
@@ -393,7 +394,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const newThread = {
                   id: event.threadId,
                   title: displayText || taskLabel || messageText.slice(0, 60),
-                  output_type: outputType,
+                  output_type: outputType ?? metaOutputType,
                   client: client ?? null,
                   project: null,
                   created_at: new Date().toISOString(),
@@ -401,6 +402,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 };
                 setActiveThreadBoth(newThread);
                 setThreads((prev) => [newThread, ...prev]);
+              } else if (metaOutputType && !activeThreadRef.current.output_type) {
+                const updated = { ...activeThreadRef.current, output_type: metaOutputType };
+                activeThreadRef.current = updated;
+                setActiveThread(updated);
+                setThreads((prev) => prev.map(t => t.id === updated.id ? { ...t, output_type: metaOutputType } : t));
               }
             } else if (event.type === 'chunk') {
               setMessages((prev) =>
@@ -419,7 +425,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 streaming: false,
                 isDocument: finalIsDocument,
                 bufferedStream: bufferedStream || finalIsDocument,
-                output_type: outputType ?? activeThreadRef.current?.output_type ?? null,
+                output_type: outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
               };
               setMessages((prev) => {
@@ -442,21 +448,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }
                 return [...updated, ...additions];
               });
-              // detectedClient/Project buiten setMessages updater — nooit side effects in een pure updater
-              // Altijd client én project samen opslaan — nooit los van elkaar
+              // detectedClient/Project/outputType buiten setMessages updater — nooit side effects in een pure updater
               const currentThreadId = activeThreadRef.current?.id;
               if (currentThreadId) {
                 const hasClient = event.detectedClient !== undefined;
-                const hasProject = event.detectedProject != null; // != dekt zowel null als undefined
-                if (hasClient || hasProject) {
-                  // Nooit bestaande client wissen met null — alleen updaten als detectedClient non-null is
+                const hasProject = event.detectedProject != null;
+                const hasOutputType = event.outputType && !activeThreadRef.current?.output_type;
+                if (hasClient || hasProject || hasOutputType) {
                   const newClient = (event.detectedClient != null)
                     ? event.detectedClient
                     : (activeThreadRef.current?.client ?? null);
                   const newProject = event.detectedProject ?? null;
-                  setActiveThreadBoth({ ...activeThreadRef.current, client: newClient, project: newProject });
+                  const newOutputType = event.outputType ?? activeThreadRef.current?.output_type ?? null;
+                  setActiveThreadBoth({ ...activeThreadRef.current, client: newClient, project: newProject, output_type: newOutputType });
                   setThreads((prev) => prev.map((t) => t.id === currentThreadId
-                    ? { ...t, client: newClient, project: newProject }
+                    ? { ...t, client: newClient, project: newProject, output_type: newOutputType }
                     : t));
                 }
               }

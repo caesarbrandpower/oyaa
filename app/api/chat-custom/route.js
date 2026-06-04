@@ -144,11 +144,8 @@ export async function POST(request) {
           threadOutputTypeFromDb = ownedThread.output_type ?? null;
         }
 
-        // Bereken isDocument met volledige info (inclusief thread output_type als fallback)
-        const effectiveOutputType = outputType || threadOutputTypeFromDb;
-        const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc;
-
-        writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });
+        // effectiveOutputType — wordt later verfijnd met auto-detectie als onbekend
+        let effectiveOutputType = outputType || threadOutputTypeFromDb;
 
         const { error: userMsgError } = await supabase
           .from('messages')
@@ -180,7 +177,36 @@ export async function POST(request) {
 
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
+
+        // Auto-detecteer outputType als onbekend — haiku classificeert op gesprekcontext
+        if (!effectiveOutputType) {
+          try {
+            const VALID_OUTPUT_TYPES = ['account-to-pm', 'account-to-creation', 'field-briefing', 'meeting-summary', 'external-debrief'];
+            const detectAnthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+            const recentContext = allMessages.slice(-6)
+              .map(m => `${m.role === 'user' ? 'Gebruiker' : 'Waybetter'}: ${m.content.slice(0, 400)}`)
+              .join('\n');
+            const detectRes = await detectAnthropicClient.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 20,
+              messages: [{
+                role: 'user',
+                content: `Welk documenttype wordt gegenereerd in dit gesprek? Geef ALLEEN één waarde terug:\naccount-to-pm | account-to-creation | field-briefing | meeting-summary | external-debrief | null\n\nGesprek:\n${recentContext}`,
+              }],
+            });
+            const detected = (detectRes.content[0]?.text?.trim() ?? '').split(/[^a-z-]/)[0];
+            if (VALID_OUTPUT_TYPES.includes(detected)) {
+              effectiveOutputType = detected;
+              await supabase.from('threads').update({ output_type: detected }).eq('id', activeThreadId);
+            }
+          } catch { /* negeer detectiefouten — fallback naar gewone chat */ }
+        }
+
+        // Bereken isDocument en useStructuredPrompt na eventuele detectie
+        const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc;
         const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType];
+
+        writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
 
         function buildImageBlocks(images) {
           return images.map((img) => ({
@@ -330,6 +356,7 @@ export async function POST(request) {
           messageId: savedMsg?.id ?? crypto.randomUUID(),
           detectedClient, // undefined | null | string
           detectedProject, // null | string
+          outputType: effectiveOutputType ?? null,
         });
 
         controller.close();
