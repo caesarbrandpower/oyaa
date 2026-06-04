@@ -350,16 +350,36 @@ export async function POST(request) {
           console.error('Assistant message opslaan mislukt:', savedMsgError);
         }
 
-        // Wizard-flow project (beschikbaar zonder haiku-call)
+        // Klantdetectie:
+        // - Wizard (clientName gezet): direct gebruiken, geen haiku
+        // - Chat multi-turn (threadClientFromDb gezet): direct gebruiken, geen haiku
+        // - Chat eerste beurt (beide null): haiku uitvoeren blocking — alleen keer dat het nodig is
+        let detectedClient;
         let detectedProject = null;
-        if (isFirstTurn && wizardProject?.trim()) {
-          detectedProject = wizardProject.trim();
-        } else if (threadProjectFromDb) {
-          detectedProject = threadProjectFromDb;
-        }
 
-        // Gebruik bekende clientnaam direct — geen haiku-call nodig voor done event
-        const detectedClient = clientName ?? threadClientFromDb ?? undefined;
+        if (clientName) {
+          // Wizard-flow: client en project direct beschikbaar
+          detectedClient = clientName;
+          if (isFirstTurn && wizardProject?.trim()) {
+            detectedProject = wizardProject.trim();
+          }
+        } else if (threadClientFromDb) {
+          // Multi-turn: al bekend uit DB, geen haiku nodig
+          detectedClient = threadClientFromDb;
+          detectedProject = threadProjectFromDb;
+        } else {
+          // Eerste chat-beurt: haiku detectie (blocking, maar alleen als client echt onbekend)
+          try {
+            const tHaiku = Date.now();
+            const detected = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
+            console.log(`[PERF] detectClientProject (haiku): +${Date.now() - tHaiku}ms (total: +${Date.now() - tReq}ms)`);
+            detectedClient = detected.client;
+            detectedProject = detected.project;
+          } catch {
+            detectedClient = null;
+            detectedProject = null;
+          }
+        }
 
         console.log(`[PERF] done event → DocumentCard: +${Date.now() - tReq}ms total`);
         writeEvent(controller, {
@@ -373,13 +393,8 @@ export async function POST(request) {
 
         controller.close();
 
-        // Achtergrond-taken na sluiten stream — blokkeren done event niet
+        // updated_at op de achtergrond — blokt done event niet
         supabase.from('threads').update({ updated_at: new Date().toISOString() }).eq('id', activeThreadId).catch(() => {});
-
-        // Klantdetectie via haiku — alleen als client nog onbekend is
-        if (!clientName && !threadClientFromDb) {
-          detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null).catch(() => {});
-        }
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
