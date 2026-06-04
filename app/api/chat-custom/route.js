@@ -193,9 +193,18 @@ export async function POST(request) {
           }
         }
 
-        // Bereken isDocument en useStructuredPrompt na eventuele detectie
-        const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc;
-        const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType];
+        // Detecteer genereer-intentie in het huidige bericht
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(message);
+
+        // isDocument: buffers de stream zodat de briefing nooit live opbouwt
+        // True als: outputType is een document-type, of er al een doc is, of gebruiker vraagt expliciet te genereren
+        const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc || hasGenerateIntent;
+
+        // useStructuredPrompt: gebruik gespecialiseerde genereer-prompt
+        // Alleen wanneer outputType EXPLICIET uit het request komt (wizard) OF gebruiker vraagt te genereren
+        // Niet bij elke conversationele beurt op een thread die al een outputType heeft
+        const outputTypeFromRequest = !!outputType;
+        const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType] && (outputTypeFromRequest || hasGenerateIntent);
 
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
 
