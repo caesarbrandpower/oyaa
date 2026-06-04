@@ -447,7 +447,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const hasClient = event.detectedClient !== undefined;
                 const hasProject = event.detectedProject != null; // != dekt zowel null als undefined
                 if (hasClient || hasProject) {
-                  const newClient = hasClient ? event.detectedClient : (activeThreadRef.current?.client ?? null);
+                  // Nooit bestaande client wissen met null — alleen updaten als detectedClient non-null is
+                  const newClient = (event.detectedClient != null)
+                    ? event.detectedClient
+                    : (activeThreadRef.current?.client ?? null);
                   const newProject = event.detectedProject ?? null;
                   setActiveThreadBoth({ ...activeThreadRef.current, client: newClient, project: newProject });
                   setThreads((prev) => prev.map((t) => t.id === currentThreadId
@@ -542,6 +545,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     },
     [] // stable — reads activeThread and sending via refs (activeThreadRef, sendingRef)
   );
+
+  function handleStop() {
+    abortRef.current?.abort();
+  }
 
   function handleTaskClick(task) {
     setActiveTask(task);
@@ -810,7 +817,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-medium text-white/60 mb-8">
                 Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je helpen?
               </h1>
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
@@ -860,7 +867,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && !recordingPending && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
             </div>
           </div>
         )}

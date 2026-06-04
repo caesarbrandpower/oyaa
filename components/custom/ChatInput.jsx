@@ -2,7 +2,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2 } from 'lucide-react';
+import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2, StopCircle } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 const TEXT_EXTS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
@@ -18,7 +18,7 @@ function isImageFile(file) {
   return IMAGE_EXTS.includes(ext);
 }
 
-export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady }) {
+export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscriptReady }) {
   const [value, setValue] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -344,14 +344,25 @@ export default function ChatInput({ onSend, disabled, prefill, onTranscriptReady
             onChange={handleFileChange}
           />
 
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!canSend}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange text-white hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
-          </button>
+          {disabled && onStop ? (
+            <button
+              type="button"
+              onClick={onStop}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange text-white hover:bg-[#e03d00] transition-colors"
+              title="Stop genereren"
+            >
+              <Square className="w-3.5 h-3.5" strokeWidth={2.5} fill="currentColor" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSend}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange text-white hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
+            </button>
+          )}
         </div>
       </div>
 

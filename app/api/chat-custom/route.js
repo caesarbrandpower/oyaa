@@ -67,7 +67,6 @@ export async function POST(request) {
   }
 
   const tenant = await getTenant();
-  const isDocument = (outputType ? DOCUMENT_OUTPUT_TYPES.has(outputType) : false) || prevHasDoc;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -123,28 +122,33 @@ export async function POST(request) {
 
         }
 
-        writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });
-
-        // Haal thread op voor ownership-check én voor klantnaam bij multi-turn
+        // Haal thread op voor ownership-check, klantnaam én output_type bij multi-turn
         let threadClientFromDb = null;
         let threadProjectFromDb = null;
+        let threadOutputTypeFromDb = null;
         if (threadId) {
           const { data: ownedThread } = await supabase
             .from('threads')
-            .select('id, client, project')
+            .select('id, client, project, output_type')
             .eq('id', activeThreadId)
             .eq('user_id', user.id)
             .single();
-
-          threadClientFromDb = ownedThread?.client ?? null;
-          threadProjectFromDb = ownedThread?.project ?? null;
 
           if (!ownedThread) {
             writeEvent(controller, { type: 'error', error: 'Geen toegang tot dit gesprek.' });
             controller.close();
             return;
           }
+          threadClientFromDb = ownedThread.client ?? null;
+          threadProjectFromDb = ownedThread.project ?? null;
+          threadOutputTypeFromDb = ownedThread.output_type ?? null;
         }
+
+        // Bereken isDocument met volledige info (inclusief thread output_type als fallback)
+        const effectiveOutputType = outputType || threadOutputTypeFromDb;
+        const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc;
+
+        writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument });
 
         const { error: userMsgError } = await supabase
           .from('messages')
@@ -176,7 +180,7 @@ export async function POST(request) {
 
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
-        const useStructuredPrompt = outputType && CUSTOM_PROMPTS[outputType];
+        const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType];
 
         function buildImageBlocks(images) {
           return images.map((img) => ({
@@ -192,7 +196,7 @@ export async function POST(request) {
             .map((msg, i) => msg.role === 'user' ? (anonParts[i] ?? msg.content) : null)
             .filter(Boolean)
             .join('\n\n');
-          let promptText = CUSTOM_PROMPTS[outputType](combinedUserContext);
+          let promptText = CUSTOM_PROMPTS[effectiveOutputType](combinedUserContext);
           // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
           const effectiveClientName = clientName || threadClientFromDb;
           const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
@@ -283,6 +287,13 @@ export async function POST(request) {
             detectedProject = detected.project;
           } catch {
             detectedClient = null;
+          }
+          // Als detectie niets vindt maar thread heeft al een client: gebruik die als fallback
+          if (!detectedClient && threadClientFromDb) {
+            detectedClient = threadClientFromDb;
+          }
+          if (!detectedProject && threadProjectFromDb) {
+            detectedProject = threadProjectFromDb;
           }
         } else if (isFirstTurn) {
           // Wizard-flow: project direct uit het veld — geen AI-extractie nodig
