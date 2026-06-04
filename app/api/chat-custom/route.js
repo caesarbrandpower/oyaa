@@ -178,28 +178,19 @@ export async function POST(request) {
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
 
-        // Auto-detecteer outputType als onbekend — haiku classificeert op gesprekcontext
+        // Auto-detecteer outputType via keywords als onbekend — geen extra API-call
         if (!effectiveOutputType) {
-          try {
-            const VALID_OUTPUT_TYPES = ['account-to-pm', 'account-to-creation', 'field-briefing', 'meeting-summary', 'external-debrief'];
-            const detectAnthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-            const recentContext = allMessages.slice(-6)
-              .map(m => `${m.role === 'user' ? 'Gebruiker' : 'Waybetter'}: ${m.content.slice(0, 400)}`)
-              .join('\n');
-            const detectRes = await detectAnthropicClient.messages.create({
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 20,
-              messages: [{
-                role: 'user',
-                content: `Welk documenttype wordt gegenereerd in dit gesprek? Geef ALLEEN één waarde terug:\naccount-to-pm | account-to-creation | field-briefing | meeting-summary | external-debrief | null\n\nGesprek:\n${recentContext}`,
-              }],
-            });
-            const detected = (detectRes.content[0]?.text?.trim() ?? '').split(/[^a-z-]/)[0];
-            if (VALID_OUTPUT_TYPES.includes(detected)) {
-              effectiveOutputType = detected;
-              await supabase.from('threads').update({ output_type: detected }).eq('id', activeThreadId);
-            }
-          } catch { /* negeer detectiefouten — fallback naar gewone chat */ }
+          const recentText = allMessages.slice(-8).map(m => m.content.slice(0, 500)).join(' ').toLowerCase();
+          let detected = null;
+          if (/\b(pm[\s-]briefing|briefing\s+(naar|voor)\s+(de\s+)?pm|interne\s+briefing|account[\s-]?(naar|to)[\s-]?pm)\b/.test(recentText)) detected = 'account-to-pm';
+          else if (/\b(creatieve?\s*briefing|briefing\s+(naar|voor)\s+creatie|account[\s-]?(naar|to)[\s-]?creati)\b/.test(recentText)) detected = 'account-to-creation';
+          else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing)\b/.test(recentText)) detected = 'field-briefing';
+          else if (/\b(notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText)) detected = 'meeting-summary';
+          else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText)) detected = 'external-debrief';
+          if (detected) {
+            effectiveOutputType = detected;
+            await supabase.from('threads').update({ output_type: detected }).eq('id', activeThreadId);
+          }
         }
 
         // Bereken isDocument en useStructuredPrompt na eventuele detectie
