@@ -221,6 +221,19 @@ export async function POST(request) {
           }
         }
 
+        // Detecteer projectnaam via regex uit recente berichten (sync, geen netwerkaanroep)
+        // Pakt patronen als "Project: Zomeractie NS", "Project / campagne: Zomeractie NS"
+        let regexDetectedProject = null;
+        {
+          const recentMsgs = allMessages.slice(-8).map(m => m.content.slice(0, 600)).join('\n');
+          const projMatch = recentMsgs.match(
+            /\bproject(?:\s*[\/&]\s*campagne)?[:\s]+([A-Z][A-Za-z0-9\s&'\-.]{2,50}?)(?=\s*[\n,.]|\s+(?:is|zijn|was|heeft|voor|van|bij|een|de|het)\b|$)/im
+          ) ?? recentMsgs.match(
+            /\bcampagne[:\s]+([A-Z][A-Za-z0-9\s&'\-.]{2,50}?)(?=\s*[\n,.]|\s+(?:is|zijn|was|heeft|voor|van|bij|een|de|het)\b|$)/im
+          );
+          if (projMatch) regexDetectedProject = projMatch[1].trim();
+        }
+
         // Detecteer genereer-intentie in het huidige bericht
         const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(message);
 
@@ -358,17 +371,15 @@ export async function POST(request) {
         let detectedProject = null;
 
         if (clientName) {
-          // Wizard-flow: client en project direct beschikbaar
+          // Wizard-flow: client direct beschikbaar; project uit wizard of regex-fallback
           detectedClient = clientName;
-          if (isFirstTurn && wizardProject?.trim()) {
-            detectedProject = wizardProject.trim();
-          }
+          detectedProject = wizardProject?.trim() || regexDetectedProject;
         } else if (threadClientFromDb) {
-          // Multi-turn: al bekend uit DB, geen haiku nodig
+          // Multi-turn: client al bekend uit DB; project uit DB of regex-fallback
           detectedClient = threadClientFromDb;
-          detectedProject = threadProjectFromDb;
+          detectedProject = threadProjectFromDb ?? regexDetectedProject;
         } else {
-          // Eerste chat-beurt: sync regex — geen netwerkaanroep, geen timeout-risico
+          // Eerste chat-beurt: sync regex voor client — geen netwerkaanroep, geen timeout-risico
           // Pakt patronen als "voor Coca-Cola", "voor klant Nike", "klant: Adidas"
           const clientMatch = message.match(
             /\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/
@@ -376,7 +387,7 @@ export async function POST(request) {
             /\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i
           );
           detectedClient = clientMatch ? clientMatch[1].trim() : undefined;
-          detectedProject = null;
+          detectedProject = regexDetectedProject;
         }
 
         console.log(`[PERF] done event → DocumentCard: +${Date.now() - tReq}ms total`);

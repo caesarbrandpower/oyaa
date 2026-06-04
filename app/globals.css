@@ -144,6 +144,25 @@ body {
   border-color: rgba(255,255,255,0.08);
   margin: 1.25rem 0;
 }
+.custom-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+.custom-prose th,
+.custom-prose td {
+  color: rgba(255,255,255,0.80);
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(255,255,255,0.10);
+  text-align: left;
+  font-size: 0.875rem;
+  vertical-align: top;
+}
+.custom-prose th {
+  color: white;
+  font-weight: 600;
+  background: rgba(255,255,255,0.05);
+}
 .custom-prose.prose-chat p:last-child {
   font-weight: 500;
   color: rgba(255,255,255,0.95);
