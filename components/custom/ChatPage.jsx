@@ -253,7 +253,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = []) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = []) => {
       if (sendingRef.current) return;
 
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
@@ -279,7 +279,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         isConfirmationResponse = true;
       }
       const userMsgId = 'user-' + Date.now();
-      const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && looksLikePastedTranscript(messageText);
+      const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && pdfAttachments.length === 0 && looksLikePastedTranscript(messageText);
       // Strip bestandsinhoud ([Bijlage: ...] en [Transcript: ...]) uit het zichtbare bericht
       const visibleContent = displayText || taskLabel || messageText.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
       const userMsg = {
@@ -291,6 +291,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           ...imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
           ...transcriptAttachments.map((a) => ({ type: 'transcript', filename: a.filename, content: a.content })),
           ...textAttachments.map((a) => ({ type: 'text', filename: a.filename })),
+          ...pdfAttachments.map((a) => ({ type: 'pdf', filename: a.filename })),
         ],
         pastedTranscript: isPastedTranscript,
       };
@@ -323,7 +324,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const placeholderIsDoc = prevHasDoc || (effectiveType
         ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
         : false);
-      const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0;
+      const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       setMessages((prev) => [
         ...prev,
         { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream },
@@ -344,6 +345,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             client,
             clientConfirmed,
             imageAttachments,
+            documentAttachments: pdfAttachments,
             prevHasDoc,
             project: wizardProject ?? null,
           }),
@@ -817,7 +819,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-medium text-white/60 mb-8">
                 Hoi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je helpen?
               </h1>
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
@@ -867,7 +869,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && !recordingPending && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
             </div>
           </div>
         )}

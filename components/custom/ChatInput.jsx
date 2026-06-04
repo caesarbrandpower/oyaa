@@ -5,8 +5,14 @@ import { useRef, useState, useEffect } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2, StopCircle } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
-const TEXT_EXTS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
+const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
+const PDF_EXTS = ['.pdf'];
+
+function isPdfFile(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  return PDF_EXTS.includes(ext);
+}
 
 function isTextFile(file) {
   const ext = '.' + file.name.split('.').pop().toLowerCase();
@@ -111,6 +117,7 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
     const textAtts = readyAttachments.filter((a) => a.type === 'text');
     const imageAtts = readyAttachments.filter((a) => a.type === 'image');
     const transcriptAtts = readyAttachments.filter((a) => a.type === 'transcript');
+    const pdfAtts = readyAttachments.filter((a) => a.type === 'pdf');
 
     let fullText = trimmed;
     for (const att of textAtts) {
@@ -131,6 +138,10 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
         content: a.content,
       })),
       textAttachments: textAtts.map((a) => ({ filename: a.filename })),
+      pdfAttachments: pdfAtts.map((a) => ({
+        filename: a.filename,
+        data: a.content,
+      })),
     });
 
     setValue('');
@@ -154,6 +165,26 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
       }
 
       const id = Math.random().toString(36).slice(2);
+
+      if (isPdfFile(file)) {
+        setPendingAttachments((prev) => [
+          ...prev,
+          { id, filename: file.name, type: 'pdf', content: '', status: 'loading' },
+        ]);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const base64 = ev.target.result.split(',')[1];
+          setPendingAttachments((prev) =>
+            prev.map((a) => (a.id === id ? { ...a, content: base64, status: 'ready' } : a))
+          );
+        };
+        reader.onerror = () =>
+          setPendingAttachments((prev) =>
+            prev.map((a) => (a.id === id ? { ...a, status: 'error' } : a))
+          );
+        reader.readAsDataURL(file);
+        continue;
+      }
 
       if (isImageFile(file)) {
         setPendingAttachments((prev) => [
@@ -258,7 +289,7 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
                 )}
                 <span className="max-w-[160px] truncate">
                   {att.status === 'loading'
-                    ? (att.type === 'transcript' ? 'Transcriberen...' : 'Uitlezen...')
+                    ? (att.type === 'transcript' ? 'Transcriberen...' : att.type === 'pdf' ? 'PDF laden...' : 'Uitlezen...')
                     : att.status === 'error' ? (att.errorMsg || 'Mislukt')
                     : att.filename}
                 </span>

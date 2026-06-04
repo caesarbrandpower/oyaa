@@ -60,7 +60,7 @@ export async function POST(request) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], prevHasDoc = false, project: wizardProject = null } = await request.json();
+  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], documentAttachments = [], prevHasDoc = false, project: wizardProject = null } = await request.json();
 
   if (!message || !message.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
@@ -189,6 +189,14 @@ export async function POST(request) {
           }));
         }
 
+        function buildDocumentBlocks(docs) {
+          return docs.map((doc) => ({
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: doc.data },
+            title: doc.filename,
+          }));
+        }
+
         let claudeMessages;
         if (useStructuredPrompt) {
           // Combineer alle gebruikersberichten voor volledige context (ook geüploade bestanden uit eerdere berichten)
@@ -208,11 +216,15 @@ export async function POST(request) {
             const nameRule = `KRITIEKE REGEL: ${parts} Gebruik deze naam/namen EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf ze NOOIT anders.\n\n`;
             promptText = nameRule + promptText;
           }
+          const extraBlocks = [
+            ...buildDocumentBlocks(documentAttachments),
+            ...buildImageBlocks(imageAttachments),
+          ];
           claudeMessages = [
             {
               role: 'user',
-              content: imageAttachments.length > 0
-                ? [{ type: 'text', text: promptText }, ...buildImageBlocks(imageAttachments)]
+              content: extraBlocks.length > 0
+                ? [{ type: 'text', text: promptText }, ...extraBlocks]
                 : promptText,
             },
           ];
@@ -221,8 +233,12 @@ export async function POST(request) {
             role: msg.role,
             content: anonParts[i] ?? msg.content,
           }));
-          // Voeg afbeeldingen toe aan het laatste gebruikersbericht
-          if (imageAttachments.length > 0) {
+          // Voeg documenten en afbeeldingen toe aan het laatste gebruikersbericht
+          const extraBlocks = [
+            ...buildDocumentBlocks(documentAttachments),
+            ...buildImageBlocks(imageAttachments),
+          ];
+          if (extraBlocks.length > 0) {
             const lastIdx = claudeMessages.length - 1;
             if (claudeMessages[lastIdx]?.role === 'user') {
               const textContent = claudeMessages[lastIdx].content;
@@ -230,7 +246,7 @@ export async function POST(request) {
                 role: 'user',
                 content: [
                   { type: 'text', text: typeof textContent === 'string' ? textContent : '' },
-                  ...buildImageBlocks(imageAttachments),
+                  ...extraBlocks,
                 ],
               };
             }
