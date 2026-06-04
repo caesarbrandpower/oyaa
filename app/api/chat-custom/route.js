@@ -368,19 +368,15 @@ export async function POST(request) {
           detectedClient = threadClientFromDb;
           detectedProject = threadProjectFromDb;
         } else {
-          // Eerste chat-beurt: haiku detectie (blocking, maar alleen als client echt onbekend)
-          // Fout hier mag de route nooit laten crashen — client-detectie is optioneel
-          try {
-            const tHaiku = Date.now();
-            const detected = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
-            console.log(`[PERF] detectClientProject (haiku): +${Date.now() - tHaiku}ms (total: +${Date.now() - tReq}ms)`);
-            detectedClient = detected.client;
-            detectedProject = detected.project;
-          } catch (err) {
-            console.error('[chat-custom] detectClientProject mislukt (niet-blokkerend):', err?.status ?? err?.message ?? err);
-            detectedClient = undefined;
-            detectedProject = null;
-          }
+          // Eerste chat-beurt: sync regex — geen netwerkaanroep, geen timeout-risico
+          // Pakt patronen als "voor Coca-Cola", "voor klant Nike", "klant: Adidas"
+          const clientMatch = message.match(
+            /\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/
+          ) ?? message.match(
+            /\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i
+          );
+          detectedClient = clientMatch ? clientMatch[1].trim() : undefined;
+          detectedProject = null;
         }
 
         console.log(`[PERF] done event → DocumentCard: +${Date.now() - tReq}ms total`);
