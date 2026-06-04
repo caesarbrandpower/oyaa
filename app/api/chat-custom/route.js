@@ -369,14 +369,16 @@ export async function POST(request) {
           detectedProject = threadProjectFromDb;
         } else {
           // Eerste chat-beurt: haiku detectie (blocking, maar alleen als client echt onbekend)
+          // Fout hier mag de route nooit laten crashen — client-detectie is optioneel
           try {
             const tHaiku = Date.now();
             const detected = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
             console.log(`[PERF] detectClientProject (haiku): +${Date.now() - tHaiku}ms (total: +${Date.now() - tReq}ms)`);
             detectedClient = detected.client;
             detectedProject = detected.project;
-          } catch {
-            detectedClient = null;
+          } catch (err) {
+            console.error('[chat-custom] detectClientProject mislukt (niet-blokkerend):', err?.status ?? err?.message ?? err);
+            detectedClient = undefined;
             detectedProject = null;
           }
         }
