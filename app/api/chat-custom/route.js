@@ -199,10 +199,13 @@ export async function POST(request) {
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Combineer alle gebruikersberichten voor volledige context (ook geüploade bestanden uit eerdere berichten)
+          // Combineer volledige gespreksgeschiedenis voor context (inclusief assistent-analyse van eerder geüploade documenten)
           const combinedUserContext = allMessages
-            .map((msg, i) => msg.role === 'user' ? (anonParts[i] ?? msg.content) : null)
-            .filter(Boolean)
+            .map((msg, i) => {
+              const content = anonParts[i] ?? msg.content;
+              if (msg.role === 'assistant') return `[Eerder antwoord van Waybetter]:\n${content}`;
+              return content;
+            })
             .join('\n\n');
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](combinedUserContext);
           // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
