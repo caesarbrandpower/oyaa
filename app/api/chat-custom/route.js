@@ -54,23 +54,40 @@ function writeEvent(controller, data) {
 }
 
 export async function POST(request) {
+  const tReq = Date.now();
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  console.log(`[PERF] auth.getUser: +${Date.now() - tReq}ms`);
   if (!user) {
     return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], documentAttachments = [], prevHasDoc = false, project: wizardProject = null } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    console.error('[chat-custom] request.json() failed:', err?.message ?? err);
+    return Response.json({ error: 'Ongeldig verzoek.' }, { status: 400 });
+  }
+
+  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], documentAttachments = [], prevHasDoc = false, project: wizardProject = null } = body;
+
+  console.log('[chat-custom] body keys:', Object.keys(body), '| message:', message?.slice(0, 80), '| docAtts:', documentAttachments?.length, '| imgAtts:', imageAttachments?.length);
 
   if (!message || !message.trim()) {
+    console.warn('[chat-custom] 400: message leeg of ontbreekt. Body keys:', Object.keys(body));
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
 
+  const tTenant = Date.now();
   const tenant = await getTenant();
+  console.log(`[PERF] getTenant: +${Date.now() - tTenant}ms (total: +${Date.now() - tReq}ms)`);
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        const tStream = Date.now();
         const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
         // Fuzzy matching — vóór thread aanmaken, als naam niet bevestigd is
@@ -100,6 +117,7 @@ export async function POST(request) {
             const existingClients = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             normalizedClient = normalizeClientName(clientName, existingClients);
           }
+          const t0 = Date.now();
           const { data: newThread, error: threadError } = await supabase
             .from('threads')
             .insert({
@@ -112,6 +130,7 @@ export async function POST(request) {
             })
             .select('id')
             .single();
+          console.log(`[PERF] insert new thread: +${Date.now() - t0}ms (total: +${Date.now() - tReq}ms)`);
 
           if (threadError) {
             writeEvent(controller, { type: 'error', error: 'Thread aanmaken mislukt.' });
@@ -127,12 +146,14 @@ export async function POST(request) {
         let threadProjectFromDb = null;
         let threadOutputTypeFromDb = null;
         if (threadId) {
+          const t0 = Date.now();
           const { data: ownedThread } = await supabase
             .from('threads')
             .select('id, client, project, output_type')
             .eq('id', activeThreadId)
             .eq('user_id', user.id)
             .single();
+          console.log(`[PERF] ownership check: +${Date.now() - t0}ms (total: +${Date.now() - tReq}ms)`);
 
           if (!ownedThread) {
             writeEvent(controller, { type: 'error', error: 'Geen toegang tot dit gesprek.' });
@@ -147,9 +168,11 @@ export async function POST(request) {
         // effectiveOutputType — wordt later verfijnd met auto-detectie als onbekend
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
 
+        const tInsert = Date.now();
         const { error: userMsgError } = await supabase
           .from('messages')
           .insert({ thread_id: activeThreadId, role: 'user', content: message.trim() });
+        console.log(`[PERF] insert user message: +${Date.now() - tInsert}ms (total: +${Date.now() - tReq}ms)`);
 
         if (userMsgError) {
           writeEvent(controller, { type: 'error', error: 'Bericht opslaan mislukt.' });
@@ -157,11 +180,13 @@ export async function POST(request) {
           return;
         }
 
+        const tFetch = Date.now();
         const { data: allMessages, error: messagesError } = await supabase
           .from('messages')
           .select('role, content')
           .eq('thread_id', activeThreadId)
           .order('created_at', { ascending: true });
+        console.log(`[PERF] fetch messages (${allMessages?.length ?? 0}): +${Date.now() - tFetch}ms (total: +${Date.now() - tReq}ms)`);
 
         if (messagesError || !allMessages) {
           writeEvent(controller, { type: 'error', error: 'Berichten ophalen mislukt.' });
@@ -189,7 +214,10 @@ export async function POST(request) {
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText)) detected = 'external-debrief';
           if (detected) {
             effectiveOutputType = detected;
-            await supabase.from('threads').update({ output_type: detected }).eq('id', activeThreadId);
+            // Fire-and-forget — blokt de meta event niet
+            supabase.from('threads').update({ output_type: detected }).eq('id', activeThreadId).then(() => {
+              console.log(`[PERF] output_type update done (background)`);
+            });
           }
         }
 
@@ -206,6 +234,7 @@ export async function POST(request) {
         const outputTypeFromRequest = !!outputType;
         const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType] && (outputTypeFromRequest || hasGenerateIntent);
 
+        console.log(`[PERF] meta event → indicator: +${Date.now() - tReq}ms total`);
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
 
         function buildImageBlocks(images) {
@@ -297,6 +326,7 @@ export async function POST(request) {
           messages: claudeMessages,
         });
 
+        const tClaude = Date.now();
         for await (const chunk of claudeStream) {
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             const text = chunk.delta.text;
@@ -304,62 +334,52 @@ export async function POST(request) {
             writeEvent(controller, { type: 'chunk', text });
           }
         }
+        console.log(`[PERF] claude generation done: +${Date.now() - tClaude}ms (total: +${Date.now() - tReq}ms)`);
 
         const finalContent = deanonymize(fullText, map);
 
+        const tSave = Date.now();
         const { data: savedMsg, error: savedMsgError } = await supabase
           .from('messages')
           .insert({ thread_id: activeThreadId, role: 'assistant', content: finalContent })
           .select('id')
           .single();
+        console.log(`[PERF] save assistant message: +${Date.now() - tSave}ms (total: +${Date.now() - tReq}ms)`);
 
         if (savedMsgError) {
           console.error('Assistant message opslaan mislukt:', savedMsgError);
         }
 
-        await supabase
-          .from('threads')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', activeThreadId);
-
-        // Klantdetectie — synchroon zodat resultaat mee in done-event kan
-        let detectedClient;
+        // Wizard-flow project (beschikbaar zonder haiku-call)
         let detectedProject = null;
-        if (!clientName) {
-          try {
-            const detected = await detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null);
-            detectedClient = detected.client;
-            detectedProject = detected.project;
-          } catch {
-            detectedClient = null;
-          }
-          // Als detectie niets vindt maar thread heeft al een client: gebruik die als fallback
-          if (!detectedClient && threadClientFromDb) {
-            detectedClient = threadClientFromDb;
-          }
-          if (!detectedProject && threadProjectFromDb) {
-            detectedProject = threadProjectFromDb;
-          }
-        } else if (isFirstTurn) {
-          // Wizard-flow: project direct uit het veld — geen AI-extractie nodig
-          if (wizardProject?.trim()) {
-            detectedProject = wizardProject.trim();
-            // Thread al aangemaakt met project — geen extra DB-update nodig
-          }
+        if (isFirstTurn && wizardProject?.trim()) {
+          detectedProject = wizardProject.trim();
+        } else if (threadProjectFromDb) {
+          detectedProject = threadProjectFromDb;
         }
 
-        console.log('[SERVER DONE]', { detectedClient, detectedProject });
+        // Gebruik bekende clientnaam direct — geen haiku-call nodig voor done event
+        const detectedClient = clientName ?? threadClientFromDb ?? undefined;
 
+        console.log(`[PERF] done event → DocumentCard: +${Date.now() - tReq}ms total`);
         writeEvent(controller, {
           type: 'done',
           content: finalContent,
           messageId: savedMsg?.id ?? crypto.randomUUID(),
-          detectedClient, // undefined | null | string
-          detectedProject, // null | string
+          detectedClient,
+          detectedProject,
           outputType: effectiveOutputType ?? null,
         });
 
         controller.close();
+
+        // Achtergrond-taken na sluiten stream — blokkeren done event niet
+        supabase.from('threads').update({ updated_at: new Date().toISOString() }).eq('id', activeThreadId).catch(() => {});
+
+        // Klantdetectie via haiku — alleen als client nog onbekend is
+        if (!clientName && !threadClientFromDb) {
+          detectClientProject(supabase, activeThreadId, message, user.id, tenant?.id ?? null).catch(() => {});
+        }
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
