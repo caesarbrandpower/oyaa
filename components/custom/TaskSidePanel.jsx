@@ -115,7 +115,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         ? `${task.label} voor ${clientInput.trim()}`
         : task.label;
     }
-    // Convert File objects to base64 — File cannot be JSON-serialized
+    // Convert image File objects to base64 — File cannot be JSON-serialized
     const processedAttachments = await Promise.all(
       imageAttachments.map((att) => {
         if (!att.file) return Promise.resolve(att);
@@ -132,7 +132,22 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       })
     );
     const validAttachments = processedAttachments.filter(Boolean).filter(a => a.data);
-    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null);
+
+    // Convert non-audio uploaded files to base64 document attachments
+    const docFiles = uploadedFiles.filter(f => !isAudioFile(f.file));
+    const processedDocs = await Promise.all(
+      docFiles.map((f) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({ filename: f.filename, data: reader.result.split(',')[1] });
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(f.file);
+        })
+      )
+    );
+    const validDocAttachments = processedDocs.filter(Boolean).filter(a => a.data);
+
+    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments);
   }
 
   function handleDirectChat() {
