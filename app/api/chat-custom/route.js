@@ -188,7 +188,7 @@ export async function POST(request) {
             effectiveOutputType = 'account-to-creation';
           else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing)\b/.test(recentText))
             effectiveOutputType = 'field-briefing';
-          else if (/\b(notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
+          else if (/\b(samenvatting|samenvat|notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
             effectiveOutputType = 'meeting-summary';
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';

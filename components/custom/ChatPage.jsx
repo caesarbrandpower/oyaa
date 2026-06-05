@@ -595,12 +595,24 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               const saveClient = event.detectedClient ?? client ?? activeThreadRef.current?.client ?? null;
               const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
+              const effectiveDocType = outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null;
+              const DOC_NOUN = {
+                'meeting-summary':     'samenvatting',
+                'project-briefing':    'projectbriefing',
+                'account-pm-briefing': 'briefing',
+                'evaluation':          'evaluatie',
+                'account-to-pm':       'briefing',
+                'account-to-creation': 'briefing',
+                'field-briefing':      'briefing',
+                'external-debrief':    'evaluatie',
+              };
+              const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
                 if (!finalIsDocument || !isGenerateIntent) return updated;
                 const postContent = saveClient
-                  ? `Hier is je briefing. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
-                  : "Hier is je briefing. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?";
+                  ? `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
+                  : `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?`;
                 return [...updated, {
                   id: 'post-doc-' + Date.now(),
                   role: 'assistant',

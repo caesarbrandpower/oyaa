@@ -28,6 +28,7 @@ export async function POST(request) {
     'account-to-creation': 'Briefing naar Creatie',
     'field-briefing':      'Ambassadeursbriefing',
     'meeting-summary':     'Samenvatting',
+    'samenvatting':        'Samenvatting',
     'external-debrief':    'Evaluatie',
     'project-briefing':    'Projectbriefing',
     'account-pm-briefing': 'Briefing naar PM',
