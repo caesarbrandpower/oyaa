@@ -61,6 +61,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
   const threadDocsRef = useRef([]);
   // threadDocsRef: PDF-bijlagen voor de actieve thread — persistent over meerdere beurten zodat Claude ze in turn 2 nog kan lezen
+  const threadTxtContextRef = useRef('');
+  // threadTxtContextRef: txt-bijlageinhoud ingebed in messageText ([Bijlage: ...]) — persistent naast PDF-binaries
   const pendingDocGenRef = useRef(null);
   // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
   const [titleEditing, setTitleEditing] = useState(false);
@@ -319,7 +321,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }]);
         if (isConfirm) {
           // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
-          handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
+          // Voeg opgeslagen txt-context toe als die niet al in de berichttekst zit
+          const txtCtx = pending.txtContext ?? '';
+          const enrichedMessage = txtCtx && !pending.messageText.includes(txtCtx)
+            ? pending.messageText + txtCtx
+            : pending.messageText;
+          handleSend(enrichedMessage, pending.outputType, pending.taskLabel, pending.displayText,
             pending.client, pending.imageAttachments, [], false, pending.wizardProject, [], pending.pdfAttachments,
             true /* analysisConfirmed */);
         } else {
@@ -438,6 +445,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       if (pdfAttachments.length > 0) threadDocsRef.current = pdfAttachments;
       const effectivePdfAttachments = threadDocsRef.current;
 
+      // Txt-bijlageinhoud bewaren naast PDF-binaries — [Bijlage:/Transcript:] blokken uit de berichttekst
+      const txtPortion = messageText.match(/(\n\n\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1] ?? '';
+      if (txtPortion) threadTxtContextRef.current = txtPortion;
+
       try {
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
@@ -505,6 +516,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 pendingDocGenRef.current = {
                   messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? null, taskLabel, displayText, client,
                   imageAttachments, pdfAttachments: effectivePdfAttachments,
+                  txtContext: threadTxtContextRef.current,
                   wizardProject,
                 };
                 // Verwijder de streaming placeholder en toon alleen het analyse-bericht
