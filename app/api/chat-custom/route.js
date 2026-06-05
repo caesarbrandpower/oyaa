@@ -237,10 +237,10 @@ export async function POST(request) {
         // ── Stap 2 — Analyse-blok ─────────────────────────────────────────────
         // Onafhankelijk van useStructuredPrompt of effectiveOutputType.
         // Altijd draaien als er PDFs aanwezig zijn én nog niet bevestigd.
-        // Voor meeting-summary ook bij txt/audio-bronnen ingebed in het bericht.
+        // Voor meeting-summary en field-briefing ook bij txt/audio-bronnen ingebed in het bericht.
         const hasTxtContent = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
         const hasSourceFiles = documentAttachments.length > 0 ||
-          (effectiveOutputType === 'meeting-summary' && hasTxtContent);
+          ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent);
         if (hasSourceFiles && !analysisConfirmed) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm':        'briefing naar PM',
