@@ -278,6 +278,30 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false) => {
       if (sendingRef.current) return;
 
+      // Analyse-bevestigingsflow: gebruiker reageert op "Zal ik de briefing maken?"
+      if (pendingDocGenRef.current) {
+        const pending = pendingDocGenRef.current;
+        pendingDocGenRef.current = null;
+        const userResponse = messageText.trim().toLowerCase();
+        const isConfirm = /^(ja|yes|jep|yep|ok|okay|maak|genereer|doe|goed|prima|ga\s*je\s*gang|graag|zeker|doen|uitvoeren)/.test(userResponse);
+        setMessages(prev => [...prev, {
+          id: 'user-' + Date.now(), role: 'user', content: messageText,
+          created_at: new Date().toISOString(), attachments: [],
+        }]);
+        if (isConfirm) {
+          // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
+          // Txt-bijlagen via ref doorgeven aan request body (los van DB/combinedUserContext)
+          threadTxtAttachmentsRef.current = pending.txtAttachments ?? [];
+          handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
+            pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
+            true /* analysisConfirmed */);
+        } else {
+          // Gebruiker wil iets aanvullen — gewone beurt, PDF's blijven in threadDocsRef
+          setSendingState(false);
+        }
+        return;
+      }
+
       // Afbeelding keuze-flow: gebruiker reageert op "informatie uithalen / bijlage"
       if (pendingImageRef.current) {
         const pending = pendingImageRef.current;
@@ -316,30 +340,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }
         // "informatie" of andere keuze — stuur afbeelding door naar Claude
         imageAttachments = pending.imageAttachments;
-      }
-
-      // Analyse-bevestigingsflow: gebruiker reageert op "Zal ik de briefing maken?"
-      if (pendingDocGenRef.current) {
-        const pending = pendingDocGenRef.current;
-        pendingDocGenRef.current = null;
-        const userResponse = messageText.trim().toLowerCase();
-        const isConfirm = /^(ja|yes|jep|yep|ok|okay|maak|genereer|doe|goed|prima|ga\s*je\s*gang|graag|zeker|doen|uitvoeren)/.test(userResponse);
-        setMessages(prev => [...prev, {
-          id: 'user-' + Date.now(), role: 'user', content: messageText,
-          created_at: new Date().toISOString(), attachments: [],
-        }]);
-        if (isConfirm) {
-          // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
-          // Txt-bijlagen via ref doorgeven aan request body (los van DB/combinedUserContext)
-          threadTxtAttachmentsRef.current = pending.txtAttachments ?? [];
-          handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
-            pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
-            true /* analysisConfirmed */);
-        } else {
-          // Gebruiker wil iets aanvullen — gewone beurt, PDF's blijven in threadDocsRef
-          setSendingState(false);
-        }
-        return;
       }
 
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
@@ -602,8 +602,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 'account-pm-briefing': 'briefing',
                 'evaluation':          'evaluatie',
                 'account-to-pm':       'briefing',
-                'account-to-creation': 'briefing',
-                'field-briefing':      'ambassadeursbriefing',
+                'account-to-creation': 'briefing naar creatie',
+                'field-briefing':      'briefing naar BA',
                 'external-debrief':    'evaluatie',
               };
               const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';

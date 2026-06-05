@@ -245,7 +245,7 @@ export async function POST(request) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm':        'briefing naar PM',
             'account-to-creation':  'briefing naar creatie',
-            'field-briefing':       'ambassadeursbriefing',
+            'field-briefing':       'briefing naar BA',
             'meeting-summary':      'samenvatting',
             'external-debrief':     'externe evaluatie',
             'project-briefing':     'projectbriefing',

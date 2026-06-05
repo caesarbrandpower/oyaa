@@ -26,7 +26,7 @@ export async function POST(request) {
   const TYPE_LABELS = {
     'account-to-pm':       'Briefing naar PM',
     'account-to-creation': 'Briefing naar Creatie',
-    'field-briefing':      'Ambassadeursbriefing',
+    'field-briefing':      'Briefing naar BA',
     'meeting-summary':     'Samenvatting',
     'samenvatting':        'Samenvatting',
     'external-debrief':    'Evaluatie',
