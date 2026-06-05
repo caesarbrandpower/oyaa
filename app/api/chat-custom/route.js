@@ -400,7 +400,12 @@ export async function POST(request) {
         // Supabase geeft een PromiseLike terug zonder .catch() — gebruik .then(null, handler)
         const bgUpdate = { updated_at: new Date().toISOString() };
         if (detectedClient) bgUpdate.client = detectedClient;
-        supabase.from('threads').update(bgUpdate).eq('id', activeThreadId).then(null, () => {});
+        console.log(`[CLIENT-SAVE] detectedClient="${detectedClient}" clientName="${clientName}" threadClientFromDb="${threadClientFromDb}" activeThreadId="${activeThreadId}" bgUpdate.client="${bgUpdate.client}"`);
+        supabase.from('threads').update(bgUpdate).eq('id', activeThreadId)
+          .then(({ error }) => {
+            if (error) console.error(`[CLIENT-SAVE] DB update FAILED:`, error);
+            else console.log(`[CLIENT-SAVE] DB update OK — thread ${activeThreadId} client="${bgUpdate.client}"`);
+          }, (err) => console.error('[CLIENT-SAVE] DB update exception:', err));
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
