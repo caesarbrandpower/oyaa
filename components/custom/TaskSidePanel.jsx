@@ -37,7 +37,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
   const [transcriptCopied, setTranscriptCopied] = useState(false);
-  const [uploadedFilename, setUploadedFilename] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [imageAttachments, setImageAttachments] = useState([]);
   const [clientSuggestion, setClientSuggestion] = useState(null);
   // clientSuggestion: null | string — bekende klant die lijkt op invoer (fuzzy match)
@@ -82,11 +82,12 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     : ['Omschrijving & Klant', 'Bronnen', 'Bevestigen'];
 
   function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadedFilename(file.name);
+    const files = [...(e.target.files || [])];
+    if (!files.length) return;
     e.target.value = '';
-    if (isAudioFile(file)) transcribeFile(file, false);
+    setUploadedFiles(prev => [...prev, ...files.map(f => ({ filename: f.name, file: f }))]);
+    const audioFile = files.find(isAudioFile);
+    if (audioFile) transcribeFile(audioFile, false);
   }
 
   function handleImageChange(e) {
@@ -365,7 +366,16 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                 </div>
               )}
 
-              <div className="flex gap-2 mb-4">
+              {/* Bestand en opname — knoppen altijd zichtbaar in vaste rij */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.mp3,.m4a,.wav,.ogg"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <div className="flex gap-2 mb-3">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -375,32 +385,6 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   <Paperclip className="w-3.5 h-3.5" strokeWidth={1.75} />
                   Bestand kiezen
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,.mp3,.m4a,.wav,.ogg"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                {uploadedFilename && (
-                  <div className="flex items-center gap-1 bg-white/[0.06] rounded-lg px-2.5 py-1">
-                    {transcribing ? (
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-orange/70 rounded-full animate-spin shrink-0" />
-                    ) : (
-                      <Check className="w-3 h-3 text-orange/70 shrink-0" strokeWidth={2.5} />
-                    )}
-                    <span className="text-[11px] text-white/50 truncate max-w-[120px]">{uploadedFilename}</span>
-                    {!transcribing && (
-                      <button
-                        type="button"
-                        onClick={() => setUploadedFilename('')}
-                        className="text-white/25 hover:text-white/60 transition-colors ml-0.5"
-                      >
-                        <X className="w-3 h-3" strokeWidth={2} />
-                      </button>
-                    )}
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={toggleRecording}
@@ -427,9 +411,35 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   </button>
                 )}
               </div>
+
+              {/* Toegevoegde bestanden — onder de knoppen, zoals foto's */}
+              {uploadedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {uploadedFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-white/[0.06] rounded-lg px-2.5 py-1">
+                      {transcribing && isAudioFile(f.file) ? (
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-orange/70 rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <Check className="w-3 h-3 text-orange/70 shrink-0" strokeWidth={2.5} />
+                      )}
+                      <span className="text-[11px] text-white/50 truncate max-w-[120px]">{f.filename}</span>
+                      {!transcribing && (
+                        <button
+                          type="button"
+                          onClick={() => setUploadedFiles(prev => prev.filter((_, j) => j !== i))}
+                          className="text-white/25 hover:text-white/60 transition-colors ml-0.5"
+                        >
+                          <X className="w-3 h-3" strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {transcribing && transcribeProgress && (
                 <div className="mb-3">
-                  <p className="text-[11px] text-white/50 mb-1.5 truncate">{transcribeProgress.filename || uploadedFilename}</p>
+                  <p className="text-[11px] text-white/50 mb-1.5 truncate">{transcribeProgress.filename || uploadedFiles[0]?.filename || ''}</p>
                   <div className="w-full bg-white/[0.08] rounded-full h-1.5">
                     <div
                       className="bg-orange h-1.5 rounded-full transition-all"
@@ -475,7 +485,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   />
                 </div>
               )}
-              {!transcript && !transcribing && !recording && (
+              {!transcript && !transcribing && !recording && uploadedFiles.length === 0 && (
                 <p className="text-[12px] text-white/25 italic">
                   Nog geen bronnen toegevoegd — je kunt ook overslaan.
                 </p>
