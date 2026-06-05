@@ -266,7 +266,7 @@ export async function POST(request) {
                   { type: 'text', text: combinedUserContext },
                   {
                     type: 'text',
-                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
+                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Geen koptekst. Geen inleiding. Begin direct met de eerste bullet. Schrijf in precies dit formaat, in het Nederlands:\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
                   },
                 ],
               }],
@@ -287,9 +287,9 @@ export async function POST(request) {
               analysisDetectedClient = threadClientFromDb;
             } else {
               const clientMatch =
-                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/) ??
-                userOnlyMessage.match(/\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
-              analysisDetectedClient = clientMatch ? clientMatch[1].trim() : undefined;
+                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
+                userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
+              analysisDetectedClient = clientMatch ? normalizeClientName(clientMatch[1]) : undefined;
             }
             if (analysisDetectedClient) {
               await Promise.race([
@@ -437,9 +437,9 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           detectedProject = threadProjectFromDb;
         } else {
           const clientMatch =
-            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/) ??
-            userOnlyMessage.match(/\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
-          detectedClient = clientMatch ? clientMatch[1].trim() : undefined;
+            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
+            userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
+          detectedClient = clientMatch ? normalizeClientName(clientMatch[1]) : undefined;
         }
 
         // DB update altijd met await + timeout — fire-and-forget valt weg in Vercel serverless
