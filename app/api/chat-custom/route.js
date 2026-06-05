@@ -71,7 +71,7 @@ export async function POST(request) {
     return Response.json({ error: 'Ongeldig verzoek.' }, { status: 400 });
   }
 
-  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], documentAttachments = [], prevHasDoc = false, project: wizardProject = null } = body;
+  const { threadId, message, outputType, taskLabel, client: clientName, clientConfirmed = false, imageAttachments = [], documentAttachments = [], prevHasDoc = false, project: wizardProject = null, analysisConfirmed = false } = body;
 
   console.log('[chat-custom] body keys:', Object.keys(body), '| message:', message?.slice(0, 80), '| docAtts:', documentAttachments?.length, '| imgAtts:', imageAttachments?.length);
 
@@ -315,21 +315,37 @@ export async function POST(request) {
         // "Je maakt geen document als je niet genoeg weet"-instructie uit CUSTOM_SYSTEM_PROMPT
         // niet botst met de directe genereeropdracht.
         const systemPrompt = useStructuredPrompt
-          ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Je vraagt NOOIT om meer informatie, ook niet als de input beperkt is. Begin direct met het document, geen inleiding.
+          ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
 
-VERPLICHTE MARKEERREGELS — pas altijd toe, zonder uitzondering:
-- Contactpersoon ontbreekt of is onduidelijk → [UITZOEKEN INTERN]
-- Datum, deadline of planningsperiode ontbreekt → [UITZOEKEN INTERN]
-- Budget niet vermeld of niet bevestigd → [AFSTEMMEN MET KLANT]
-- Locatie niet concreet of niet vermeld → [UITZOEKEN INTERN]
-- Teamgrootte of samenstelling ontbreekt → [UITZOEKEN INTERN]
-- Afspraken die nog bevestigd moeten worden door de klant → [AFSTEMMEN MET KLANT]
-Elke markering staat altijd op een eigen regel. Nooit direct achter een zin op dezelfde regel.`
+VERPLICHTE MARKEERREGELS — mechanisch toepassen, geen interpretatie:
+
+Gebruik [UITZOEKEN INTERN] als een van de volgende velden ontbreekt of onduidelijk is:
+- Naam contactpersoon klant
+- Naam of functie projectmanager / teamlid
+- Exacte datum, periode of deadline
+- Exacte locatie of adres
+- Teamgrootte of namen van teamleden
+- Hotlinenummer of noodcontact
+- Productspecificaties of materiaallijst
+- Reiskostenvergoeding of declaratiewijze
+
+Gebruik [AFSTEMMEN MET KLANT] als een van de volgende zaken ontbreekt of niet bevestigd is:
+- Budget (bedrag, categorie of goedkeuring)
+- Doelstelling of gewenst resultaat van de activatie
+- Akkoord op planning of deadlines
+- Scope: wat wel en niet in de opdracht zit
+- Verwachtingen of gevoeligheden van de klant
+
+Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
+- Aantallen (bereik, samples, targets)
+- Percentages of KPI's
+
+Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`
           : CUSTOM_SYSTEM_PROMPT;
 
-        // Analyse vóór generatie — alleen als documenten aanwezig zijn bij structured prompt
-        // Haiku analyseert de documenten kort en stuurt de analyse als separate event vóór de DocumentCard
-        if (useStructuredPrompt && documentAttachments.length > 0) {
+        // Analyse vóór generatie — alleen als documenten aanwezig zijn bij structured prompt EN nog niet bevestigd
+        // Na analyse stopt de server — de client vraagt bevestiging. Pas op bevestiging (analysisConfirmed=true) wordt gegenereerd.
+        if (useStructuredPrompt && documentAttachments.length > 0 && !analysisConfirmed) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm': 'briefing naar PM', 'account-to-creation': 'briefing naar creatie',
             'field-briefing': 'ambassadeursbriefing', 'meeting-summary': 'samenvatting',
@@ -340,25 +356,29 @@ Elke markering staat altijd op een eigen regel. Nooit direct achter een zin op d
           try {
             const analysisResp = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 260,
+              max_tokens: 300,
               messages: [{
                 role: 'user',
                 content: [
                   ...buildDocumentBlocks(documentAttachments),
                   {
                     type: 'text',
-                    text: `Analyseer de aangeleverde documenten voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nIk heb [X bestand(en)] doorgelezen.\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nIk ga nu de ${docTypeLabel} maken.\n\nHoud het compact. Geen extra uitleg.`,
+                    text: `Analyseer de aangeleverde documenten voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nIk heb [X bestand(en)] doorgelezen.\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
                   },
                 ],
               }],
             });
             const analysisText = analysisResp.content[0]?.text?.trim() ?? '';
             if (analysisText) {
-              writeEvent(controller, { type: 'analysis', content: analysisText });
+              // needsConfirmation: client wacht op gebruikersbevestiging vóór generatie
+              writeEvent(controller, { type: 'analysis', content: analysisText, needsConfirmation: true });
             }
           } catch (err) {
             console.error('[ANALYSIS] analyse mislukt, verder met genereren:', err?.message ?? err);
           }
+          // Stop na analyse — genereer pas als de gebruiker bevestigt (analysisConfirmed=true op volgende beurt)
+          controller.close();
+          return;
         }
 
         let fullText = '';

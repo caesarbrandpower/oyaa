@@ -61,6 +61,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
   const threadDocsRef = useRef([]);
   // threadDocsRef: PDF-bijlagen voor de actieve thread — persistent over meerdere beurten zodat Claude ze in turn 2 nog kan lezen
+  const pendingDocGenRef = useRef(null);
+  // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -262,7 +264,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = []) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false) => {
       if (sendingRef.current) return;
 
       // Afbeelding keuze-flow: gebruiker reageert op "informatie uithalen / bijlage"
@@ -303,6 +305,28 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }
         // "informatie" of andere keuze — stuur afbeelding door naar Claude
         imageAttachments = pending.imageAttachments;
+      }
+
+      // Analyse-bevestigingsflow: gebruiker reageert op "Zal ik de briefing maken?"
+      if (pendingDocGenRef.current) {
+        const pending = pendingDocGenRef.current;
+        pendingDocGenRef.current = null;
+        const userResponse = messageText.trim().toLowerCase();
+        const isConfirm = /^(ja|yes|jep|yep|ok|okay|maak|genereer|doe|goed|prima|ga\s*je\s*gang|graag|zeker|doen|uitvoeren)/.test(userResponse);
+        setMessages(prev => [...prev, {
+          id: 'user-' + Date.now(), role: 'user', content: messageText,
+          created_at: new Date().toISOString(), attachments: [],
+        }]);
+        if (isConfirm) {
+          // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
+          handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
+            pending.client, pending.imageAttachments, [], false, pending.wizardProject, [], pending.pdfAttachments,
+            true /* analysisConfirmed */);
+        } else {
+          // Gebruiker wil iets aanvullen — gewone beurt, PDF's blijven in threadDocsRef
+          setSendingState(false);
+        }
+        return;
       }
 
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
@@ -429,6 +453,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             documentAttachments: effectivePdfAttachments,
             prevHasDoc,
             project: wizardProject ?? null,
+            analysisConfirmed,
           }),
           signal: controller.signal,
         });
@@ -462,20 +487,31 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             }
 
             if (event.type === 'analysis') {
-              // Analyse-bericht van server — wordt voor de DocumentCard-placeholder ingevoegd
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === placeholderId);
-                const analysisMsg = {
-                  id: 'analysis-' + Date.now(),
-                  role: 'assistant',
-                  content: event.content,
-                  streaming: false,
-                  local: true,
-                  created_at: new Date().toISOString(),
+              const analysisMsg = {
+                id: 'analysis-' + Date.now(),
+                role: 'assistant',
+                content: event.content,
+                streaming: false,
+                local: true,
+                created_at: new Date().toISOString(),
+              };
+              if (event.needsConfirmation) {
+                // Server stopt na analyse — sla context op zodat volgende beurt kan genereren
+                pendingDocGenRef.current = {
+                  messageText, outputType, taskLabel, displayText, client,
+                  imageAttachments, pdfAttachments: effectivePdfAttachments,
+                  wizardProject,
                 };
-                if (idx === -1) return [...prev, analysisMsg];
-                return [...prev.slice(0, idx), analysisMsg, ...prev.slice(idx)];
-              });
+                // Verwijder de streaming placeholder en toon alleen het analyse-bericht
+                setMessages(prev => [...prev.filter(m => m.id !== placeholderId), analysisMsg]);
+                setSendingState(false);
+              } else {
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === placeholderId);
+                  if (idx === -1) return [...prev, analysisMsg];
+                  return [...prev.slice(0, idx), analysisMsg, ...prev.slice(idx)];
+                });
+              }
             } else if (event.type === 'meta') {
               isDocument = event.isDocument ?? false;
               const metaOutputType = event.outputType ?? null;
@@ -626,11 +662,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 pendingWizardPhotosRef.current = [];
               }
               if (finalIsDocument && activeThreadRef.current?.id) {
-                const outputTypeLabel = outputTypes.find(t => t.id === outputType)?.label ?? null;
+                // effectiveOT: gebruik event.outputType als fallback — outputType is null bij chat-flow
+                const effectiveOT = outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null;
+                const outputTypeLabel = outputTypes.find(t => t.id === effectiveOT)?.label ?? null;
                 setPendingTitleGen({
                   threadId: activeThreadRef.current.id,
                   content: event.content,
-                  outputType,
+                  outputType: effectiveOT,
                   outputTypeLabel,
                   userMsgId,
                   fallbackTitle: displayText || taskLabel,
