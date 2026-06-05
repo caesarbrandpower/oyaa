@@ -369,6 +369,10 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
+        const lastMsg = claudeMessages[claudeMessages.length - 1];
+        console.log('[generatie]', { extraBlocksLength: Array.isArray(lastMsg?.content) ? lastMsg.content.length - 1 : 0, hasTxtBlock: !!(combinedUserContext.match(/\n\n(\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1]), claudeMessagesLength: claudeMessages.length });
+        console.log('[generatie content]', JSON.stringify(Array.isArray(lastMsg?.content) ? lastMsg.content.map(b => ({ type: b.type, length: b.text?.length || b.source?.data?.length })) : [{ type: 'text', length: lastMsg?.content?.length }]));
+
         let fullText = '';
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
