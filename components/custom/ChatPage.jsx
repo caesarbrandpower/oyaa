@@ -226,14 +226,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setSidebarOpen(false);
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
-    pendingDocGenRef.current = null;
   }
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
-    pendingDocGenRef.current = null;
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -488,7 +486,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         const decoder = new TextDecoder();
         let buffer = '';
         let isDocument = false;
-        let metaOutputType = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -531,7 +528,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   txtAtts.push({ filename: txtM[1], data: txtM[2] });
                 }
                 pendingDocGenRef.current = {
-                  messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? metaOutputType ?? null, taskLabel, displayText, client,
+                  messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? null, taskLabel, displayText, client,
                   imageAttachments, pdfAttachments: effectivePdfAttachments,
                   textAttachments,
                   txtAttachments: txtAtts,
@@ -550,7 +547,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               }
             } else if (event.type === 'meta') {
               isDocument = event.isDocument ?? false;
-              metaOutputType = event.outputType ?? null;
+              const metaOutputType = event.outputType ?? null;
 
               setMessages((prev) =>
                 prev.map(m => m.id === placeholderId
@@ -763,12 +760,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = []) {
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject);
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, [], pdfAttachments);
   }
 
   function handleTaskPanelClose(prefillText) {
