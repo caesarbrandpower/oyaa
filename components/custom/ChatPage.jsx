@@ -263,6 +263,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
       }
+      // Strip [Bijlage:/Transcript:] inhoud — sla alleen de gebruikerstekst op in de bubble
+      if (msg.role === 'user') {
+        const stripped = msg.content.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
+        return { ...msg, content: stripped || msg.content };
+      }
       return msg;
     });
     setMessages(enriched);
@@ -632,7 +637,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   const newClient = (event.detectedClient != null)
                     ? event.detectedClient
                     : (activeThreadRef.current?.client ?? null);
-                  const newProject = event.detectedProject ?? null;
+                  const newProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
                   const newOutputType = event.outputType ?? activeThreadRef.current?.output_type ?? null;
                   setActiveThreadBoth({ ...activeThreadRef.current, client: newClient, project: newProject, output_type: newOutputType });
                   setThreads((prev) => prev.map((t) => t.id === currentThreadId
