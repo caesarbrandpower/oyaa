@@ -261,6 +261,7 @@ export async function POST(request) {
         let claudeMessages;
         // combinedUserContext buiten het if/else blok — ook nodig in het analyse-blok verderop
         let combinedUserContext = null;
+        console.log('combinedUserContext buiten blok (init):', combinedUserContext?.slice(0, 100));
         if (useStructuredPrompt) {
           // Gebruik alleen het huidige gebruikersbericht — cumulatief groeien geeft inconsistentie
           combinedUserContext = anonParts[allMessages.length - 1] ?? message.trim();
@@ -347,6 +348,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         // Analyse vóór generatie — alleen als documenten aanwezig zijn bij structured prompt EN nog niet bevestigd
         // Na analyse stopt de server — de client vraagt bevestiging. Pas op bevestiging (analysisConfirmed=true) wordt gegenereerd.
+        console.log('analyse-blok bereikt, useStructuredPrompt:', useStructuredPrompt, 'documentAttachments.length:', documentAttachments.length, 'analysisConfirmed:', analysisConfirmed);
         if (useStructuredPrompt && documentAttachments.length > 0 && !analysisConfirmed) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm': 'briefing naar PM', 'account-to-creation': 'briefing naar creatie',
