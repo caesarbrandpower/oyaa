@@ -471,7 +471,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Stream gesloten zonder done-event (bijv. na analyse) — zorg dat UI niet blijft hangen
+            setSendingState(false);
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -497,8 +501,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               if (event.needsConfirmation) {
                 // Server stopt na analyse — sla context op zodat volgende beurt kan genereren
+                // outputType: gebruik ook de via meta-event ontvangen effectiveOutputType als fallback
                 pendingDocGenRef.current = {
-                  messageText, outputType, taskLabel, displayText, client,
+                  messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? null, taskLabel, displayText, client,
                   imageAttachments, pdfAttachments: effectivePdfAttachments,
                   wizardProject,
                 };
