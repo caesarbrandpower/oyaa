@@ -315,8 +315,51 @@ export async function POST(request) {
         // "Je maakt geen document als je niet genoeg weet"-instructie uit CUSTOM_SYSTEM_PROMPT
         // niet botst met de directe genereeropdracht.
         const systemPrompt = useStructuredPrompt
-          ? 'Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Je vraagt NOOIT om meer informatie, ook niet als de input beperkt is. Alles wat ontbreekt markeer je met [UITZOEKEN INTERN] of [AFSTEMMEN MET KLANT]. Begin direct met het document, geen inleiding.'
+          ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Je vraagt NOOIT om meer informatie, ook niet als de input beperkt is. Begin direct met het document, geen inleiding.
+
+VERPLICHTE MARKEERREGELS — pas altijd toe, zonder uitzondering:
+- Contactpersoon ontbreekt of is onduidelijk → [UITZOEKEN INTERN]
+- Datum, deadline of planningsperiode ontbreekt → [UITZOEKEN INTERN]
+- Budget niet vermeld of niet bevestigd → [AFSTEMMEN MET KLANT]
+- Locatie niet concreet of niet vermeld → [UITZOEKEN INTERN]
+- Teamgrootte of samenstelling ontbreekt → [UITZOEKEN INTERN]
+- Afspraken die nog bevestigd moeten worden door de klant → [AFSTEMMEN MET KLANT]
+Elke markering staat altijd op een eigen regel. Nooit direct achter een zin op dezelfde regel.`
           : CUSTOM_SYSTEM_PROMPT;
+
+        // Analyse vóór generatie — alleen als documenten aanwezig zijn bij structured prompt
+        // Haiku analyseert de documenten kort en stuurt de analyse als separate event vóór de DocumentCard
+        if (useStructuredPrompt && documentAttachments.length > 0) {
+          const ANALYSIS_TYPE_LABELS = {
+            'account-to-pm': 'briefing naar PM', 'account-to-creation': 'briefing naar creatie',
+            'field-briefing': 'ambassadeursbriefing', 'meeting-summary': 'samenvatting',
+            'external-debrief': 'externe evaluatie', 'project-briefing': 'projectbriefing',
+            'account-pm-briefing': 'briefing naar PM', 'evaluation': 'evaluatie',
+          };
+          const docTypeLabel = ANALYSIS_TYPE_LABELS[effectiveOutputType] ?? effectiveOutputType ?? 'document';
+          try {
+            const analysisResp = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 260,
+              messages: [{
+                role: 'user',
+                content: [
+                  ...buildDocumentBlocks(documentAttachments),
+                  {
+                    type: 'text',
+                    text: `Analyseer de aangeleverde documenten voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nIk heb [X bestand(en)] doorgelezen.\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nIk ga nu de ${docTypeLabel} maken.\n\nHoud het compact. Geen extra uitleg.`,
+                  },
+                ],
+              }],
+            });
+            const analysisText = analysisResp.content[0]?.text?.trim() ?? '';
+            if (analysisText) {
+              writeEvent(controller, { type: 'analysis', content: analysisText });
+            }
+          } catch (err) {
+            console.error('[ANALYSIS] analyse mislukt, verder met genereren:', err?.message ?? err);
+          }
+        }
 
         let fullText = '';
         const claudeStream = client.messages.stream({
@@ -383,12 +426,13 @@ export async function POST(request) {
         // DB update VOOR controller.close() — background .then() na close valt weg in Vercel serverless
         const bgUpdate = { updated_at: new Date().toISOString() };
         if (detectedClient) bgUpdate.client = detectedClient;
-        console.log(`[CLIENT-SAVE] detectedClient="${detectedClient}" clientName="${clientName}" threadClientFromDb="${threadClientFromDb}" activeThreadId="${activeThreadId}" bgUpdate.client="${bgUpdate.client}"`);
+        if (detectedProject) bgUpdate.project = detectedProject;
+        console.log(`[CLIENT-SAVE] detectedClient="${detectedClient}" detectedProject="${detectedProject}" activeThreadId="${activeThreadId}"`);
         await Promise.race([
           supabase.from('threads').update(bgUpdate).eq('id', activeThreadId)
             .then(({ error }) => {
               if (error) console.error(`[CLIENT-SAVE] DB update FAILED:`, error);
-              else console.log(`[CLIENT-SAVE] DB update OK — thread ${activeThreadId} client="${bgUpdate.client}"`);
+              else console.log(`[CLIENT-SAVE] DB update OK — client="${bgUpdate.client}" project="${bgUpdate.project}"`);
             }, (err) => console.error('[CLIENT-SAVE] DB update exception:', err)),
           new Promise(resolve => setTimeout(resolve, 2000)),
         ]);

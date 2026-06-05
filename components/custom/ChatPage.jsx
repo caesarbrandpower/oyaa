@@ -393,7 +393,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
-        if (isGenerateIntent) {
+        // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
+        if (isGenerateIntent && effectivePdfAttachments.length === 0) {
           return [...prev, {
             id: 'pre-gen-' + Date.now(),
             role: 'assistant',
@@ -460,7 +461,22 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               continue;
             }
 
-            if (event.type === 'meta') {
+            if (event.type === 'analysis') {
+              // Analyse-bericht van server — wordt voor de DocumentCard-placeholder ingevoegd
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === placeholderId);
+                const analysisMsg = {
+                  id: 'analysis-' + Date.now(),
+                  role: 'assistant',
+                  content: event.content,
+                  streaming: false,
+                  local: true,
+                  created_at: new Date().toISOString(),
+                };
+                if (idx === -1) return [...prev, analysisMsg];
+                return [...prev.slice(0, idx), analysisMsg, ...prev.slice(idx)];
+              });
+            } else if (event.type === 'meta') {
               isDocument = event.isDocument ?? false;
               const metaOutputType = event.outputType ?? null;
 
@@ -582,7 +598,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const effectiveOutputType = outputType || activeThreadRef.current?.output_type;
                 const typeLabel = effectiveOutputType ? OUTPUT_TYPE_INFO[effectiveOutputType]?.label : null;
                 if (effectiveClient && typeLabel) {
-                  const newTitle = `${effectiveClient} — ${typeLabel}`;
+                  const newTitle = `${typeLabel} — ${effectiveClient}`;
                   fetch(`/api/threads/${currentThreadId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },

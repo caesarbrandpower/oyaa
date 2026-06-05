@@ -32,6 +32,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const accountRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openProject, setOpenProject] = useState(null);
+  const [openSubProject, setOpenSubProject] = useState(null); // "clientName:projectName"
   const [contextMenu, setContextMenu] = useState(null); // { threadId, x, y } | null
   const [deleteConfirmId, setDeleteConfirmId] = useState(null); // thread.id | null
   const contextMenuRef = useRef(null);
@@ -137,28 +138,63 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
                         : <ChevronRight className="w-3 h-3 shrink-0 text-white/25" strokeWidth={2} />
                       }
                     </button>
-                    {isOpen && projectThreads.length > 0 && (
-                      <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-white/[0.06] pl-2">
-                        {projectThreads.slice(0, 6).map((thread) => {
-                          const Icon = getThreadIcon(thread);
-                          return (
-                            <li key={thread.id}>
-                              <button
-                                onClick={() => onSelectThread(thread)}
-                                className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded-lg text-[11px] leading-snug transition-colors ${
-                                  activeThreadId === thread.id
-                                    ? 'bg-white/[0.08] text-white'
-                                    : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70'
-                                }`}
-                              >
-                                <Icon className="w-3 h-3 shrink-0 opacity-50" strokeWidth={1.5} />
-                                <span className="truncate">{thread.title}</span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
+                    {isOpen && projectThreads.length > 0 && (() => {
+                      // Groepeer threads: zonder project direct, met project in submap
+                      const noProjectThreads = projectThreads.filter(t => !t.project);
+                      const byProject = projectThreads
+                        .filter(t => t.project)
+                        .reduce((acc, t) => { (acc[t.project] = acc[t.project] ?? []).push(t); return acc; }, {});
+                      function ThreadRow({ thread }) {
+                        const Icon = getThreadIcon(thread);
+                        return (
+                          <li key={thread.id}>
+                            <button
+                              onClick={() => onSelectThread(thread)}
+                              className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded-lg text-[11px] leading-snug transition-colors ${
+                                activeThreadId === thread.id
+                                  ? 'bg-white/[0.08] text-white'
+                                  : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70'
+                              }`}
+                            >
+                              <Icon className="w-3 h-3 shrink-0 opacity-50" strokeWidth={1.5} />
+                              <span className="truncate">{thread.title}</span>
+                            </button>
+                          </li>
+                        );
+                      }
+                      return (
+                        <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-white/[0.06] pl-2">
+                          {noProjectThreads.slice(0, 6).map(t => <ThreadRow key={t.id} thread={t} />)}
+                          {Object.entries(byProject).map(([projName, projThreads]) => {
+                            const subKey = `${project.name}:${projName}`;
+                            const subOpen = openSubProject === subKey;
+                            return (
+                              <li key={projName}>
+                                <button
+                                  onClick={() => setOpenSubProject(subOpen ? null : subKey)}
+                                  className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-[11px] text-white/40 hover:bg-white/[0.04] hover:text-white/60 transition-colors"
+                                >
+                                  {subOpen
+                                    ? <FolderOpen className="w-3 h-3 shrink-0 text-white/30" strokeWidth={1.75} />
+                                    : <Folder className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
+                                  }
+                                  <span className="flex-1 truncate text-left">{projName}</span>
+                                  {subOpen
+                                    ? <ChevronDown className="w-3 h-3 shrink-0 text-white/20" strokeWidth={2} />
+                                    : <ChevronRight className="w-3 h-3 shrink-0 text-white/20" strokeWidth={2} />
+                                  }
+                                </button>
+                                {subOpen && (
+                                  <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-white/[0.04] pl-2">
+                                    {projThreads.slice(0, 6).map(t => <ThreadRow key={t.id} thread={t} />)}
+                                  </ul>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      );
+                    })()}
                   </li>
                 );
               })}
