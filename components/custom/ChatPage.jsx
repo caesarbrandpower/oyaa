@@ -386,7 +386,20 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(messageText);
-      setMessages((prev) => [...prev, { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream }]);
+      setMessages((prev) => {
+        const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
+        if (isGenerateIntent) {
+          return [...prev, {
+            id: 'pre-gen-' + Date.now(),
+            role: 'assistant',
+            content: 'Goed, ik ga er nu mee aan de slag.',
+            streaming: false,
+            local: true,
+            created_at: new Date().toISOString(),
+          }, placeholder];
+        }
+        return [...prev, placeholder];
+      });
 
       const controller = new AbortController();
       abortRef.current = controller;

@@ -193,44 +193,9 @@ function stripDocMarkers(text) {
 }
 
 function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel }) {
-  const [expanded, setExpanded] = useState(false);
-  const rawBlocks = content.split(/\n{2,}/).filter((b) => b.trim().length > 0);
-  // Strip eerste kop (bijv. "## Projectoverzicht") — die staat al als outputTypeLabel
-  const blocks = rawBlocks[0]?.trim().match(/^#{1,3}\s/) ? rawBlocks.slice(1) : rawBlocks;
-  const visibleBlocks = expanded ? blocks : blocks.slice(0, 3);
-  const hasMore = blocks.length > 3;
   return (
     <div className="flex flex-col gap-3">
-      {outputTypeLabel && (
-        <p className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.08em] uppercase text-white/30">
-          {outputTypeLabel}
-        </p>
-      )}
-      <div className="custom-prose text-[14px]">
-        {visibleBlocks.map((block, i) => (
-          <div
-            key={i}
-            dangerouslySetInnerHTML={{ __html: marked.parse(stripDocMarkers(block)) }}
-          />
-        ))}
-      </div>
-      {hasMore && !expanded && (
-        <button
-          onClick={() => setExpanded(true)}
-          className="self-start text-[12px] text-white/60 hover:text-white/90 underline decoration-white/25 hover:decoration-white/60 transition-colors"
-        >
-          Toon volledige samenvatting
-        </button>
-      )}
-      {hasMore && expanded && (
-        <button
-          onClick={() => setExpanded(false)}
-          className="self-start text-[12px] text-white/40 hover:text-white/70 underline decoration-white/20 hover:decoration-white/50 transition-colors"
-        >
-          Inklappen
-        </button>
-      )}
-      {/* Bijlagen sectie — voor alle documenttypes, boven exportknoppen */}
+      {/* Bijlagen sectie — voor alle documenttypes, boven de DocumentCard */}
       {onExtrasChange && (
         <ExtrasSection
           messageId={messageId}
