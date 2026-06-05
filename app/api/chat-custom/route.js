@@ -259,9 +259,11 @@ export async function POST(request) {
         }
 
         let claudeMessages;
+        // combinedUserContext buiten het if/else blok — ook nodig in het analyse-blok verderop
+        let combinedUserContext = null;
         if (useStructuredPrompt) {
           // Gebruik alleen het huidige gebruikersbericht — cumulatief groeien geeft inconsistentie
-          const combinedUserContext = anonParts[allMessages.length - 1] ?? message.trim();
+          combinedUserContext = anonParts[allMessages.length - 1] ?? message.trim();
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](combinedUserContext);
           // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
           const effectiveClientName = clientName || threadClientFromDb;
