@@ -203,9 +203,15 @@ export async function POST(request) {
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
 
-        // Auto-detecteer outputType via keywords als onbekend — geen extra API-call
+        // Gebruikerstekst zonder bestandsinhoud — [Bijlage:] en [Transcript:] markers geven bestandsinhoud aan
+        // Klantnaam- en intentie-detectie mag NOOIT op bestandsinhoud draaien
+        const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+
+        // Auto-detecteer outputType via keywords als onbekend — alleen op gebruikerstekst, niet bestandsinhoud
         if (!effectiveOutputType) {
-          const recentText = allMessages.slice(-8).map(m => m.content.slice(0, 500)).join(' ').toLowerCase();
+          const recentText = allMessages.slice(-8).map(m =>
+            m.content.split(/\n\n\[(?:Bijlage|Transcript):/)[0].slice(0, 500)
+          ).join(' ').toLowerCase();
           let detected = null;
           if (/\b(pm[\s-]briefing|briefing\s+(naar|voor)\s+(de\s+)?pm|interne\s+briefing|account[\s-]?(naar|to)[\s-]?pm)\b/.test(recentText)) detected = 'account-to-pm';
           else if (/\b(creatieve?\s*briefing|briefing\s+(naar|voor)\s+creatie|account[\s-]?(naar|to)[\s-]?creati)\b/.test(recentText)) detected = 'account-to-creation';
@@ -221,8 +227,9 @@ export async function POST(request) {
           }
         }
 
-        // Detecteer genereer-intentie in het huidige bericht
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(message);
+        // Detecteer genereer-intentie — alleen op gebruikerstekst, nooit op bestandsinhoud
+        // Patronen: "maak/genereer ... briefing/document", "maak de/hem", "doe het maar", "briefing voor [project]"
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
 
         // isDocument: buffers de stream zodat de briefing nooit live opbouwt
         // True als: outputType is een document-type, of er al een doc is, of gebruiker vraagt expliciet te genereren
@@ -365,11 +372,11 @@ export async function POST(request) {
           detectedClient = threadClientFromDb;
           detectedProject = threadProjectFromDb;
         } else {
-          // Eerste chat-beurt: sync regex — geen netwerkaanroep, geen timeout-risico
+          // Eerste chat-beurt: sync regex — alleen op gebruikerstekst, nooit op bestandsinhoud
           // Pakt patronen als "voor Coca-Cola", "voor klant Nike", "klant: Adidas"
-          const clientMatch = message.match(
+          const clientMatch = userOnlyMessage.match(
             /\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/
-          ) ?? message.match(
+          ) ?? userOnlyMessage.match(
             /\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i
           );
           detectedClient = clientMatch ? clientMatch[1].trim() : undefined;
