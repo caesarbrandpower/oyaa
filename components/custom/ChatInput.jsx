@@ -6,7 +6,7 @@ import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2,
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
 const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
-const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
+const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 const PDF_EXTS = ['.pdf'];
 
 function isPdfFile(file) {
@@ -369,7 +369,7 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
           <input
             ref={fileInputRef}
             type="file"
-            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.jpg,.jpeg,.png,.webp"
+            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.jpg,.jpeg,.png,.gif,.webp"
             multiple
             className="hidden"
             onChange={handleFileChange}

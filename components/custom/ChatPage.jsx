@@ -57,6 +57,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingWizardPhotosRef: foto's van wizard stap 2, tijdelijk opgeslagen tot messageId bekend is
   const pendingConfirmationRef = useRef(null);
   // pendingConfirmationRef: { suggestion, messageText, outputType, taskLabel, displayText, imageAttachments }
+  const pendingImageRef = useRef(null);
+  // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -259,6 +261,46 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = []) => {
       if (sendingRef.current) return;
 
+      // Afbeelding keuze-flow: gebruiker reageert op "informatie uithalen / bijlage"
+      if (pendingImageRef.current) {
+        const pending = pendingImageRef.current;
+        pendingImageRef.current = null;
+        const choice = messageText.trim().toLowerCase();
+        if (/bijlage|toevoeg|bijvoeg/.test(choice)) {
+          const lastDocMsg = messagesRef.current.slice().reverse().find(m => m.isDocument);
+          if (lastDocMsg) {
+            const newPhotos = pending.imageAttachments.map(a => ({
+              url: `data:${a.mediaType};base64,${a.data}`,
+              name: a.filename,
+            }));
+            setBriefingExtras(prev => ({
+              ...prev,
+              [lastDocMsg.id]: {
+                photos: [...(prev[lastDocMsg.id]?.photos ?? []), ...newPhotos],
+                links: prev[lastDocMsg.id]?.links ?? [],
+              },
+            }));
+          }
+          setMessages(prev => [
+            ...prev,
+            { id: 'user-img-' + Date.now(), role: 'user', content: messageText, created_at: new Date().toISOString() },
+            {
+              id: 'img-bijlage-' + Date.now(),
+              role: 'assistant',
+              content: lastDocMsg
+                ? 'Afbeelding toegevoegd als bijlage aan je briefing.'
+                : 'Er is nog geen document in dit gesprek om de afbeelding aan te koppelen.',
+              streaming: false,
+              local: true,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+          return;
+        }
+        // "informatie" of andere keuze — stuur afbeelding door naar Claude
+        imageAttachments = pending.imageAttachments;
+      }
+
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
       let isConfirmationResponse = false;
       if (pendingConfirmationRef.current) {
@@ -318,6 +360,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         return;
       }
 
+      // Afbeelding upload interceptor — vraag keuze vóór API-call (niet in wizard-flow)
+      if (!isConfirmationResponse && imageAttachments.length > 0 && !taskLabel && !displayText) {
+        pendingImageRef.current = { imageAttachments };
+        setMessages(prev => [...prev, {
+          id: 'img-choice-' + Date.now(),
+          role: 'assistant',
+          content: 'Ik zie een afbeelding. Wil je dat ik er informatie uit haal, of voeg ik hem toe als bijlage aan je document?',
+          streaming: false,
+          local: true,
+          created_at: new Date().toISOString(),
+        }]);
+        setSendingState(false);
+        return;
+      }
+
       const placeholderId = 'streaming-' + Date.now();
       const SEARCH_IDS_PLACEHOLDER = new Set(['location-search', 'supplier-search']);
       const effectiveType = outputType ?? activeThreadRef.current?.output_type ?? null;
@@ -329,20 +386,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(messageText);
-      setMessages((prev) => {
-        const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
-        if (isGenerateIntent) {
-          return [...prev, {
-            id: 'pre-gen-' + Date.now(),
-            role: 'assistant',
-            content: 'Goed, ik ga er nu mee aan de slag.',
-            streaming: false,
-            local: true,
-            created_at: new Date().toISOString(),
-          }, placeholder];
-        }
-        return [...prev, placeholder];
-      });
+      setMessages((prev) => [...prev, { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream }]);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -442,22 +486,25 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 output_type: outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
               };
+              const saveClient = event.detectedClient ?? activeThreadRef.current?.client ?? null;
+              const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
                 if (!finalIsDocument || !isGenerateIntent) return updated;
+                const postContent = saveClient
+                  ? `Hier is je briefing. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
+                  : "Hier is je briefing. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?";
                 return [...updated, {
                   id: 'post-doc-' + Date.now(),
                   role: 'assistant',
-                  content: 'Hier is je briefing. Lees hem even door en vul aan waar nodig.',
+                  content: postContent,
                   streaming: false,
                   local: true,
                   created_at: new Date().toISOString(),
                 }];
               });
-              // Auto-save document bij nieuwe generatie
+              // Auto-save in background voor Aanvullen-overwrite
               if (finalIsDocument && isGenerateIntent && event.content) {
-                const saveClient = event.detectedClient ?? activeThreadRef.current?.client ?? null;
-                const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
                 const savedMsgId = event.messageId;
                 fetch('/api/share-document', {
                   method: 'POST',
@@ -471,17 +518,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }).then(res => res.ok ? res.json() : null).then(data => {
                   if (!data?.token) return;
                   setDocumentTokens(prev => ({ ...prev, [savedMsgId]: data.token }));
-                  const saveMsg = saveClient
-                    ? `Ik heb dit opgeslagen in de map ${saveClient}.`
-                    : 'Ik heb dit opgeslagen.';
-                  setMessages(prev => [...prev, {
-                    id: 'save-confirm-' + Date.now(),
-                    role: 'assistant',
-                    content: saveMsg,
-                    streaming: false,
-                    local: true,
-                    created_at: new Date().toISOString(),
-                  }]);
                 }).catch(() => {});
               }
               // detectedClient/Project/outputType buiten setMessages updater — nooit side effects in een pure updater
