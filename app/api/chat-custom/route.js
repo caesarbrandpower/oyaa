@@ -315,6 +315,8 @@ export async function POST(request) {
         // ── Stap 3 — Generatie-blok ───────────────────────────────────────────
         // Bereikt als: geen PDFs aanwezig, of analysisConfirmed=true
 
+        console.log('[field-briefing debug]', { analysisConfirmed, effectiveOutputType, useStructuredPrompt: !!(effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType] && (!!outputType || hasGenerateIntent || documentAttachments.length > 0)), documentAttachmentsLength: documentAttachments.length, hasTxtContent });
+
         const useStructuredPrompt = !!(
           effectiveOutputType &&
           CUSTOM_PROMPTS[effectiveOutputType] &&
