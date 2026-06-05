@@ -320,6 +320,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           client = isYes ? pending.suggestion : userResponse;
         }
         imageAttachments = pending.imageAttachments;
+        pdfAttachments = pending.pdfAttachments ?? [];
         clientConfirmed = true;
         isConfirmationResponse = true;
       }
@@ -499,7 +500,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 output_type: outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
               };
-              const saveClient = event.detectedClient ?? activeThreadRef.current?.client ?? null;
+              const saveClient = event.detectedClient ?? client ?? activeThreadRef.current?.client ?? null;
               const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
@@ -550,6 +551,22 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                     ? { ...t, client: newClient, project: newProject, output_type: newOutputType }
                     : t));
                 }
+              }
+              // Belt-and-suspenders: zorg dat de thread altijd in de sidebar zichtbaar is
+              if (currentThreadId) {
+                setThreads(prev => {
+                  if (prev.some(t => t.id === currentThreadId)) return prev;
+                  const fallbackThread = {
+                    id: currentThreadId,
+                    title: activeThreadRef.current?.title ?? displayText ?? taskLabel ?? messageText.slice(0, 60),
+                    output_type: event.outputType ?? outputType ?? null,
+                    client: event.detectedClient ?? client ?? null,
+                    project: event.detectedProject ?? null,
+                    created_at: activeThreadRef.current?.created_at ?? new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  };
+                  return [fallbackThread, ...prev];
+                });
               }
               // Auto-titel: "[Klant] — [Type]" zodra client + outputType bekend zijn, vóór document-generatie
               if (!finalIsDocument && currentThreadId) {
@@ -619,6 +636,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 taskLabel,
                 displayText,
                 imageAttachments,
+                pdfAttachments,
               };
               setSendingState(false);
             } else if (event.type === 'error') {
