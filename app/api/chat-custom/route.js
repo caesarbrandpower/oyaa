@@ -236,10 +236,9 @@ export async function POST(request) {
         const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc || hasGenerateIntent;
 
         // useStructuredPrompt: gebruik gespecialiseerde genereer-prompt
-        // Alleen wanneer outputType EXPLICIET uit het request komt (wizard) OF gebruiker vraagt te genereren
-        // Niet bij elke conversationele beurt op een thread die al een outputType heeft
+        // Wanneer: outputType uit wizard, gebruiker vraagt te genereren, of documenten aanwezig zijn met bekend outputType
         const outputTypeFromRequest = !!outputType;
-        const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType] && (outputTypeFromRequest || hasGenerateIntent);
+        const useStructuredPrompt = effectiveOutputType && CUSTOM_PROMPTS[effectiveOutputType] && (outputTypeFromRequest || hasGenerateIntent || documentAttachments.length > 0);
 
         console.log(`[PERF] meta event → indicator: +${Date.now() - tReq}ms total`);
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
@@ -261,11 +260,8 @@ export async function POST(request) {
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Combineer volledige gespreksgeschiedenis voor context (inclusief assistent-analyse van eerder geüploade documenten)
-          const combinedUserContext = allMessages
-            .map((msg, i) => msg.role === 'user' ? (anonParts[i] ?? msg.content) : null)
-            .filter(Boolean)
-            .join('\n\n');
+          // Gebruik alleen het huidige gebruikersbericht — cumulatief groeien geeft inconsistentie
+          const combinedUserContext = anonParts[allMessages.length - 1] ?? message.trim();
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](combinedUserContext);
           // Injecteer klantnaam bovenaan zodat AI namen exact overneemt
           const effectiveClientName = clientName || threadClientFromDb;
@@ -384,6 +380,19 @@ export async function POST(request) {
           detectedProject = null;
         }
 
+        // DB update VOOR controller.close() — background .then() na close valt weg in Vercel serverless
+        const bgUpdate = { updated_at: new Date().toISOString() };
+        if (detectedClient) bgUpdate.client = detectedClient;
+        console.log(`[CLIENT-SAVE] detectedClient="${detectedClient}" clientName="${clientName}" threadClientFromDb="${threadClientFromDb}" activeThreadId="${activeThreadId}" bgUpdate.client="${bgUpdate.client}"`);
+        await Promise.race([
+          supabase.from('threads').update(bgUpdate).eq('id', activeThreadId)
+            .then(({ error }) => {
+              if (error) console.error(`[CLIENT-SAVE] DB update FAILED:`, error);
+              else console.log(`[CLIENT-SAVE] DB update OK — thread ${activeThreadId} client="${bgUpdate.client}"`);
+            }, (err) => console.error('[CLIENT-SAVE] DB update exception:', err)),
+          new Promise(resolve => setTimeout(resolve, 2000)),
+        ]);
+
         console.log(`[PERF] done event → DocumentCard: +${Date.now() - tReq}ms total`);
         writeEvent(controller, {
           type: 'done',
@@ -395,17 +404,6 @@ export async function POST(request) {
         });
 
         controller.close();
-
-        // updated_at (+ client indien net gedetecteerd) op de achtergrond — blokt done event niet
-        // Supabase geeft een PromiseLike terug zonder .catch() — gebruik .then(null, handler)
-        const bgUpdate = { updated_at: new Date().toISOString() };
-        if (detectedClient) bgUpdate.client = detectedClient;
-        console.log(`[CLIENT-SAVE] detectedClient="${detectedClient}" clientName="${clientName}" threadClientFromDb="${threadClientFromDb}" activeThreadId="${activeThreadId}" bgUpdate.client="${bgUpdate.client}"`);
-        supabase.from('threads').update(bgUpdate).eq('id', activeThreadId)
-          .then(({ error }) => {
-            if (error) console.error(`[CLIENT-SAVE] DB update FAILED:`, error);
-            else console.log(`[CLIENT-SAVE] DB update OK — thread ${activeThreadId} client="${bgUpdate.client}"`);
-          }, (err) => console.error('[CLIENT-SAVE] DB update exception:', err));
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
