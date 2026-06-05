@@ -389,7 +389,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       // Fix 4C: veldbriefing foto-interceptor
       const currentOutputType = outputType ?? activeThreadRef.current?.output_type ?? null;
-      if (currentOutputType === 'field-briefing' && /foto|fotos|foto's|afbeelding|afbeeldingen|upload|toevoeg|bijvoeg/i.test(messageText)) {
+      if (currentOutputType === 'field-briefing' && !analysisConfirmed && /foto|fotos|foto's|afbeelding|afbeeldingen|upload|toevoeg|bijvoeg/i.test(messageText)) {
         setMessages(prev => [...prev, {
           id: 'local-' + Date.now(),
           role: 'assistant',
