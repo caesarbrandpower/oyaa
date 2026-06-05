@@ -353,6 +353,10 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             'account-pm-briefing': 'briefing naar PM', 'evaluation': 'evaluatie',
           };
           const docTypeLabel = ANALYSIS_TYPE_LABELS[effectiveOutputType] ?? effectiveOutputType ?? 'document';
+          // Tel het werkelijke aantal bronnen: PDFs + eventuele txt-bijlage in berichttekst
+          const hasTxtAttachment = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
+          const totalSources = documentAttachments.length + (hasTxtAttachment ? 1 : 0);
+          const bronnenZin = `Ik heb ${totalSources} bestand${totalSources !== 1 ? 'en' : ''} doorgelezen.`;
           try {
             const analysisResp = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
@@ -361,9 +365,10 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
                 role: 'user',
                 content: [
                   ...buildDocumentBlocks(documentAttachments),
+                  { type: 'text', text: combinedUserContext },
                   {
                     type: 'text',
-                    text: `Analyseer de aangeleverde documenten voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nIk heb [X bestand(en)] doorgelezen.\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
+                    text: `Analyseer de aangeleverde bronnen (PDFs en tekst hierboven) voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\n${bronnenZin}\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
                   },
                 ],
               }],
