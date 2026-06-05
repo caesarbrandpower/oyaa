@@ -186,7 +186,7 @@ export async function POST(request) {
             effectiveOutputType = 'account-to-pm';
           else if (/\b(creatieve?\s*briefing|briefing\s+(naar|voor)\s+creatie|account[\s-]?(naar|to)[\s-]?creati)\b/.test(recentText))
             effectiveOutputType = 'account-to-creation';
-          else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing)\b/.test(recentText))
+          else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing|briefing\s+naar\s+ba|briefing\s+ba)\b/.test(recentText))
             effectiveOutputType = 'field-briefing';
           else if (/\b(samenvatting|samenvat|notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
             effectiveOutputType = 'meeting-summary';
