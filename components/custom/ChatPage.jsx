@@ -226,12 +226,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setSidebarOpen(false);
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
+    pendingDocGenRef.current = null;
   }
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
+    pendingDocGenRef.current = null;
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -486,6 +488,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         const decoder = new TextDecoder();
         let buffer = '';
         let isDocument = false;
+        let metaOutputType = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -528,7 +531,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   txtAtts.push({ filename: txtM[1], data: txtM[2] });
                 }
                 pendingDocGenRef.current = {
-                  messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? null, taskLabel, displayText, client,
+                  messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? metaOutputType ?? null, taskLabel, displayText, client,
                   imageAttachments, pdfAttachments: effectivePdfAttachments,
                   textAttachments,
                   txtAttachments: txtAtts,
@@ -547,7 +550,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               }
             } else if (event.type === 'meta') {
               isDocument = event.isDocument ?? false;
-              const metaOutputType = event.outputType ?? null;
+              metaOutputType = event.outputType ?? null;
 
               setMessages((prev) =>
                 prev.map(m => m.id === placeholderId
