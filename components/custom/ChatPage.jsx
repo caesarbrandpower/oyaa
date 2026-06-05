@@ -603,7 +603,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 'evaluation':          'evaluatie',
                 'account-to-pm':       'briefing',
                 'account-to-creation': 'briefing',
-                'field-briefing':      'briefing',
+                'field-briefing':      'ambassadeursbriefing',
                 'external-debrief':    'evaluatie',
               };
               const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';

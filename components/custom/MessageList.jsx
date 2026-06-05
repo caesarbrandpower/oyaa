@@ -310,7 +310,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             ) : msg.streaming ? (
               (msg.isDocument || msg.bufferedStream) ? (
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
-                  {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
+                  {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie', 'account-to-pm': 'briefing', 'field-briefing': 'ambassadeursbriefing', 'account-to-creation': 'briefing naar creatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
                 </p>
               ) : (
                 <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
