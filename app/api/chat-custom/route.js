@@ -246,9 +246,7 @@ export async function POST(request) {
           const docTypeLabel = ANALYSIS_TYPE_LABELS[effectiveOutputType] ?? 'document';
 
           // Bronnen tellen: PDFs + eventuele txt-bijlage ingebed in berichttekst
-          console.log('[analyse] combinedUserContext (300):', combinedUserContext?.slice(0, 300));
           const hasTxtAttachment = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
-          console.log('[analyse] hasTxtAttachment:', hasTxtAttachment, '| regex test op message.trim():', /\[(?:Bijlage|Transcript):/.test(message.trim()));
           const totalSources = documentAttachments.length + (hasTxtAttachment ? 1 : 0);
           const bronnenZin = `Ik heb ${totalSources} bestand${totalSources !== 1 ? 'en' : ''} doorgelezen.`;
 
@@ -263,14 +261,14 @@ export async function POST(request) {
                   { type: 'text', text: combinedUserContext },
                   {
                     type: 'text',
-                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\n${bronnenZin}\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
+                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Schrijf in precies dit formaat, in het Nederlands:\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
                   },
                 ],
               }],
             });
             const analysisText = analysisResp.content[0]?.text?.trim() ?? '';
             if (analysisText) {
-              writeEvent(controller, { type: 'analysis', content: analysisText, needsConfirmation: true });
+              writeEvent(controller, { type: 'analysis', content: analysisText, bronnenZin, needsConfirmation: true });
             }
           } catch (err) {
             console.error('[ANALYSIS] analyse mislukt:', err?.message ?? err);
@@ -370,10 +368,6 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             }
           }
         }
-
-        const lastMsg = claudeMessages[claudeMessages.length - 1];
-        console.log('[generatie]', { extraBlocksLength: Array.isArray(lastMsg?.content) ? lastMsg.content.length - 1 : 0, hasTxtBlock: !!(combinedUserContext.match(/\n\n(\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1]), claudeMessagesLength: claudeMessages.length });
-        console.log('[generatie content]', JSON.stringify(Array.isArray(lastMsg?.content) ? lastMsg.content.map(b => ({ type: b.type, length: b.text?.length || b.source?.data?.length })) : [{ type: 'text', length: lastMsg?.content?.length }]));
 
         let fullText = '';
         const claudeStream = client.messages.stream({

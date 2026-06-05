@@ -505,7 +505,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               const analysisMsg = {
                 id: 'analysis-' + Date.now(),
                 role: 'assistant',
-                content: event.content,
+                content: event.bronnenZin ? `${event.bronnenZin}\n\n${event.content}` : event.content,
                 streaming: false,
                 local: true,
                 created_at: new Date().toISOString(),
