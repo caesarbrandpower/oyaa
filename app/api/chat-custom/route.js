@@ -246,7 +246,9 @@ export async function POST(request) {
           const docTypeLabel = ANALYSIS_TYPE_LABELS[effectiveOutputType] ?? 'document';
 
           // Bronnen tellen: PDFs + eventuele txt-bijlage ingebed in berichttekst
+          console.log('[analyse] combinedUserContext (300):', combinedUserContext?.slice(0, 300));
           const hasTxtAttachment = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
+          console.log('[analyse] hasTxtAttachment:', hasTxtAttachment, '| regex test op message.trim():', /\[(?:Bijlage|Transcript):/.test(message.trim()));
           const totalSources = documentAttachments.length + (hasTxtAttachment ? 1 : 0);
           const bronnenZin = `Ik heb ${totalSources} bestand${totalSources !== 1 ? 'en' : ''} doorgelezen.`;
 
