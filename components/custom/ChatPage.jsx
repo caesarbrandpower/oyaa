@@ -61,6 +61,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
   const threadDocsRef = useRef([]);
   // threadDocsRef: PDF-bijlagen voor de actieve thread — persistent over meerdere beurten zodat Claude ze in turn 2 nog kan lezen
+  const threadTxtAttachmentsRef = useRef([]);
+  // threadTxtAttachmentsRef: txt-bijlagen als [{filename, data}] — parallel aan PDF-binaries, los van DB/combinedUserContext
   const threadTxtContextRef = useRef('');
   // threadTxtContextRef: txt-bijlageinhoud ingebed in messageText ([Bijlage: ...]) — persistent naast PDF-binaries
   const pendingDocGenRef = useRef(null);
@@ -223,11 +225,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setSendingState(false);
     setSidebarOpen(false);
     threadDocsRef.current = [];
+    threadTxtAttachmentsRef.current = [];
   }
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
     threadDocsRef.current = [];
+    threadTxtAttachmentsRef.current = [];
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -321,13 +325,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }]);
         if (isConfirm) {
           // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
-          // Voeg opgeslagen txt-context toe als die niet al in de berichttekst zit
-          const txtCtx = pending.txtContext ?? '';
-          const enrichedMessage = txtCtx && !pending.messageText.includes(txtCtx)
-            ? pending.messageText + txtCtx
-            : pending.messageText;
-          handleSend(enrichedMessage, pending.outputType, pending.taskLabel, pending.displayText,
-            pending.client, pending.imageAttachments, [], false, pending.wizardProject, [], pending.pdfAttachments,
+          // Txt-bijlagen via ref doorgeven aan request body (los van DB/combinedUserContext)
+          threadTxtAttachmentsRef.current = pending.txtAttachments ?? [];
+          handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
+            pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
             true /* analysisConfirmed */);
         } else {
           // Gebruiker wil iets aanvullen — gewone beurt, PDF's blijven in threadDocsRef
@@ -462,6 +463,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             clientConfirmed,
             imageAttachments,
             documentAttachments: effectivePdfAttachments,
+            txtAttachments: threadTxtAttachmentsRef.current,
             prevHasDoc,
             project: wizardProject ?? null,
             analysisConfirmed,
@@ -513,9 +515,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               if (event.needsConfirmation) {
                 // Server stopt na analyse — sla context op zodat volgende beurt kan genereren
                 // outputType: gebruik ook de via meta-event ontvangen effectiveOutputType als fallback
+                // Extraheer txt-bijlagen als [{filename, data}] voor directe doorsturing naar server
+                const txtAtts = [];
+                const txtRe = /\n\n\[(?:Bijlage|Transcript): ([^\]]+)\]\n([\s\S]+?)(?=\n\n\[(?:Bijlage|Transcript):|$)/g;
+                let txtM;
+                while ((txtM = txtRe.exec(messageText)) !== null) {
+                  txtAtts.push({ filename: txtM[1], data: txtM[2] });
+                }
                 pendingDocGenRef.current = {
                   messageText, outputType: outputType ?? activeThreadRef.current?.output_type ?? null, taskLabel, displayText, client,
                   imageAttachments, pdfAttachments: effectivePdfAttachments,
+                  textAttachments,
+                  txtAttachments: txtAtts,
                   txtContext: threadTxtContextRef.current,
                   wizardProject,
                 };

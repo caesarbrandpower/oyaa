@@ -50,6 +50,7 @@ export async function POST(request) {
     clientConfirmed = false,
     imageAttachments = [],
     documentAttachments = [],
+    txtAttachments = [],
     prevHasDoc = false,
     project: wizardProject = null,
     analysisConfirmed = false,
@@ -229,6 +230,10 @@ export async function POST(request) {
           }));
         }
 
+        function buildTxtBlocks(txts) {
+          return txts.map((t) => ({ type: 'text', text: `[${t.filename}]\n${t.data}` }));
+        }
+
         // ── Stap 2 — Analyse-blok ─────────────────────────────────────────────
         // Onafhankelijk van useStructuredPrompt of effectiveOutputType.
         // Altijd draaien als er PDFs aanwezig zijn én nog niet bevestigd.
@@ -318,11 +323,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Scheid gebruikerstekst van ingebedde [Bijlage:/Transcript:] inhoud
-          // zodat de bijlageinhoud als apart text-blok naast de PDF-document-blocks kan staan
+          // Gebruikerstekst zonder ingebedde bijlagen — txt-inhoud komt via txtAttachments (request body)
           const userTextOnly = combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
-          const txtMatch = combinedUserContext.match(/\n\n(\[(?:Bijlage|Transcript):[\s\S]+)/);
-          const txtBlockContent = txtMatch ? txtMatch[1].trim() : '';
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
@@ -336,7 +338,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
           const extraBlocks = [
             ...buildDocumentBlocks(documentAttachments),
-            ...(txtBlockContent ? [{ type: 'text', text: txtBlockContent }] : []),
+            ...buildTxtBlocks(txtAttachments),
             ...buildImageBlocks(imageAttachments),
           ];
           claudeMessages = [{
