@@ -59,6 +59,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingConfirmationRef: { suggestion, messageText, outputType, taskLabel, displayText, imageAttachments }
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [documentTokens, setDocumentTokens] = useState({});
+  // documentTokens: { [messageId]: shareToken } — bijgehouden voor Aanvullen-overschrijven
 
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
@@ -187,6 +189,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       client: threadFromList?.client ?? activeThreadRef.current?.client ?? null,
       project: threadFromList?.project ?? activeThreadRef.current?.project ?? null,
       extras: briefingExtras[msg.id] ?? null,
+      savedToken: documentTokens[msg.id] ?? null,
     });
   }
 
@@ -325,10 +328,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
-      setMessages((prev) => [
-        ...prev,
-        { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream },
-      ]);
+      const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b/i.test(messageText);
+      setMessages((prev) => {
+        const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
+        if (isGenerateIntent) {
+          return [...prev, {
+            id: 'pre-gen-' + Date.now(),
+            role: 'assistant',
+            content: 'Goed, ik ga er nu mee aan de slag.',
+            streaming: false,
+            local: true,
+            created_at: new Date().toISOString(),
+          }, placeholder];
+        }
+        return [...prev, placeholder];
+      });
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -430,24 +444,46 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               setMessages((prev) => {
                 const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
-                if (!finalIsDocument) return updated;
-                const additions = [];
-              if (client === null && event.detectedClient !== undefined) {
-                  const effectiveClientName = event.detectedClient || client;
-                  const clientMsg = effectiveClientName
-                    ? `Ik sla dit op in de map ${effectiveClientName}. Wil je het ergens anders kwijt?`
-                    : 'Ik sla dit op onder Overige. Wil je het ergens anders kwijt?';
-                  additions.push({
-                    id: 'client-msg-' + Date.now(),
+                if (!finalIsDocument || !isGenerateIntent) return updated;
+                return [...updated, {
+                  id: 'post-doc-' + Date.now(),
+                  role: 'assistant',
+                  content: 'Hier is je briefing. Lees hem even door en vul aan waar nodig.',
+                  streaming: false,
+                  local: true,
+                  created_at: new Date().toISOString(),
+                }];
+              });
+              // Auto-save document bij nieuwe generatie
+              if (finalIsDocument && isGenerateIntent && event.content) {
+                const saveClient = event.detectedClient ?? activeThreadRef.current?.client ?? null;
+                const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
+                const savedMsgId = event.messageId;
+                fetch('/api/share-document', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: event.content,
+                    outputType: finalMsg.output_type,
+                    client: saveClient,
+                    project: saveProject,
+                  }),
+                }).then(res => res.ok ? res.json() : null).then(data => {
+                  if (!data?.token) return;
+                  setDocumentTokens(prev => ({ ...prev, [savedMsgId]: data.token }));
+                  const saveMsg = saveClient
+                    ? `Ik heb dit opgeslagen in de map ${saveClient}.`
+                    : 'Ik heb dit opgeslagen.';
+                  setMessages(prev => [...prev, {
+                    id: 'save-confirm-' + Date.now(),
                     role: 'assistant',
-                    content: clientMsg,
+                    content: saveMsg,
                     streaming: false,
                     local: true,
                     created_at: new Date().toISOString(),
-                  });
-                }
-                return [...updated, ...additions];
-              });
+                  }]);
+                }).catch(() => {});
+              }
               // detectedClient/Project/outputType buiten setMessages updater — nooit side effects in een pure updater
               const currentThreadId = activeThreadRef.current?.id;
               if (currentThreadId) {
@@ -677,6 +713,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         extras={activeDocument.extras ?? null}
         outputType={activeDocument.outputType ?? null}
         outputTypeLabel={activeDocument.outputTypeLabel ?? null}
+        savedToken={activeDocument.savedToken ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
       />

@@ -466,7 +466,7 @@ async function _unusedWordDoc(content, title, logos = {}, extras = null) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null }) {
+export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -591,9 +591,17 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
       setEditingIdx(null);
       return;
     }
-    setLocalContent(prev => replaceOccurrence(prev, LABEL_REGEX, idx, editValue.trim()));
+    const newContent = replaceOccurrence(localContent, LABEL_REGEX, idx, editValue.trim());
+    setLocalContent(newContent);
     setEditingIdx(null);
     setEditValue('');
+    if (savedToken) {
+      fetch(`/api/share-document?token=${savedToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      }).catch(() => {});
+    }
   }
 
   function handleConfirm(idx) {
