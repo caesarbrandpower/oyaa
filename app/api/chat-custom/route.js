@@ -287,8 +287,8 @@ export async function POST(request) {
               analysisDetectedClient = threadClientFromDb;
             } else {
               const clientMatch =
-                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
-                userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
+                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
+                userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
               analysisDetectedClient = clientMatch ? normalizeClientName(clientMatch[1]) : undefined;
             }
             if (analysisDetectedClient) {
