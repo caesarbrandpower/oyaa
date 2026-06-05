@@ -278,6 +278,31 @@ export async function POST(request) {
           } catch (err) {
             console.error('[ANALYSIS] analyse mislukt:', err?.message ?? err);
           }
+          // Client-detectie: schrijf naar DB zodat tweede aanroep threadClientFromDb kan gebruiken
+          {
+            let analysisDetectedClient;
+            if (clientName) {
+              analysisDetectedClient = clientName;
+            } else if (threadClientFromDb) {
+              analysisDetectedClient = threadClientFromDb;
+            } else {
+              const clientMatch =
+                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/) ??
+                userOnlyMessage.match(/\bklant[:\s]+([A-Z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i);
+              analysisDetectedClient = clientMatch ? clientMatch[1].trim() : undefined;
+            }
+            if (analysisDetectedClient) {
+              await Promise.race([
+                supabase.from('threads').update({ client: analysisDetectedClient }).eq('id', activeThreadId)
+                  .then(
+                    ({ error }) => { if (error) console.error('[DB] analyse client update failed:', error); },
+                    (err) => console.error('[DB] analyse client update exception:', err)
+                  ),
+                new Promise(resolve => setTimeout(resolve, 2000)),
+              ]);
+            }
+          }
+
           // Stream sluiten — genereer pas na gebruikersbevestiging (analysisConfirmed=true)
           controller.close();
           return;
