@@ -356,7 +356,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           try {
             const analysisResp = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 300,
+              max_tokens: 500,
               messages: [{
                 role: 'user',
                 content: [
