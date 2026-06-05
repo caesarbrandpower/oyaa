@@ -59,6 +59,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingConfirmationRef: { suggestion, messageText, outputType, taskLabel, displayText, imageAttachments }
   const pendingImageRef = useRef(null);
   // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
+  const threadDocsRef = useRef([]);
+  // threadDocsRef: PDF-bijlagen voor de actieve thread — persistent over meerdere beurten zodat Claude ze in turn 2 nog kan lezen
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -216,10 +218,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
     setSendingState(false);
     setSidebarOpen(false);
+    threadDocsRef.current = [];
   }
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
+    threadDocsRef.current = [];
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -405,6 +409,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const controller = new AbortController();
       abortRef.current = controller;
 
+      // PDF-bijlagen bewaren over meerdere beurten — zodat Claude in turn 2+ nog de originele PDF leest
+      if (pdfAttachments.length > 0) threadDocsRef.current = pdfAttachments;
+      const effectivePdfAttachments = threadDocsRef.current;
+
       try {
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
@@ -417,7 +425,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             client,
             clientConfirmed,
             imageAttachments,
-            documentAttachments: pdfAttachments,
+            documentAttachments: effectivePdfAttachments,
             prevHasDoc,
             project: wizardProject ?? null,
           }),

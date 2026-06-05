@@ -328,6 +328,7 @@ export async function POST(request) {
           max_tokens: 4096,
           system: systemPrompt,
           messages: claudeMessages,
+          ...(isDocument ? { temperature: 0 } : {}),
         });
 
         const tClaude = Date.now();
@@ -395,9 +396,11 @@ export async function POST(request) {
 
         controller.close();
 
-        // updated_at op de achtergrond — blokt done event niet
+        // updated_at (+ client indien net gedetecteerd) op de achtergrond — blokt done event niet
         // Supabase geeft een PromiseLike terug zonder .catch() — gebruik .then(null, handler)
-        supabase.from('threads').update({ updated_at: new Date().toISOString() }).eq('id', activeThreadId).then(null, () => {});
+        const bgUpdate = { updated_at: new Date().toISOString() };
+        if (detectedClient) bgUpdate.client = detectedClient;
+        supabase.from('threads').update(bgUpdate).eq('id', activeThreadId).then(null, () => {});
       } catch (err) {
         console.error('chat-custom stream error:', err);
         writeEvent(controller, { type: 'error', error: 'Er is een fout opgetreden.' });
