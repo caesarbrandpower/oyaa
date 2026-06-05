@@ -318,7 +318,13 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          let promptText = CUSTOM_PROMPTS[effectiveOutputType](combinedUserContext);
+          // Scheid gebruikerstekst van ingebedde [Bijlage:/Transcript:] inhoud
+          // zodat de bijlageinhoud als apart text-blok naast de PDF-document-blocks kan staan
+          const userTextOnly = combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+          const txtMatch = combinedUserContext.match(/\n\n(\[(?:Bijlage|Transcript):[\s\S]+)/);
+          const txtBlockContent = txtMatch ? txtMatch[1].trim() : '';
+
+          let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
           const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
           if (effectiveClientName || effectiveProjectName) {
@@ -330,6 +336,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
           const extraBlocks = [
             ...buildDocumentBlocks(documentAttachments),
+            ...(txtBlockContent ? [{ type: 'text', text: txtBlockContent }] : []),
             ...buildImageBlocks(imageAttachments),
           ];
           claudeMessages = [{
