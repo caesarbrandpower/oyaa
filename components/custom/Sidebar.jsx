@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Folder, FolderOpen, ChevronRight, ChevronDown, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid } from 'lucide-react';
+import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -30,9 +30,6 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const [accountOpen, setAccountOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
   const accountRef = useRef(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [openProject, setOpenProject] = useState(null);
-  const [openSubProject, setOpenSubProject] = useState(null); // "clientName:projectName"
   const [contextMenu, setContextMenu] = useState(null); // { threadId, x, y } | null
   const [deleteConfirmId, setDeleteConfirmId] = useState(null); // thread.id | null
   const contextMenuRef = useRef(null);
@@ -81,6 +78,18 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
+        {tenant?.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
+        ) : (
+          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+            {tenant?.name ?? 'Waybetter'}
+          </span>
+        )}
+      </div>
+
       {/* Nieuw gesprek */}
       <div className="px-3 pt-3 pb-2">
         <button
@@ -91,123 +100,6 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           Nieuw gesprek
         </button>
       </div>
-
-      {/* Zoekbalk */}
-      <div className="px-3 pb-2">
-        <div className="flex items-center gap-2 h-8 px-3 bg-white/[0.04] border border-white/[0.06] rounded-lg">
-          <Search className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={2} />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Zoeken..."
-            className="flex-1 bg-transparent text-[12px] text-white placeholder-white/25 outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Projecten sectie */}
-      {projects.length > 0 && (() => {
-        // Sort projects by most recently active thread
-        const sorted = [...projects].sort((a, b) => {
-          const aTime = threads.filter(t => t.client === a.name).reduce((max, t) => t.updated_at > max ? t.updated_at : max, '');
-          const bTime = threads.filter(t => t.client === b.name).reduce((max, t) => t.updated_at > max ? t.updated_at : max, '');
-          return bTime.localeCompare(aTime);
-        }).slice(0, 5);
-        return (
-          <div className="px-3 pb-2">
-            <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/25 px-2 pb-1.5">
-              Projecten
-            </p>
-            <ul className="space-y-0.5">
-              {sorted.map((project) => {
-                const isOpen = openProject === project.name;
-                const projectThreads = threads.filter(t => t.client === project.name);
-                return (
-                  <li key={project.name}>
-                    <button
-                      onClick={() => setOpenProject(isOpen ? null : project.name)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-white/50 hover:bg-white/[0.04] hover:text-white/80 transition-colors"
-                    >
-                      {isOpen
-                        ? <FolderOpen className="w-3 h-3 shrink-0 text-white/40" strokeWidth={1.75} />
-                        : <Folder className="w-3 h-3 shrink-0 text-white/25" strokeWidth={1.75} />
-                      }
-                      <span className="flex-1 truncate text-left">{project.name}</span>
-                      {isOpen
-                        ? <ChevronDown className="w-3 h-3 shrink-0 text-white/25" strokeWidth={2} />
-                        : <ChevronRight className="w-3 h-3 shrink-0 text-white/25" strokeWidth={2} />
-                      }
-                    </button>
-                    {isOpen && projectThreads.length > 0 && (() => {
-                      // Groepeer threads: zonder project direct, met project in submap
-                      const noProjectThreads = projectThreads.filter(t => !t.project);
-                      const byProject = projectThreads
-                        .filter(t => t.project)
-                        .reduce((acc, t) => { (acc[t.project] = acc[t.project] ?? []).push(t); return acc; }, {});
-                      function ThreadRow({ thread }) {
-                        const Icon = getThreadIcon(thread);
-                        return (
-                          <li key={thread.id}>
-                            <button
-                              onClick={() => onSelectThread(thread)}
-                              className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded-lg text-[11px] leading-snug transition-colors ${
-                                activeThreadId === thread.id
-                                  ? 'bg-white/[0.08] text-white'
-                                  : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70'
-                              }`}
-                            >
-                              <Icon className="w-3 h-3 shrink-0 opacity-50" strokeWidth={1.5} />
-                              <span className="truncate">{thread.title}</span>
-                            </button>
-                          </li>
-                        );
-                      }
-                      return (
-                        <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-white/[0.06] pl-2">
-                          {noProjectThreads.slice(0, 6).map(t => <ThreadRow key={t.id} thread={t} />)}
-                          {Object.entries(byProject).map(([projName, projThreads]) => {
-                            const subKey = `${project.name}:${projName}`;
-                            const subOpen = openSubProject === subKey;
-                            return (
-                              <li key={projName}>
-                                <button
-                                  onClick={() => setOpenSubProject(subOpen ? null : subKey)}
-                                  className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-[11px] text-white/40 hover:bg-white/[0.04] hover:text-white/60 transition-colors"
-                                >
-                                  {subOpen
-                                    ? <FolderOpen className="w-3 h-3 shrink-0 text-white/30" strokeWidth={1.75} />
-                                    : <Folder className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
-                                  }
-                                  <span className="flex-1 truncate text-left">{projName}</span>
-                                  {subOpen
-                                    ? <ChevronDown className="w-3 h-3 shrink-0 text-white/20" strokeWidth={2} />
-                                    : <ChevronRight className="w-3 h-3 shrink-0 text-white/20" strokeWidth={2} />
-                                  }
-                                </button>
-                                {subOpen && (
-                                  <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-white/[0.04] pl-2">
-                                    {projThreads.slice(0, 6).map(t => <ThreadRow key={t.id} thread={t} />)}
-                                  </ul>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      );
-                    })()}
-                  </li>
-                );
-              })}
-            </ul>
-            <Link
-              href="/app/docs"
-              className="block px-2 py-1 mt-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
-            >
-              Alle klantmappen...
-            </Link>
-          </div>
-        );
-      })()}
 
       {/* Recent label */}
       <div className="px-4 pb-1.5">
