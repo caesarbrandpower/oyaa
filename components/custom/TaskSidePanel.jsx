@@ -6,6 +6,17 @@ import { X, Mic, Square, Paperclip, Copy, Check, Image as ImageIcon } from 'luci
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 
+const PDF_EXTS = ['.pdf'];
+const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
+function isPdfFile(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  return PDF_EXTS.includes(ext);
+}
+function isTextFile(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  return TEXT_EXTS.includes(ext);
+}
+
 // Search tasks use a 2-step flow (description + confirm) and a simpler prompt.
 // These IDs correspond to task.id values from tenant.enabled_output_types.
 // Add new search-type task IDs here when they are added to the system.
@@ -133,10 +144,13 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     );
     const validAttachments = processedAttachments.filter(Boolean).filter(a => a.data);
 
-    // Convert non-audio uploaded files to base64 document attachments
-    const docFiles = uploadedFiles.filter(f => !isAudioFile(f.file));
+    // Splits uploaded files by type — mirrors ChatInput's processFiles logic
+    const pdfFiles = uploadedFiles.filter(f => isPdfFile(f.file));
+    const textFiles = uploadedFiles.filter(f => isTextFile(f.file));
+
+    // PDF files → base64 document blocks (application/pdf)
     const processedDocs = await Promise.all(
-      docFiles.map((f) =>
+      pdfFiles.map((f) =>
         new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve({ filename: f.filename, data: reader.result.split(',')[1] });
@@ -146,6 +160,19 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       )
     );
     const validDocAttachments = processedDocs.filter(Boolean).filter(a => a.data);
+
+    // Text files (.doc, .docx, .ppt, .pptx, .txt) → server-side text extraction, embed in prompt
+    for (const f of textFiles) {
+      try {
+        const formData = new FormData();
+        formData.append('file', f.file);
+        const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.text) prompt += `\n\n[Bijlage: ${f.filename}]\n${data.text}`;
+      } catch {
+        // skip — failed extraction doesn't block generation
+      }
+    }
 
     onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments);
   }
