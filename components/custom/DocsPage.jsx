@@ -228,7 +228,9 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
 
   async function handleDeleteFolder(clientName) {
     const toDelete = threads.filter(t => (t.client || 'Overige') === clientName);
-    await Promise.all(toDelete.map(t => fetch(`/api/threads/${t.id}`, { method: 'DELETE' })));
+    console.log('[handleDeleteFolder] clientName:', clientName, '| toDelete.length:', toDelete.length, '| ids:', toDelete.map(t => t.id));
+    const results = await Promise.all(toDelete.map(t => fetch(`/api/threads/${t.id}`, { method: 'DELETE' }).then(r => ({ id: t.id, ok: r.ok, status: r.status }))));
+    console.log('[handleDeleteFolder] results:', results);
     setThreads((prev) => prev.filter(t => (t.client || 'Overige') !== clientName));
     setFolderMenu(null);
     setFolderDeleteConfirm(null);
