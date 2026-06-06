@@ -898,28 +898,17 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06]"
         style={{ width: sidebarWidth }}
       >
-        <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
-          {tenant?.logo_url ? (
-            <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
-          ) : (
-            <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
-              {tenant?.name ?? 'Waybetter'}
-            </span>
-          )}
-        </div>
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <Sidebar
-            tenant={tenant}
-            user={user}
-            threads={threads}
-            activeThreadId={activeThread?.id}
-            onNewThread={handleNewThread}
-            onSelectThread={handleSelectThread}
-            onRenameThread={handleRenameThread}
-            onDeleteThread={handleDeleteThread}
-            projects={projects}
-          />
-        </div>
+        <Sidebar
+          tenant={tenant}
+          user={user}
+          threads={threads}
+          activeThreadId={activeThread?.id}
+          onNewThread={handleNewThread}
+          onSelectThread={handleSelectThread}
+          onRenameThread={handleRenameThread}
+          onDeleteThread={handleDeleteThread}
+          projects={projects}
+        />
       </div>
 
       {/* Drag handle sidebar resize — alleen desktop */}
