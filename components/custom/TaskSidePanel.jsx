@@ -412,7 +412,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.mp3,.m4a,.wav,.ogg"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.mp3,.m4a,.wav,.ogg"
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
