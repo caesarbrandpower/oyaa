@@ -54,7 +54,7 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
       const formData = new FormData();
       formData.append('audio', audioFile);
       if (client) formData.append('client', client);
-      formData.append('project', 'Audiobestanden');
+      formData.append('project', 'Transcripts');
 
       const res = await fetch('/api/create-recording-thread', {
         method: 'POST',
