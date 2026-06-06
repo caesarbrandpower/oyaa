@@ -566,7 +566,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       {/* Sidebar */}
       <aside
         style={{ width: sidebarWidth }}
-        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] border-r border-white/[0.06] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-40 bg-[#111111] transition-transform duration-200 lg:relative lg:translate-x-0 shrink-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -588,6 +588,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         title="Sleep om sidebar te resizen"
       >
         <div className="h-16 border-b border-white/[0.06]" />
+        <div className="absolute inset-x-0 h-px bg-white/[0.06]" style={{ top: '205px' }} />
         <div className="absolute inset-y-0 left-0 w-px bg-white/[0.06] group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
