@@ -68,7 +68,7 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
         return;
       }
 
-      onRecordingComplete?.({ threadId: data.threadId, title: data.title, transcript: data.transcript, audioUrl: data.audioUrl ?? null });
+      onRecordingComplete?.({ threadId: data.threadId, title: data.title, transcript: data.transcript, audioUrl: data.audioUrl ?? null, client: client ?? null });
     } catch {
       setStatusMsg('Netwerkfout bij transcriptie.');
       setTimeout(() => setStatusMsg(''), 4000);

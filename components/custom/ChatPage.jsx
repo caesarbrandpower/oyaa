@@ -150,7 +150,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   // ?thread=id param — open thread direct na navigatie (bijv. vanuit RecordingButton)
   useEffect(() => {
-    const threadParam = searchParams?.get('thread');
+    const threadParam = new URLSearchParams(window.location.search).get('thread');
     if (!threadParam) return;
     // Verwijder param uit URL zonder reload
     const url = new URL(window.location.href);
@@ -833,8 +833,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }, 1000);
   }
 
-  async function handleRecordingComplete({ threadId, title, transcript, audioUrl }) {
-    console.log('[DEBUG handleRecordingComplete] threadId:', threadId, '| audioUrl:', audioUrl);
+  async function handleRecordingComplete({ threadId, title, transcript, audioUrl, client }) {
     clearInterval(recordingProgressRef.current);
     setRecordingProgress(100);
 
@@ -845,7 +844,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       id: threadId,
       title,
       output_type: 'recording',
-      client: null,
+      client: client ?? null,
       project: null,
       field_briefing_extras: {},
       created_at: now,
