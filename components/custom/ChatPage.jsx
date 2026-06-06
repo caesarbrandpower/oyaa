@@ -834,6 +834,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   async function handleRecordingComplete({ threadId, title, transcript, audioUrl }) {
+    console.log('[DEBUG handleRecordingComplete] threadId:', threadId, '| audioUrl:', audioUrl);
     clearInterval(recordingProgressRef.current);
     setRecordingProgress(100);
 
