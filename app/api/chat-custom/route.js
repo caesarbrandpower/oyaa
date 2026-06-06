@@ -54,6 +54,9 @@ export async function POST(request) {
     prevHasDoc = false,
     project: wizardProject = null,
     analysisConfirmed = false,
+    recordingTranscript = null,
+    recordingClient = null,
+    recordingProject = null,
   } = body;
 
   if (!message?.trim()) {
@@ -91,6 +94,8 @@ export async function POST(request) {
           if (clientName) {
             const existing = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             normalizedClient = normalizeClientName(clientName, existing);
+          } else if (recordingClient) {
+            normalizedClient = recordingClient;
           }
           const { data: newThread, error: threadError } = await supabase
             .from('threads')
@@ -100,7 +105,7 @@ export async function POST(request) {
               title: taskLabel || message.trim().slice(0, 60),
               output_type: outputType ?? null,
               client: normalizedClient,
-              project: wizardProject?.trim() || null,
+              project: wizardProject?.trim() || recordingProject?.trim() || null,
             })
             .select('id')
             .single();
@@ -202,7 +207,7 @@ export async function POST(request) {
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';
           // Fallback voor recording-threads: als auto-detectie niets vindt, gebruik meeting-summary
-          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording')) {
+          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
             effectiveOutputType = 'meeting-summary';
           }
           if (effectiveOutputType) {
@@ -251,10 +256,12 @@ export async function POST(request) {
         const hasTxtContent = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
 
         // Recording-transcript als impliciete bron voor meeting-summary:
-        // als het een recording-thread is zonder expliciete bijlagen, haal het transcript
-        // op uit het eerste user-bericht in de DB en gebruik dat als generatie-input.
+        // Prioriteit 1: recordingTranscript uit request body (thread-splitsing vanuit recording-thread)
+        // Prioriteit 2: eerste user-bericht in de DB als het een recording-thread is
         let recordingTranscriptContent = null;
-        if (
+        if (recordingTranscript) {
+          recordingTranscriptContent = recordingTranscript;
+        } else if (
           effectiveOutputType === 'meeting-summary' &&
           !hasTxtContent &&
           documentAttachments.length === 0 &&

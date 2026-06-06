@@ -75,6 +75,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // threadTxtContextRef: txt-bijlageinhoud ingebed in messageText ([Bijlage: ...]) — persistent naast PDF-binaries
   const pendingDocGenRef = useRef(null);
   // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
+  const recordingSplitRef = useRef(false);
+  // recordingSplitRef: true tijdens een API-call waarbij een recording-thread een nieuw document-thread aanmaakt
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -432,6 +434,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
+      // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
+      const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
         // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
@@ -459,14 +463,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const txtPortion = messageText.match(/(\n\n\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1] ?? '';
       if (txtPortion) threadTxtContextRef.current = txtPortion;
 
+      recordingSplitRef.current = isRecordingSplit;
+
       try {
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            threadId: activeThreadRef.current?.id ?? null,
+            threadId: isRecordingSplit ? null : (activeThreadRef.current?.id ?? null),
             message: messageText,
-            outputType: outputType ?? activeThreadRef.current?.output_type ?? null,
+            outputType: isRecordingSplit ? null : (outputType ?? activeThreadRef.current?.output_type ?? null),
             taskLabel,
             client,
             clientConfirmed,
@@ -476,6 +482,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             prevHasDoc,
             project: wizardProject ?? null,
             analysisConfirmed,
+            ...(isRecordingSplit ? {
+              recordingClient: activeThreadRef.current?.client ?? null,
+              recordingProject: activeThreadRef.current?.project ?? null,
+              recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,
+            } : {}),
           }),
           signal: controller.signal,
         });
@@ -559,13 +570,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   : m)
               );
 
-              if (!activeThreadRef.current) {
+              if (!activeThreadRef.current || recordingSplitRef.current) {
+                recordingSplitRef.current = false;
                 const newThread = {
                   id: event.threadId,
                   title: displayText || taskLabel || messageText.slice(0, 60),
                   output_type: outputType ?? metaOutputType,
-                  client: client ?? null,
-                  project: null,
+                  client: client ?? activeThreadRef.current?.client ?? null,
+                  project: activeThreadRef.current?.project ?? null,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
