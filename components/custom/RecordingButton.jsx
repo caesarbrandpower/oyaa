@@ -118,7 +118,8 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   function handleClientConfirm(skip = false) {
     const { blob, mimeType, filename } = pendingBlobRef.current || {};
     if (!blob) return;
-    const client = skip ? null : (showNewClientInput ? newClientInput.trim() || null : clientPickerValue || null);
+    const useTextInput = showNewClientInput || knownClients.length === 0;
+  const client = skip ? null : (useTextInput ? newClientInput.trim() || null : clientPickerValue || null);
     setUiState('idle');
     onRecordingStart?.();
     uploadAndTranscribe(blob, mimeType, filename, client);

@@ -605,7 +605,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           <div className="flex-1" />
           <RecordingButton />
         </header>
-        <div className="flex-1 flex flex-col min-w-0" style={{ zoom: 1.1 }}>
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
         {/* Header */}
         <header className="relative shrink-0 px-4 md:px-8 py-6">

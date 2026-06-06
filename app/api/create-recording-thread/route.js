@@ -65,7 +65,7 @@ export async function POST(request) {
       user_id: user.id,
       tenant_id: tenant?.id ?? null,
       title,
-      output_type: null,
+      output_type: 'recording',
       client: client || null,
       project: project || null,
     })
