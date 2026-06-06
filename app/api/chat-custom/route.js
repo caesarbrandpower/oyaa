@@ -60,7 +60,7 @@ export async function POST(request) {
   } = body;
 
   console.log('[recording-split] recordingTranscript:', recordingTranscript ? `aanwezig (${recordingTranscript.length} tekens)` : 'null');
-  console.log('[route-txt-early] txtAttachments na body-parse:', txtAttachments?.length ?? 'undefined');
+  console.log('[route-txt-early] txtAttachments na body-parse:', JSON.stringify((txtAttachments ?? []).map(a => ({ keys: Object.keys(a), dataLen: a.data?.length, contentLen: a.content?.length }))));
 
   if (!message?.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
