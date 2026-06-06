@@ -228,10 +228,26 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
 
   async function handleDeleteFolder(clientName) {
     const toDelete = threads.filter(t => (t.client || 'Overige') === clientName);
-    console.log('[handleDeleteFolder] clientName:', clientName, '| toDelete.length:', toDelete.length, '| ids:', toDelete.map(t => t.id));
-    const results = await Promise.all(toDelete.map(t => fetch(`/api/threads/${t.id}`, { method: 'DELETE' }).then(r => ({ id: t.id, ok: r.ok, status: r.status }))));
-    console.log('[handleDeleteFolder] results:', results);
-    setThreads((prev) => prev.filter(t => (t.client || 'Overige') !== clientName));
+    console.log('[handleDeleteFolder] start | clientName:', clientName, '| toDelete.length:', toDelete.length, '| ids:', toDelete.map(t => t.id));
+
+    const results = [];
+    for (const t of toDelete) {
+      console.log('[handleDeleteFolder] deleting', t.id);
+      try {
+        const r = await fetch(`/api/threads/${t.id}`, { method: 'DELETE' });
+        const body = await r.json().catch(() => null);
+        console.log('[handleDeleteFolder]', t.id, '| status:', r.status, '| body:', body);
+        results.push({ id: t.id, ok: r.ok, status: r.status, body });
+      } catch (err) {
+        console.error('[handleDeleteFolder] fetch error', t.id, String(err));
+        results.push({ id: t.id, ok: false, error: String(err) });
+      }
+    }
+
+    console.log('[handleDeleteFolder] done | results:', results);
+    if (results.every(r => r.ok)) {
+      setThreads((prev) => prev.filter(t => (t.client || 'Overige') !== clientName));
+    }
     setFolderMenu(null);
     setFolderDeleteConfirm(null);
   }
