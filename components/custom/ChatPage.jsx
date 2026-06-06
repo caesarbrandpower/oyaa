@@ -193,7 +193,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
     loadThread();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   function handleOpenDocument(msg) {
     const ot = msg.output_type ?? activeThreadRef.current?.output_type ?? null;
@@ -1130,6 +1130,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                       outputTypeLabel="Opname"
                       showOpen={false}
                       showShare={false}
+                      createdAt={activeThread.created_at ?? null}
+                      audioUrl={activeThread.audio_url ?? null}
                     />
                   </div>
                 </div>

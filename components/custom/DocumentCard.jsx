@@ -46,6 +46,8 @@ export default function DocumentCard({
   outputTypeLabel = null,
   showOpen = true,
   showShare = true,
+  createdAt = null,
+  audioUrl = null,
 }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
@@ -73,7 +75,7 @@ export default function DocumentCard({
   const clientLogoUrl = buildClientLogoUrl(client);
 
   function getFilename(ext) {
-    return buildFilename(outputType, client, project, ext);
+    return buildFilename(outputType, client, project, ext, createdAt);
   }
 
   function handleCopy(e) {
@@ -189,6 +191,30 @@ export default function DocumentCard({
           <Download className="w-3 h-3" strokeWidth={2} />
           {pdfLoading ? 'Bezig...' : 'PDF'}
         </button>
+        {audioUrl && (
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              const ext = audioUrl.split('?')[0].split('.').pop() || 'webm';
+              try {
+                const res = await fetch(audioUrl);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = getFilename(ext);
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+                window.open(audioUrl, '_blank');
+              }
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            Audio
+          </button>
+        )}
         {showShare && (
           <button
             onClick={handleShare}

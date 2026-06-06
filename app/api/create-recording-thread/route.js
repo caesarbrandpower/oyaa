@@ -10,9 +10,12 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
-function recordingTitle() {
+function recordingTitle(client) {
   const now = new Date();
-  return `Opname ${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const date = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
+  return client
+    ? `Meeting transcript — ${client} — ${date}`
+    : `Meeting transcript — ${date}`;
 }
 
 export async function POST(request) {
@@ -55,7 +58,7 @@ export async function POST(request) {
   }
 
   // Maak thread aan
-  const title = recordingTitle();
+  const title = recordingTitle(client);
   const { data: thread, error: threadError } = await supabase
     .from('threads')
     .insert({
