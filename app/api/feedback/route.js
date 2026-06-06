@@ -35,7 +35,7 @@ export async function POST(request) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      from: 'Waybetter Feedback <feedback@waybetter.app>',
+      from: 'Waybetter Feedback <onboarding@resend.dev>',
       to: 'caesar@newfound.agency',
       subject: `Feedback van ${user.email}`,
       html: emailHtml,
