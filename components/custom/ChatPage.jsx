@@ -1155,12 +1155,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               );
             })()}
-            {/* Na transcript van opname: directe actieknoppen */}
-            {outputTypes.length > 0 && activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
-              <div className="px-4 md:px-8 py-6">
+            {/* Na transcript van opname: uitnodigingstekst */}
+            {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
+              <div className="px-4 md:px-8 pb-6">
                 <div className="max-w-3xl mx-auto">
-                  <p className="text-[13px] text-white/40 mb-4">Wat wil je hiermee maken?</p>
-                  <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
+                  <p className="text-[13px] text-white/50 leading-relaxed">
+                    Je transcript is klaar en staat opgeslagen in de <span className="text-white/70">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Gooi gerust nog andere bestanden erbij, dan gaan we aan de slag.
+                  </p>
                 </div>
               </div>
             )}
