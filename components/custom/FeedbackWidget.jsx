@@ -71,7 +71,7 @@ export default function FeedbackWidget({ userEmail }) {
     <div ref={panelRef} className="fixed bottom-6 right-6 z-50">
       {/* Paneel — opent links-boven van de knop */}
       {open && (
-        <div className="absolute bottom-16 right-0 w-72 rounded-2xl border border-white/[0.10] bg-[#1a1a1a] shadow-2xl overflow-hidden">
+        <div className="absolute bottom-32 right-0 w-72 rounded-2xl border border-white/[0.10] bg-[#1a1a1a] shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
             <span className="text-[13px] font-medium text-white/80">Feedback melden</span>
