@@ -59,6 +59,8 @@ export async function POST(request) {
     recordingProject = null,
   } = body;
 
+  console.log('[recording-split] recordingTranscript:', recordingTranscript ? `aanwezig (${recordingTranscript.length} tekens)` : 'null');
+
   if (!message?.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
