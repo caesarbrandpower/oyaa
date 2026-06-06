@@ -788,6 +788,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = [], txtAttachments = []) {
+    console.log('[wizard-txt] handleTaskGenerate txtAttachments:', txtAttachments.length, txtAttachments.map(a => a.filename));
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
