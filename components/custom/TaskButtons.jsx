@@ -34,32 +34,32 @@ export default function TaskButtons({ outputTypes, onTaskClick }) {
   return (
     <div className="space-y-2 mb-4">
       {/* Rij 1 — actief */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-1.5">
         {row1.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
           return (
             <button
               key={task.id}
               onClick={() => onTaskClick(task)}
-              className="flex items-center gap-2 h-9 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[13px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors"
+              className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap"
             >
-              <Icon className="w-3.5 h-3.5 shrink-0 text-orange" strokeWidth={1.75} />
+              <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
               {task.label}
             </button>
           );
         })}
       </div>
       {/* Rij 2 — disabled */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-1.5">
         {ROW2_DISABLED.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
           return (
             <button
               key={task.id}
               disabled
-              className="flex items-center gap-2 h-9 px-4 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[13px] text-white/25 cursor-not-allowed"
+              className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[12px] text-white/25 cursor-not-allowed whitespace-nowrap"
             >
-              <Icon className="w-3.5 h-3.5 shrink-0 text-white/20" strokeWidth={1.75} />
+              <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
               {task.label}
             </button>
           );
