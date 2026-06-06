@@ -150,13 +150,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   // ?thread=id param — open thread direct na navigatie (bijv. vanuit RecordingButton)
   useEffect(() => {
-    console.log('[DEBUG thread effect] initialThreadId:', initialThreadId);
     const threadParam = initialThreadId;
     if (!threadParam) return;
-    // Verwijder param uit URL zonder reload
-    const url = new URL(window.location.href);
-    url.searchParams.delete('thread');
-    window.history.replaceState({}, '', url.toString());
 
     async function loadThread() {
       const { createClient } = await import('@/lib/supabase-browser');
