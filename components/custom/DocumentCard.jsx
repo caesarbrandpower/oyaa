@@ -44,6 +44,8 @@ export default function DocumentCard({
   extras = null,
   outputType = null,
   outputTypeLabel = null,
+  showOpen = true,
+  showShare = true,
 }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
@@ -155,13 +157,15 @@ export default function DocumentCard({
         </div>
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-wrap items-center gap-1.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
-          className="flex items-center gap-1.5 h-8 px-3 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
-        >
-          <ExternalLink className="w-3 h-3" strokeWidth={2} />
-          Aanvullen
-        </button>
+        {showOpen && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
+            className="flex items-center gap-1.5 h-8 px-3 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" strokeWidth={2} />
+            Aanvullen
+          </button>
+        )}
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
@@ -185,14 +189,16 @@ export default function DocumentCard({
           <Download className="w-3 h-3" strokeWidth={2} />
           {pdfLoading ? 'Bezig...' : 'PDF'}
         </button>
-        <button
-          onClick={handleShare}
-          disabled={shareLoading}
-          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
-        >
-          {shareDone ? <Check className="w-3 h-3 text-green-400" strokeWidth={2.5} /> : <Share2 className="w-3 h-3" strokeWidth={2} />}
-          {shareLoading ? 'Bezig...' : shareLabel}
-        </button>
+        {showShare && (
+          <button
+            onClick={handleShare}
+            disabled={shareLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+          >
+            {shareDone ? <Check className="w-3 h-3 text-green-400" strokeWidth={2.5} /> : <Share2 className="w-3 h-3" strokeWidth={2} />}
+            {shareLoading ? 'Bezig...' : shareLabel}
+          </button>
+        )}
       </div>
     </div>
     <p className="text-[11px] text-white/30 mt-1.5 max-w-lg leading-relaxed">

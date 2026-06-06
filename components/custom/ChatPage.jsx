@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, Play, Pause } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
@@ -26,6 +26,13 @@ function looksLikeDocument(content) {
   const boldSections = content.match(/^\*\*[^*\n]{2,50}\*\*/gm) || [];
   return boldSections.length >= 3 && content.length > 500;
 }
+function formatAudioTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 import DocumentView from './DocumentView';
 import DocumentCard from './DocumentCard';
 import TaskSidePanel from './TaskSidePanel';
@@ -166,7 +173,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         .eq('thread_id', thread.id)
         .order('created_at', { ascending: true });
 
-      console.log('[audio-debug] loadThread (?thread= param) | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
       setActiveThreadBoth(thread);
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
@@ -234,7 +240,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     abortRef.current?.abort();
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
-    console.log('[audio-debug] handleSelectThread | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -797,11 +802,23 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
 
   const isEmptyState = messages.length === 0 && !sending;
-  console.log('[audio-debug] render | isEmptyState:', isEmptyState, '| audio_url:', activeThread?.audio_url ?? 'null', '| messages.length:', messages.length, '| sending:', sending);
 
   // --- Opname loading state ---
   const [recordingPending, setRecordingPending] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
+
+  // --- Custom audio player state ---
+  const audioRef = useRef(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.pause();
+    setAudioPlaying(false);
+    setAudioCurrentTime(0);
+    setAudioDuration(0);
+  }, [activeThread?.id]);
   const recordingProgressRef = useRef(null);
 
   function handleRecordingStart() {
@@ -829,7 +846,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       .single();
 
     if (thread) {
-      console.log('[audio-debug] handleRecordingComplete | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
       setActiveThreadBoth(thread);
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads(prev => prev.some(t => t.id === thread.id) ? prev : [thread, ...prev]);
@@ -993,35 +1009,49 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
-        {/* Audio player + transcript card — zichtbaar als de thread een opname heeft */}
+        {/* Custom audio player — zichtbaar als de thread een opname heeft */}
         {!isEmptyState && activeThread?.audio_url && (
-          <div className="shrink-0 px-4 md:px-8 py-4 border-b border-white/[0.06] bg-white/[0.02] overflow-y-auto">
-            <div className="max-w-3xl mx-auto space-y-4">
-              <div>
-                <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
-                <audio
-                  controls
-                  src={activeThread.audio_url}
-                  className="w-full h-9"
-                  style={{ accentColor: '#f04800' }}
-                />
-              </div>
-              {(() => {
-                const transcript = messages.find(m => m.role === 'user')?.content;
-                if (!transcript) return null;
-                return (
-                  <DocumentCard
-                    content={transcript}
-                    onOpen={null}
-                    tenant={tenant}
-                    client={activeThread.client ?? null}
-                    project={activeThread.project ?? null}
-                    extras={null}
-                    outputType="recording"
-                    outputTypeLabel="Opname"
+          <div className="shrink-0 px-4 md:px-8 py-3 border-b border-white/[0.06]">
+            <div className="max-w-3xl mx-auto">
+              <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
+              <audio
+                ref={audioRef}
+                src={activeThread.audio_url}
+                onTimeUpdate={() => setAudioCurrentTime(audioRef.current?.currentTime ?? 0)}
+                onLoadedMetadata={() => setAudioDuration(audioRef.current?.duration ?? 0)}
+                onEnded={() => setAudioPlaying(false)}
+              />
+              <div className="flex items-center gap-3 h-10 px-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                <button
+                  onClick={() => {
+                    if (!audioRef.current) return;
+                    if (audioPlaying) { audioRef.current.pause(); setAudioPlaying(false); }
+                    else { audioRef.current.play(); setAudioPlaying(true); }
+                  }}
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-orange/15 hover:bg-orange/25 transition-colors"
+                >
+                  {audioPlaying
+                    ? <Pause className="w-3.5 h-3.5 text-orange" strokeWidth={2} />
+                    : <Play className="w-3.5 h-3.5 text-orange ml-0.5" strokeWidth={2} />
+                  }
+                </button>
+                <div
+                  className="flex-1 h-1 bg-white/[0.10] rounded-full cursor-pointer relative"
+                  onClick={(e) => {
+                    if (!audioRef.current || !audioDuration) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    audioRef.current.currentTime = ((e.clientX - rect.left) / rect.width) * audioDuration;
+                  }}
+                >
+                  <div
+                    className="absolute inset-y-0 left-0 bg-orange rounded-full"
+                    style={{ width: audioDuration ? `${(audioCurrentTime / audioDuration) * 100}%` : '0%' }}
                   />
-                );
-              })()}
+                </div>
+                <span className="shrink-0 text-[11px] text-white/30 tabular-nums">
+                  {formatAudioTime(audioCurrentTime)}{audioDuration ? ` / ${formatAudioTime(audioDuration)}` : ''}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -1082,6 +1112,29 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 });
               }}
             />
+            {/* DocumentCard voor opname-transcript — onder het transcript bericht */}
+            {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (() => {
+              const transcript = messages.find(m => m.role === 'user')?.content;
+              if (!transcript) return null;
+              return (
+                <div className="px-4 md:px-8 pb-2">
+                  <div className="max-w-3xl mx-auto">
+                    <DocumentCard
+                      content={transcript}
+                      onOpen={null}
+                      tenant={tenant}
+                      client={activeThread.client ?? null}
+                      project={activeThread.project ?? null}
+                      extras={null}
+                      outputType="recording"
+                      outputTypeLabel="Opname"
+                      showOpen={false}
+                      showShare={false}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
             {/* Na transcript van opname: directe actieknoppen */}
             {outputTypes.length > 0 && activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
               <div className="px-4 md:px-8 py-6">
