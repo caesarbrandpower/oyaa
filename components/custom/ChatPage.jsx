@@ -75,6 +75,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // threadTxtContextRef: txt-bijlageinhoud ingebed in messageText ([Bijlage: ...]) — persistent naast PDF-binaries
   const pendingDocGenRef = useRef(null);
   // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
+  const recordingSplitRef = useRef(false);
+  // recordingSplitRef: true tijdens een API-call waarbij een recording-thread een nieuw document-thread aanmaakt
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -173,7 +175,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-      const isDoc = thread.output_type
+      const isDoc = thread.output_type && thread.output_type !== 'recording'
         ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
         : false;
       let firstUserReplaced = false;
@@ -257,7 +259,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-    const isDoc = thread.output_type
+    const isDoc = thread.output_type && thread.output_type !== 'recording'
       ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
       : false;
     let firstUserReplaced = false;
@@ -294,8 +296,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }]);
         if (isConfirm) {
           // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
-          // Txt-bijlagen via ref doorgeven aan request body (los van DB/combinedUserContext)
-          threadTxtAttachmentsRef.current = pending.txtAttachments ?? [];
+          // threadTxtAttachmentsRef.current NIET overschrijven — handleTaskGenerate heeft de ref al correct gevuld.
+          // pending.txtAttachments is leeg voor wizard-flow (geen [Bijlage:] in messageText via regex).
           handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
             pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
             true /* analysisConfirmed */);
@@ -432,6 +434,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
+      // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
+      const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
         // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
@@ -459,14 +463,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const txtPortion = messageText.match(/(\n\n\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1] ?? '';
       if (txtPortion) threadTxtContextRef.current = txtPortion;
 
+      recordingSplitRef.current = isRecordingSplit;
+
       try {
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            threadId: activeThreadRef.current?.id ?? null,
+            threadId: isRecordingSplit ? null : (activeThreadRef.current?.id ?? null),
             message: messageText,
-            outputType: outputType ?? activeThreadRef.current?.output_type ?? null,
+            outputType: isRecordingSplit ? null : (outputType ?? activeThreadRef.current?.output_type ?? null),
             taskLabel,
             client,
             clientConfirmed,
@@ -476,6 +482,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             prevHasDoc,
             project: wizardProject ?? null,
             analysisConfirmed,
+            ...(isRecordingSplit ? {
+              recordingClient: activeThreadRef.current?.client ?? null,
+              recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,
+            } : {}),
           }),
           signal: controller.signal,
         });
@@ -559,13 +569,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   : m)
               );
 
-              if (!activeThreadRef.current) {
+              if (!activeThreadRef.current || recordingSplitRef.current) {
+                recordingSplitRef.current = false;
                 const newThread = {
                   id: event.threadId,
                   title: displayText || taskLabel || messageText.slice(0, 60),
                   output_type: outputType ?? metaOutputType,
-                  client: client ?? null,
-                  project: null,
+                  client: client ?? activeThreadRef.current?.client ?? null,
+                  project: activeThreadRef.current?.project ?? null,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
@@ -776,12 +787,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = []) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = [], txtAttachments = []) {
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
-    handleNewThread(); // sets activeThreadRef.current = null synchronously
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, [], pdfAttachments);
+    handleNewThread(); // sets activeThreadRef.current = null synchronously, resets threadTxtAttachmentsRef
+    threadTxtAttachmentsRef.current = txtAttachments; // na handleNewThread zetten — anders overschreven
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */);
   }
 
   function handleTaskPanelClose(prefillText) {

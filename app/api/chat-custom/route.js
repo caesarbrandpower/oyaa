@@ -54,6 +54,9 @@ export async function POST(request) {
     prevHasDoc = false,
     project: wizardProject = null,
     analysisConfirmed = false,
+    recordingTranscript = null,
+    recordingClient = null,
+    recordingProject = null,
   } = body;
 
   if (!message?.trim()) {
@@ -91,6 +94,8 @@ export async function POST(request) {
           if (clientName) {
             const existing = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             normalizedClient = normalizeClientName(clientName, existing);
+          } else if (recordingClient) {
+            normalizedClient = recordingClient;
           }
           const { data: newThread, error: threadError } = await supabase
             .from('threads')
@@ -100,7 +105,7 @@ export async function POST(request) {
               title: taskLabel || message.trim().slice(0, 60),
               output_type: outputType ?? null,
               client: normalizedClient,
-              project: wizardProject?.trim() || null,
+              project: wizardProject?.trim() || recordingProject?.trim() || null,
             })
             .select('id')
             .single();
@@ -178,6 +183,15 @@ export async function POST(request) {
 
         // effectiveOutputType: request → DB → auto-detectie → null
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
+
+        // Genereer-intentie — alleen op gebruikerstekst
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+
+        // Recording-thread met generatie-intentie: reset zodat auto-detectie kan draaien
+        if (effectiveOutputType === 'recording' && hasGenerateIntent) {
+          effectiveOutputType = null;
+        }
+
         if (!effectiveOutputType) {
           const recentText = allMessages.slice(-8).map(m =>
             m.content.split(/\n\n\[(?:Bijlage|Transcript):/)[0].slice(0, 500)
@@ -192,27 +206,21 @@ export async function POST(request) {
             effectiveOutputType = 'meeting-summary';
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';
+          // Fallback voor recording-threads: als auto-detectie niets vindt, gebruik meeting-summary
+          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
+            effectiveOutputType = 'meeting-summary';
+          }
           if (effectiveOutputType) {
             // Fire-and-forget schrijft type naar DB; kleine vertraging acceptabel
             supabase.from('threads').update({ output_type: effectiveOutputType }).eq('id', activeThreadId).then(() => {});
           }
         }
 
-        // Genereer-intentie — alleen op gebruikerstekst
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
-
         // isDocument: bepaalt of de stream gebufferd wordt (nooit live opbouwen)
         const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc || hasGenerateIntent;
 
         // Meta event zo vroeg mogelijk — geeft de client direct thread-context
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
-
-        console.log('[chat-custom]', {
-          effectiveOutputType,
-          documentAttachmentsLength: documentAttachments.length,
-          analysisConfirmed,
-          combinedUserContext: !!combinedUserContext,
-        });
 
         // ── Document- en afbeelding-blocks ────────────────────────────────────
         function buildImageBlocks(images) {
@@ -239,6 +247,25 @@ export async function POST(request) {
         // Altijd draaien als er PDFs aanwezig zijn én nog niet bevestigd.
         // Voor meeting-summary en field-briefing ook bij txt/audio-bronnen ingebed in het bericht.
         const hasTxtContent = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
+
+        // Recording-transcript als impliciete bron voor meeting-summary:
+        // Prioriteit 1: recordingTranscript uit request body (thread-splitsing vanuit recording-thread)
+        // Prioriteit 2: eerste user-bericht in de DB als het een recording-thread is
+        let recordingTranscriptContent = null;
+        if (recordingTranscript) {
+          recordingTranscriptContent = recordingTranscript;
+        } else if (
+          effectiveOutputType === 'meeting-summary' &&
+          !hasTxtContent &&
+          documentAttachments.length === 0 &&
+          threadOutputTypeFromDb === 'recording'
+        ) {
+          const firstUserMsg = allMessages.find(m => m.role === 'user');
+          if (firstUserMsg && firstUserMsg.content !== message.trim()) {
+            recordingTranscriptContent = firstUserMsg.content;
+          }
+        }
+
         const hasSourceFiles = documentAttachments.length > 0 ||
           ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent);
         if (hasSourceFiles && !analysisConfirmed) {
@@ -352,8 +379,16 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Gebruikerstekst zonder ingebedde bijlagen — txt-inhoud komt via txtAttachments (request body)
-          const userTextOnly = combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+          // Gebruikerstekst + txt-bijlagen als input — bij recording-thread: gebruik transcript als input
+          let userTextOnly = recordingTranscriptContent
+            ?? combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+
+          // Txt-bijlagen toevoegen aan de input zodat ze deel uitmaken van de "Input:" sectie in het custom prompt
+          if (txtAttachments.length > 0) {
+            userTextOnly += '\n\n' + txtAttachments
+              .map(t => `[Bijlage: ${t.filename}]\n${t.data}`)
+              .join('\n\n');
+          }
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
@@ -367,7 +402,6 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
           const extraBlocks = [
             ...buildDocumentBlocks(documentAttachments),
-            ...buildTxtBlocks(txtAttachments),
             ...buildImageBlocks(imageAttachments),
           ];
           claudeMessages = [{
@@ -439,6 +473,9 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         } else if (threadClientFromDb) {
           detectedClient = threadClientFromDb;
           detectedProject = threadProjectFromDb;
+        } else if (recordingClient) {
+          // Recording-split: gebruik de client van de recording-thread direct — sla regex over
+          detectedClient = recordingClient;
         } else {
           const clientMatch =
             userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
