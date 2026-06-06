@@ -117,11 +117,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         ) : (
           <>
             <ul className="space-y-0.5">
-              {threads.filter((t) => {
-                if (!searchQuery.trim()) return true;
-                const q = searchQuery.toLowerCase();
-                return t.title?.toLowerCase().includes(q) || t.client?.toLowerCase().includes(q);
-              }).slice(0, visibleCount).map((thread) => (
+              {threads.slice(0, visibleCount).map((thread) => (
                 <li key={thread.id}>
                   {editingThreadId === thread.id ? (
                     <input
