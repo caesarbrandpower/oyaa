@@ -476,6 +476,9 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         } else if (threadClientFromDb) {
           detectedClient = threadClientFromDb;
           detectedProject = threadProjectFromDb;
+        } else if (recordingClient) {
+          // Recording-split: gebruik de client van de recording-thread direct — sla regex over
+          detectedClient = recordingClient;
         } else {
           const clientMatch =
             userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-.]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-.]{0,30}){0,2})\b/i) ??
