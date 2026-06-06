@@ -1155,13 +1155,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               );
             })()}
-            {/* Na transcript van opname: uitnodigingstekst */}
+            {/* Na transcript van opname: uitnodigingstekst als assistent-bericht */}
             {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
-              <div className="px-4 md:px-8 pb-6">
-                <div className="max-w-3xl mx-auto">
-                  <p className="text-[13px] text-white/50 leading-relaxed">
-                    Je transcript is klaar en staat opgeslagen in de <span className="text-white/70">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Gooi gerust nog andere bestanden erbij, dan gaan we aan de slag.
-                  </p>
+              <div className="px-4 md:px-8 pb-8">
+                <div className="max-w-3xl mx-auto flex justify-start items-start gap-3">
+                  <img src="/icons/waybetter-icon.svg" alt="" aria-hidden="true" className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-70" />
+                  <div className="flex-1 text-[14px] text-white/80 leading-relaxed">
+                    Je transcript is klaar en staat opgeslagen in de <span className="text-white">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Gooi gerust nog andere bestanden erbij, dan gaan we aan de slag.
+                  </div>
                 </div>
               </div>
             )}
