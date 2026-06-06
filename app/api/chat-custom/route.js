@@ -249,6 +249,23 @@ export async function POST(request) {
         // Altijd draaien als er PDFs aanwezig zijn én nog niet bevestigd.
         // Voor meeting-summary en field-briefing ook bij txt/audio-bronnen ingebed in het bericht.
         const hasTxtContent = /\[(?:Bijlage|Transcript):/.test(combinedUserContext);
+
+        // Recording-transcript als impliciete bron voor meeting-summary:
+        // als het een recording-thread is zonder expliciete bijlagen, haal het transcript
+        // op uit het eerste user-bericht in de DB en gebruik dat als generatie-input.
+        let recordingTranscriptContent = null;
+        if (
+          effectiveOutputType === 'meeting-summary' &&
+          !hasTxtContent &&
+          documentAttachments.length === 0 &&
+          threadOutputTypeFromDb === 'recording'
+        ) {
+          const firstUserMsg = allMessages.find(m => m.role === 'user');
+          if (firstUserMsg && firstUserMsg.content !== message.trim()) {
+            recordingTranscriptContent = firstUserMsg.content;
+          }
+        }
+
         const hasSourceFiles = documentAttachments.length > 0 ||
           ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent);
         if (hasSourceFiles && !analysisConfirmed) {
@@ -362,8 +379,9 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Gebruikerstekst zonder ingebedde bijlagen — txt-inhoud komt via txtAttachments (request body)
-          const userTextOnly = combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+          // Gebruikerstekst zonder ingebedde bijlagen — bij recording-thread: gebruik transcript als input
+          const userTextOnly = recordingTranscriptContent
+            ?? combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
