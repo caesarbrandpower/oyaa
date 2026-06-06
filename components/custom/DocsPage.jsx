@@ -588,7 +588,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         title="Sleep om sidebar te resizen"
       >
         <div className="h-16 border-b border-white/[0.06]" />
-        <div className="absolute inset-x-0 h-px bg-white/[0.06]" style={{ top: '205px' }} />
+        <div className="absolute inset-x-0 h-px bg-white/[0.06]" style={{ top: '200px' }} />
         <div className="absolute inset-y-0 left-0 w-px bg-white/[0.06] group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
