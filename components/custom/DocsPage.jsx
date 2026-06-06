@@ -588,7 +588,6 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         title="Sleep om sidebar te resizen"
       >
         <div className="h-16 border-b border-white/[0.06]" />
-        <div className="absolute inset-x-0 h-px bg-white/[0.06]" style={{ top: '200px' }} />
         <div className="absolute inset-y-0 left-0 w-px bg-white/[0.06] group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
@@ -609,7 +608,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
         {/* Header */}
-        <header className="shrink-0 px-4 md:px-8 py-6 border-b border-white/[0.06]">
+        <header className="relative shrink-0 px-4 md:px-8 py-6">
+          <div className="absolute bottom-0 right-0 h-px bg-white/[0.06]" style={{ left: '-5.5px' }} />
           <div className="max-w-3xl mx-auto">
             <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-bold text-white mb-4">
               Documenten
