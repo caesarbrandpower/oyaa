@@ -19,10 +19,7 @@ export async function POST(request) {
   }
 
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('[feedback] RESEND_API_KEY ontbreekt');
-    return Response.json({ error: 'Mailconfiguratie ontbreekt.' }, { status: 500 });
-  }
+  console.log('[feedback] RESEND_API_KEY aanwezig:', !!apiKey, '| lengte:', apiKey?.length ?? 0);
 
   const emailHtml = `
     <p><strong>Feedback van:</strong> ${user.email}</p>
@@ -47,7 +44,7 @@ export async function POST(request) {
 
   if (!res.ok) {
     const err = await res.text();
-    console.error('[feedback] Resend fout:', err);
+    console.error('[feedback] Resend status:', res.status, '| body:', err);
     return Response.json({ error: 'Verzenden mislukt.' }, { status: 500 });
   }
 
