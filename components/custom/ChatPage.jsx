@@ -465,7 +465,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       recordingSplitRef.current = isRecordingSplit;
 
-      console.log('[wizard-txt] handleSend threadTxtAttachmentsRef voor fetch:', threadTxtAttachmentsRef.current.length, threadTxtAttachmentsRef.current.map(a => a.filename));
+      console.log('[wizard-txt] handleSend threadTxtAttachmentsRef voor fetch:', threadTxtAttachmentsRef.current.map(a => ({ filename: a.filename, dataLength: a.data?.length ?? 'undefined' })));
 
       try {
         const res = await fetch('/api/chat-custom', {
