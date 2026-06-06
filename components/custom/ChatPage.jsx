@@ -38,7 +38,7 @@ import DocumentCard from './DocumentCard';
 import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
-export default function ChatPage({ user, tenant, initialThreads, initialPrefill, projects = [] }) {
+export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, projects = [] }) {
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -150,7 +150,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   // ?thread=id param — open thread direct na navigatie (bijv. vanuit RecordingButton)
   useEffect(() => {
-    const threadParam = new URLSearchParams(window.location.search).get('thread');
+    const threadParam = initialThreadId;
     if (!threadParam) return;
     // Verwijder param uit URL zonder reload
     const url = new URL(window.location.href);

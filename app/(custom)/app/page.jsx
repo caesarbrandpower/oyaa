@@ -48,6 +48,7 @@ export default async function AppPage({ searchParams }) {
     user.email.split('@')[0];
 
   const prefill = (await searchParams)?.prefill ?? null;
+  const initialThreadId = (await searchParams)?.thread ?? null;
 
   return (
     <Suspense>
@@ -56,6 +57,7 @@ export default async function AppPage({ searchParams }) {
         tenant={tenant}
         initialThreads={threads ?? []}
         initialPrefill={prefill}
+        initialThreadId={initialThreadId}
         projects={projects}
       />
     </Suspense>
