@@ -803,6 +803,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [recordingPending, setRecordingPending] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
 
+  // --- Getrapt verschijnen opname-thread (0 = niets, 1 = transcript, 2 = card, 3 = tekst) ---
+  const [recordingRevealStep, setRecordingRevealStep] = useState(0);
+  useEffect(() => {
+    const isRecordingThread = !!(activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user'));
+    if (!isRecordingThread) { setRecordingRevealStep(0); return; }
+    const t1 = setTimeout(() => setRecordingRevealStep(1), 300);
+    const t2 = setTimeout(() => setRecordingRevealStep(2), 600);
+    const t3 = setTimeout(() => setRecordingRevealStep(3), 900);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, messages.length]);
+
   // --- Custom audio player state ---
   const audioRef = useRef(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -1107,35 +1119,37 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             </div>
           ) : (
             <>
-            <MessageList
-              messages={messages}
-              sending={sending}
-              onOpenDocument={handleOpenDocument}
-              briefingExtras={briefingExtras}
-              tenant={tenant}
-              threadClient={threads.find(t => t.id === activeThread?.id)?.client ?? activeThread?.client ?? null}
-              threadProject={threads.find(t => t.id === activeThread?.id)?.project ?? activeThread?.project ?? null}
-              outputTypes={outputTypes}
-              onExtrasChange={(messageId, extras) => {
-                setBriefingExtras(prev => {
-                  const updated = { ...prev, [messageId]: extras };
-                  if (activeThreadRef.current?.id) {
-                    fetch(`/api/threads/${activeThreadRef.current.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ field_briefing_extras: updated }),
-                    }).catch(() => {});
-                  }
-                  return updated;
-                });
-              }}
-            />
+            <div style={{ opacity: (activeThread?.audio_url && messages.every(m => m.role === 'user')) ? (recordingRevealStep >= 1 ? 1 : 0) : 1, transition: 'opacity 0.4s ease' }}>
+              <MessageList
+                messages={messages}
+                sending={sending}
+                onOpenDocument={handleOpenDocument}
+                briefingExtras={briefingExtras}
+                tenant={tenant}
+                threadClient={threads.find(t => t.id === activeThread?.id)?.client ?? activeThread?.client ?? null}
+                threadProject={threads.find(t => t.id === activeThread?.id)?.project ?? activeThread?.project ?? null}
+                outputTypes={outputTypes}
+                onExtrasChange={(messageId, extras) => {
+                  setBriefingExtras(prev => {
+                    const updated = { ...prev, [messageId]: extras };
+                    if (activeThreadRef.current?.id) {
+                      fetch(`/api/threads/${activeThreadRef.current.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ field_briefing_extras: updated }),
+                      }).catch(() => {});
+                    }
+                    return updated;
+                  });
+                }}
+              />
+            </div>
             {/* DocumentCard voor opname-transcript — onder het transcript bericht */}
             {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (() => {
               const transcript = messages.find(m => m.role === 'user')?.content;
               if (!transcript) return null;
               return (
-                <div className="px-4 md:px-8 pb-2">
+                <div className="px-4 md:px-8 pb-6" style={{ opacity: recordingRevealStep >= 2 ? 1 : 0, transition: 'opacity 0.4s ease' }}>
                   <div className="max-w-3xl mx-auto">
                     <DocumentCard
                       content={transcript}
@@ -1157,11 +1171,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             })()}
             {/* Na transcript van opname: uitnodigingstekst als assistent-bericht */}
             {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
-              <div className="px-4 md:px-8 pb-8">
+              <div className="px-4 md:px-8 pb-8" style={{ opacity: recordingRevealStep >= 3 ? 1 : 0, transition: 'opacity 0.5s ease' }}>
                 <div className="max-w-3xl mx-auto flex justify-start items-start gap-3">
                   <img src="/icons/waybetter-icon.svg" alt="" aria-hidden="true" className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-70" />
                   <div className="flex-1 text-[14px] text-white/80 leading-relaxed">
-                    Je transcript is klaar en staat opgeslagen in de <span className="text-white">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Gooi gerust nog andere bestanden erbij, dan gaan we aan de slag.
+                    Je transcript is klaar en staat opgeslagen in de <span className="text-white">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Sleep gerust nog andere bestanden erbij, dan gaan we aan de slag.
                   </div>
                 </div>
               </div>
