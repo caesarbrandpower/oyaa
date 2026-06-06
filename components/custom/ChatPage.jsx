@@ -793,7 +793,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously, resets threadTxtAttachmentsRef
     threadTxtAttachmentsRef.current = txtAttachments; // na handleNewThread zetten — anders overschreven
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, [], pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */);
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */);
   }
 
   function handleTaskPanelClose(prefillText) {

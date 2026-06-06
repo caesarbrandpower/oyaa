@@ -68,7 +68,6 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
         .order('client');
       if (data) {
         const clients = [...new Set(data.map(r => r.client).filter(Boolean))];
-        console.log('[DEBUG CLIENTS] TaskSidePanel loaded', { count: clients.length, clients });
         setKnownClients(clients);
       }
     }
@@ -192,7 +191,6 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     if (step === 1 && !isSearch && clientInput.trim()) {
       const input = clientInput.trim();
       const match = fuzzyMatchClient(input, knownClients);
-      console.log('[DEBUG FUZZY] TaskSidePanel', { input, knownClientsCount: knownClients.length, match, isNewClient: !match });
       if (match && !match.confirmed) {
         setClientSuggestion(match.suggestion);
         return;
