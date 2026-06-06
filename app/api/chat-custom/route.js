@@ -357,6 +357,8 @@ export async function POST(request) {
           (!!outputType || hasGenerateIntent || documentAttachments.length > 0)
         );
 
+        console.log('[route-txt]', { txtAttachmentsLength: txtAttachments?.length, useStructuredPrompt, effectiveOutputType });
+
         const systemPrompt = useStructuredPrompt
           ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
 
