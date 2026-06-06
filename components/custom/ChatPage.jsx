@@ -193,7 +193,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
     loadThread();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, []);
 
   function handleOpenDocument(msg) {
     const ot = msg.output_type ?? activeThreadRef.current?.output_type ?? null;
@@ -833,30 +833,34 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }, 1000);
   }
 
-  async function handleRecordingComplete({ threadId, title, transcript }) {
+  async function handleRecordingComplete({ threadId, title, transcript, audioUrl }) {
     clearInterval(recordingProgressRef.current);
     setRecordingProgress(100);
 
-    const { createClient } = await import('@/lib/supabase-browser');
-    const supabase = createClient();
-    const { data: thread } = await supabase
-      .from('threads')
-      .select('id, title, output_type, client, project, field_briefing_extras, created_at, updated_at, audio_url')
-      .eq('id', threadId)
-      .single();
-
-    if (thread) {
-      setActiveThreadBoth(thread);
-      setBriefingExtras(thread.field_briefing_extras || {});
-      setThreads(prev => prev.some(t => t.id === thread.id) ? prev : [thread, ...prev]);
-    }
+    // Bouw thread-object direct uit callback-data zodat audiospeler en sidebar
+    // meteen updaten — geen wachten op aparte Supabase-fetch
+    const now = new Date().toISOString();
+    const optimisticThread = {
+      id: threadId,
+      title,
+      output_type: 'recording',
+      client: null,
+      project: null,
+      field_briefing_extras: {},
+      created_at: now,
+      updated_at: now,
+      audio_url: audioUrl,
+    };
+    setActiveThreadBoth(optimisticThread);
+    setBriefingExtras({});
+    setThreads(prev => prev.some(t => t.id === threadId) ? prev : [optimisticThread, ...prev]);
 
     // Toon transcript als user-bericht (direct uit response, niet streaming)
     setMessages([{
       id: 'recording-' + threadId,
       role: 'user',
       content: transcript,
-      created_at: new Date().toISOString(),
+      created_at: now,
       attachments: [],
       isRecordingTranscript: true,
     }]);
@@ -865,6 +869,24 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setRecordingPending(false);
       setRecordingProgress(0);
     }, 300);
+
+    // Haal volledige thread op als fallback (client, project, etc.)
+    try {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data: thread } = await supabase
+        .from('threads')
+        .select('id, title, output_type, client, project, field_briefing_extras, created_at, updated_at, audio_url')
+        .eq('id', threadId)
+        .single();
+      if (thread) {
+        setActiveThreadBoth(thread);
+        setBriefingExtras(thread.field_briefing_extras || {});
+        setThreads(prev => prev.map(t => t.id === thread.id ? thread : t));
+      }
+    } catch {
+      // Optimistic data blijft staan
+    }
   }
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
