@@ -595,8 +595,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       )}
 
       {/* Hoofdgebied */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden" style={{ zoom: 1.1 }}>
-        {/* Header — altijd zichtbaar */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Header — buiten zoom wrapper, zodat border aansluit op sidebar logo (beide h-16 = 64px) */}
         <header className="flex items-center gap-3 px-4 h-16 border-b border-white/[0.06] shrink-0">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/40 hover:text-white/70 transition-colors" aria-label="Menu openen">
             <Menu className="w-5 h-5" />
@@ -604,6 +604,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           <div className="flex-1" />
           <RecordingButton />
         </header>
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
         {/* Header */}
         <header className="shrink-0 px-4 md:px-8 py-6 border-b border-white/[0.06]">
@@ -810,6 +811,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
             )}
           </div>
         </div>
+        </div>{/* sluit zoom wrapper */}
       </div>
     </div>
   );
