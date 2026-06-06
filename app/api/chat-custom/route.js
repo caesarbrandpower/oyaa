@@ -390,6 +390,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
               .join('\n\n');
           }
 
+          console.log('[userTextOnly-check] txtCount:', txtAttachments.length, '| userTextOnly eerste 100:', userTextOnly.slice(0, 100));
+
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
           const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
