@@ -257,7 +257,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             <div className="space-y-5">
               <div className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-4">
                 <p className="text-[13px] text-white/80 leading-relaxed mb-1">
-                  We slaan <span className="font-semibold text-white">&ldquo;{project}&rdquo;</span> op als nieuwe klantnaam. Klopt de schrijfwijze?
+                  We slaan <span className="font-semibold text-white">&ldquo;{clientInput}&rdquo;</span> op als nieuwe klantnaam. Klopt de schrijfwijze?
                 </p>
                 <p className="text-[11px] text-white/35">
                   Controleer hoofdletters, koppeltekens en spelling.
