@@ -178,6 +178,15 @@ export async function POST(request) {
 
         // effectiveOutputType: request → DB → auto-detectie → null
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
+
+        // Genereer-intentie — alleen op gebruikerstekst
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+
+        // Recording-thread met generatie-intentie: reset zodat auto-detectie kan draaien
+        if (effectiveOutputType === 'recording' && hasGenerateIntent) {
+          effectiveOutputType = null;
+        }
+
         if (!effectiveOutputType) {
           const recentText = allMessages.slice(-8).map(m =>
             m.content.split(/\n\n\[(?:Bijlage|Transcript):/)[0].slice(0, 500)
@@ -192,14 +201,15 @@ export async function POST(request) {
             effectiveOutputType = 'meeting-summary';
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';
+          // Fallback voor recording-threads: als auto-detectie niets vindt, gebruik meeting-summary
+          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording')) {
+            effectiveOutputType = 'meeting-summary';
+          }
           if (effectiveOutputType) {
             // Fire-and-forget schrijft type naar DB; kleine vertraging acceptabel
             supabase.from('threads').update({ output_type: effectiveOutputType }).eq('id', activeThreadId).then(() => {});
           }
         }
-
-        // Genereer-intentie — alleen op gebruikerstekst
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
 
         // isDocument: bepaalt of de stream gebufferd wordt (nooit live opbouwen)
         const isDocument = (effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false) || prevHasDoc || hasGenerateIntent;
