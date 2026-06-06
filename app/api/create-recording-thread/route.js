@@ -73,6 +73,7 @@ export async function POST(request) {
     .single();
 
   if (threadError) {
+    console.error('[create-recording-thread] threadError:', JSON.stringify(threadError));
     return Response.json({ error: 'Thread aanmaken mislukt.' }, { status: 500 });
   }
 
