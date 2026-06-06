@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Menu, Download } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
@@ -27,6 +27,7 @@ function looksLikeDocument(content) {
   return boldSections.length >= 3 && content.length > 500;
 }
 import DocumentView from './DocumentView';
+import DocumentCard from './DocumentCard';
 import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
@@ -992,62 +993,35 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
-        {/* Audio player — zichtbaar als de thread een opname heeft */}
+        {/* Audio player + transcript card — zichtbaar als de thread een opname heeft */}
         {!isEmptyState && activeThread?.audio_url && (
-          <div className="shrink-0 px-4 md:px-8 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25">Opname</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const transcript = messages.find(m => m.role === 'user')?.content;
-                      if (!transcript) return;
-                      const blob = new Blob([transcript], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = (activeThread.title || 'transcript') + '.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-white/30 hover:text-white/60 transition-colors"
-                    title="Transcript downloaden als .txt"
-                  >
-                    <Download className="w-3 h-3" strokeWidth={2} />
-                    Transcript
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const audioUrl = activeThread.audio_url;
-                      const ext = audioUrl.split('?')[0].split('.').pop() || 'webm';
-                      try {
-                        const res = await fetch(audioUrl);
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = (activeThread.title || 'opname') + '.' + ext;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      } catch {
-                        window.open(audioUrl, '_blank');
-                      }
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-white/30 hover:text-white/60 transition-colors"
-                    title="Audio downloaden"
-                  >
-                    <Download className="w-3 h-3" strokeWidth={2} />
-                    Audio
-                  </button>
-                </div>
+          <div className="shrink-0 px-4 md:px-8 py-4 border-b border-white/[0.06] bg-white/[0.02] overflow-y-auto">
+            <div className="max-w-3xl mx-auto space-y-4">
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
+                <audio
+                  controls
+                  src={activeThread.audio_url}
+                  className="w-full h-9"
+                  style={{ accentColor: '#f04800' }}
+                />
               </div>
-              <audio
-                controls
-                src={activeThread.audio_url}
-                className="w-full h-9"
-                style={{ accentColor: '#f04800' }}
-              />
+              {(() => {
+                const transcript = messages.find(m => m.role === 'user')?.content;
+                if (!transcript) return null;
+                return (
+                  <DocumentCard
+                    content={transcript}
+                    onOpen={null}
+                    tenant={tenant}
+                    client={activeThread.client ?? null}
+                    project={activeThread.project ?? null}
+                    extras={null}
+                    outputType="recording"
+                    outputTypeLabel="Opname"
+                  />
+                );
+              })()}
             </div>
           </div>
         )}
