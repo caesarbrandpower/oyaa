@@ -787,11 +787,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = []) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = [], txtAttachments = []) {
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
-    handleNewThread(); // sets activeThreadRef.current = null synchronously
+    handleNewThread(); // sets activeThreadRef.current = null synchronously, resets threadTxtAttachmentsRef
+    threadTxtAttachmentsRef.current = txtAttachments; // na handleNewThread zetten — anders overschreven
     handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, [], pdfAttachments);
   }
 

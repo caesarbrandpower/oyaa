@@ -161,20 +161,24 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     );
     const validDocAttachments = processedDocs.filter(Boolean).filter(a => a.data);
 
-    // Text files (.doc, .docx, .ppt, .pptx, .txt) → server-side text extraction, embed in prompt
+    // Text files (.doc, .docx, .ppt, .pptx, .txt) → server-side text extraction, embed in prompt + collect as txtAttachments
+    const txtAttachments = [];
     for (const f of textFiles) {
       try {
         const formData = new FormData();
         formData.append('file', f.file);
         const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
         const data = await res.json();
-        if (data.text) prompt += `\n\n[Bijlage: ${f.filename}]\n${data.text}`;
+        if (data.text) {
+          prompt += `\n\n[Bijlage: ${f.filename}]\n${data.text}`;
+          txtAttachments.push({ filename: f.filename, data: data.text });
+        }
       } catch {
         // skip — failed extraction doesn't block generation
       }
     }
 
-    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments);
+    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments, txtAttachments);
   }
 
   function handleDirectChat() {
