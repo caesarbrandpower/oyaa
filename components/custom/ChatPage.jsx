@@ -296,8 +296,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }]);
         if (isConfirm) {
           // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
-          // Txt-bijlagen via ref doorgeven aan request body (los van DB/combinedUserContext)
-          threadTxtAttachmentsRef.current = pending.txtAttachments ?? [];
+          // threadTxtAttachmentsRef.current NIET overschrijven — handleTaskGenerate heeft de ref al correct gevuld.
+          // pending.txtAttachments is leeg voor wizard-flow (geen [Bijlage:] in messageText via regex).
           handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
             pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
             true /* analysisConfirmed */);
