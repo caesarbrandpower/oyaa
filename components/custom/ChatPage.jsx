@@ -465,6 +465,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       recordingSplitRef.current = isRecordingSplit;
 
+      console.log('[wizard-txt] handleSend threadTxtAttachmentsRef voor fetch:', threadTxtAttachmentsRef.current.length, threadTxtAttachmentsRef.current.map(a => a.filename));
+
       try {
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
