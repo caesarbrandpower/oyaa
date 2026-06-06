@@ -178,7 +178,6 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       }
     }
 
-    console.log('[wizard-txt] txtAttachments na extractie:', txtAttachments.length, txtAttachments.map(a => a.filename));
     onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments, txtAttachments);
   }
 

@@ -59,9 +59,6 @@ export async function POST(request) {
     recordingProject = null,
   } = body;
 
-  console.log('[recording-split] recordingTranscript:', recordingTranscript ? `aanwezig (${recordingTranscript.length} tekens)` : 'null');
-  console.log('[route-txt-early] txtAttachments na body-parse:', JSON.stringify((txtAttachments ?? []).map(a => ({ keys: Object.keys(a), dataLen: a.data?.length, contentLen: a.content?.length }))));
-
   if (!message?.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
@@ -225,13 +222,6 @@ export async function POST(request) {
         // Meta event zo vroeg mogelijk — geeft de client direct thread-context
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
 
-        console.log('[chat-custom]', {
-          effectiveOutputType,
-          documentAttachmentsLength: documentAttachments.length,
-          analysisConfirmed,
-          combinedUserContext: !!combinedUserContext,
-        });
-
         // ── Document- en afbeelding-blocks ────────────────────────────────────
         function buildImageBlocks(images) {
           return images.map((img) => ({
@@ -358,8 +348,6 @@ export async function POST(request) {
           (!!outputType || hasGenerateIntent || documentAttachments.length > 0)
         );
 
-        console.log('[route-txt]', { txtAttachmentsLength: txtAttachments?.length, useStructuredPrompt, effectiveOutputType, firstDataSnippet: txtAttachments?.[0]?.data?.slice(0, 50) ?? 'leeg/undefined' });
-
         const systemPrompt = useStructuredPrompt
           ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
 
@@ -391,9 +379,16 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Gebruikerstekst zonder ingebedde bijlagen — bij recording-thread: gebruik transcript als input
-          const userTextOnly = recordingTranscriptContent
+          // Gebruikerstekst + txt-bijlagen als input — bij recording-thread: gebruik transcript als input
+          let userTextOnly = recordingTranscriptContent
             ?? combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+
+          // Txt-bijlagen toevoegen aan de input zodat ze deel uitmaken van de "Input:" sectie in het custom prompt
+          if (txtAttachments.length > 0) {
+            userTextOnly += '\n\n' + txtAttachments
+              .map(t => `[Bijlage: ${t.filename}]\n${t.data}`)
+              .join('\n\n');
+          }
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           const effectiveClientName = clientName || threadClientFromDb;
@@ -407,7 +402,6 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
           const extraBlocks = [
             ...buildDocumentBlocks(documentAttachments),
-            ...buildTxtBlocks(txtAttachments),
             ...buildImageBlocks(imageAttachments),
           ];
           claudeMessages = [{
