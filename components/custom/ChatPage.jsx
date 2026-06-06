@@ -165,6 +165,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         .eq('thread_id', thread.id)
         .order('created_at', { ascending: true });
 
+      console.log('[audio-debug] loadThread (?thread= param) | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
       setActiveThreadBoth(thread);
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
@@ -232,6 +233,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     abortRef.current?.abort();
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
+    console.log('[audio-debug] handleSelectThread | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -794,6 +796,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
 
   const isEmptyState = messages.length === 0 && !sending;
+  console.log('[audio-debug] render | isEmptyState:', isEmptyState, '| audio_url:', activeThread?.audio_url ?? 'null', '| messages.length:', messages.length, '| sending:', sending);
 
   // --- Opname loading state ---
   const [recordingPending, setRecordingPending] = useState(false);
@@ -825,6 +828,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       .single();
 
     if (thread) {
+      console.log('[audio-debug] handleRecordingComplete | thread.id:', thread.id, '| audio_url:', thread.audio_url ?? 'null');
       setActiveThreadBoth(thread);
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads(prev => prev.some(t => t.id === thread.id) ? prev : [thread, ...prev]);
