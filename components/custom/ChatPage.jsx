@@ -895,7 +895,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     <div className="flex h-full overflow-hidden">
       {/* Desktop linkerkolom — logo + sidebar, één border-r */}
       <div
-        className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06]"
+        className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-[#111111]"
         style={{ width: sidebarWidth }}
       >
         <Sidebar
@@ -914,9 +914,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       {/* Drag handle sidebar resize — alleen desktop */}
       <div
         onMouseDown={startResize}
-        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative border-b border-white/[0.06]"
+        className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
         title="Sleep om sidebar te resizen"
       >
+        <div className="h-16 border-b border-white/[0.06]" />
         <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
