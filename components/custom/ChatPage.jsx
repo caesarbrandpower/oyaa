@@ -175,7 +175,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-      const isDoc = thread.output_type
+      const isDoc = thread.output_type && thread.output_type !== 'recording'
         ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
         : false;
       let firstUserReplaced = false;
@@ -259,7 +259,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-    const isDoc = thread.output_type
+    const isDoc = thread.output_type && thread.output_type !== 'recording'
       ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
       : false;
     let firstUserReplaced = false;
