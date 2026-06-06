@@ -36,7 +36,7 @@ export async function POST(request) {
     },
     body: JSON.stringify({
       from: 'Waybetter Feedback <onboarding@resend.dev>',
-      to: 'caesar@newfound.agency',
+      to: 'mailtocaesar@gmail.com',
       subject: `Feedback van ${user.email}`,
       html: emailHtml,
     }),
