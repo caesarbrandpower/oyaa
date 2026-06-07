@@ -463,6 +463,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       if (pdfAttachments.length > 0) threadDocsRef.current = pdfAttachments;
       const effectivePdfAttachments = threadDocsRef.current;
 
+      // Transcript-bijlagen (audio-upload via ChatInput) vullen threadTxtAttachmentsRef zodat de server
+      // ze ontvangt als txtAttachments — parallel aan de PDF-ref hierboven.
+      // content → data: server verwacht {filename, data}, ChatInput levert {filename, content}.
+      if (transcriptAttachments.length > 0) {
+        threadTxtAttachmentsRef.current = transcriptAttachments.map(a => ({ filename: a.filename, data: a.content }));
+      }
+
       // Txt-bijlageinhoud bewaren naast PDF-binaries — [Bijlage:/Transcript:] blokken uit de berichttekst
       const txtPortion = messageText.match(/(\n\n\[(?:Bijlage|Transcript):[\s\S]+)/)?.[1] ?? '';
       if (txtPortion) threadTxtContextRef.current = txtPortion;
