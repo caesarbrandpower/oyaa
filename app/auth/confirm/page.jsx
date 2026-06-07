@@ -2,7 +2,7 @@
 
 // app/auth/confirm/page.jsx
 // Publieke pagina — buiten (custom) en (authenticated) layouts, geen auth-guard.
-// Verwerkt Supabase invite-tokens: wisselt token_hash uit voor een sessie
+// Verwerkt Supabase invite- en recovery-tokens: wisselt token_hash uit voor een sessie
 // en toont een formulier om een wachtwoord in te stellen.
 
 import { useState, useEffect, useRef, Suspense } from 'react';
@@ -30,6 +30,7 @@ function AuthConfirmInner() {
 
   // Stap: 'verifying' | 'set-password' | 'saving' | 'done' | 'error'
   const [step, setStep] = useState('verifying');
+  const [flowType, setFlowType] = useState('invite'); // 'invite' | 'recovery'
   const [errorMsg, setErrorMsg] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -54,41 +55,50 @@ function AuthConfirmInner() {
 
     if (token_hash && type) {
       // PKCE flow: token_hash via query params
+      const isRecovery = type === 'recovery';
       supabase.auth
         .verifyOtp({ token_hash, type })
         .then(({ data, error }) => {
           if (error) {
             setErrorMsg(
               error.message === 'Token has expired or is invalid'
-                ? 'Deze uitnodigingslink is verlopen of al gebruikt. Vraag een nieuwe aan bij je beheerder.'
+                ? isRecovery
+                  ? 'Deze reset-link is verlopen of al gebruikt. Vraag via de loginpagina een nieuwe aan.'
+                  : 'Deze uitnodigingslink is verlopen of al gebruikt. Vraag een nieuwe aan bij je beheerder.'
                 : error.message
             );
             setStep('error');
           } else {
+            if (isRecovery) setFlowType('recovery');
             setStep('set-password');
           }
         });
       return;
     }
 
-    // Implicit (legacy) flow: access_token in URL hash (#access_token=...&type=invite)
-    if (hashType === 'invite' && accessToken) {
+    // Implicit (legacy) flow: access_token in URL hash (#access_token=...&type=invite|recovery)
+    if ((hashType === 'invite' || hashType === 'recovery') && accessToken) {
       // @supabase/ssr verwerkt de hash NIET automatisch via getSession().
       // Gebruik setSession() om de tokens expliciet in te stellen.
       const refreshToken = hashParams.get('refresh_token') ?? '';
       supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ data: { session }, error }) => {
           if (error || !session) {
-            setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
+            setErrorMsg(
+              hashType === 'recovery'
+                ? 'Reset-link kon niet worden verwerkt. Vraag via de loginpagina een nieuwe aan.'
+                : 'Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.'
+            );
             setStep('error');
           } else {
+            if (hashType === 'recovery') setFlowType('recovery');
             setStep('set-password');
           }
         });
       return;
     }
 
-    setErrorMsg('Ongeldige uitnodigingslink. Vraag een nieuwe link aan bij je beheerder.');
+    setErrorMsg('Ongeldige link. Vraag een nieuwe aan via de loginpagina of bij je beheerder.');
     setStep('error');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -107,14 +117,17 @@ function AuthConfirmInner() {
     }
 
     setStep('saving');
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-      data: {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-      },
-    });
+    const updatePayload = flowType === 'recovery'
+      ? { password: newPassword }
+      : {
+          password: newPassword,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          },
+        };
+    const { error } = await supabase.auth.updateUser(updatePayload);
     if (error) {
       setPasswordError(error.message);
       setStep('set-password');
@@ -146,42 +159,48 @@ function AuthConfirmInner() {
         <div className="bg-[#161616] border border-white/[0.08] rounded-2xl p-6">
           {step === 'verifying' && (
             <p className="text-[14px] text-white/50 text-center py-4">
-              Uitnodiging verifiëren...
+              Link verifiëren...
             </p>
           )}
 
           {step === 'error' && (
             <>
-              <p className="text-[13px] font-semibold text-white mb-1">Uitnodiging niet geldig</p>
+              <p className="text-[13px] font-semibold text-white mb-1">Link niet geldig</p>
               <p className="text-[13px] text-white/50">{errorMsg}</p>
             </>
           )}
 
           {(step === 'set-password' || step === 'saving') && (
             <>
-              <p className="text-[14px] font-semibold text-white mb-1">Activeer je account</p>
+              <p className="text-[14px] font-semibold text-white mb-1">
+                {flowType === 'recovery' ? 'Nieuw wachtwoord instellen' : 'Activeer je account'}
+              </p>
               <p className="text-[12px] text-white/40 mb-5">
-                Vul je naam in en kies een wachtwoord.
+                {flowType === 'recovery'
+                  ? 'Kies een nieuw wachtwoord voor je account.'
+                  : 'Vul je naam in en kies een wachtwoord.'}
               </p>
               <form onSubmit={handleSetPassword} className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    placeholder="Voornaam"
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    required
-                    disabled={step === 'saving'}
-                    className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
-                  />
-                  <input
-                    placeholder="Achternaam"
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    required
-                    disabled={step === 'saving'}
-                    className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
-                  />
-                </div>
+                {flowType === 'invite' && (
+                  <div className="flex gap-2">
+                    <input
+                      placeholder="Voornaam"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      required
+                      disabled={step === 'saving'}
+                      className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                    />
+                    <input
+                      placeholder="Achternaam"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      required
+                      disabled={step === 'saving'}
+                      className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                    />
+                  </div>
+                )}
                 <div className="relative">
                   <input
                     type={showNew ? 'text' : 'password'}
@@ -218,10 +237,10 @@ function AuthConfirmInner() {
                 )}
                 <button
                   type="submit"
-                  disabled={step === 'saving' || !firstName.trim() || !newPassword || !confirmPassword}
+                  disabled={step === 'saving' || (flowType === 'invite' && !firstName.trim()) || !newPassword || !confirmPassword}
                   className="w-full h-11 bg-orange text-white rounded-xl text-[14px] font-semibold transition-all hover:bg-[#e03d00] shadow-[0_2px_8px_rgba(255,72,0,0.32)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {step === 'saving' ? 'Opslaan...' : 'Account activeren'}
+                  {step === 'saving' ? 'Opslaan...' : flowType === 'recovery' ? 'Wachtwoord opslaan' : 'Account activeren'}
                 </button>
               </form>
             </>
