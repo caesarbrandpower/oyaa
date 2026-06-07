@@ -41,12 +41,23 @@ function AuthConfirmInner() {
   useEffect(() => {
     const token_hash = searchParams.get('token_hash');
     const type = searchParams.get('type');
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hashType = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+
+    console.log('[auth/confirm] query token_hash:', token_hash ? token_hash.slice(0, 20) + '…' : 'null');
+    console.log('[auth/confirm] query type:', type);
+    console.log('[auth/confirm] hash type:', hashType);
+    console.log('[auth/confirm] hash access_token aanwezig:', !!accessToken);
+    console.log('[auth/confirm] volledige URL:', window.location.href);
 
     if (token_hash && type) {
       // PKCE flow: token_hash via query params
+      console.log('[auth/confirm] flow: PKCE → verifyOtp aanroepen');
       supabase.auth
         .verifyOtp({ token_hash, type })
-        .then(({ error }) => {
+        .then(({ data, error }) => {
+          console.log('[auth/confirm] verifyOtp resultaat:', { session: !!data?.session, user: data?.user?.id ?? null, error: error?.message ?? null });
           if (error) {
             setErrorMsg(
               error.message === 'Token has expired or is invalid'
@@ -62,23 +73,25 @@ function AuthConfirmInner() {
     }
 
     // Implicit (legacy) flow: access_token in URL hash (#access_token=...&type=invite)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const hashType = hashParams.get('type');
-    const accessToken = hashParams.get('access_token');
-
     if (hashType === 'invite' && accessToken) {
-      // getSession() verwerkt de hash automatisch en bouwt een sessie op
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        if (error || !session) {
-          setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
-          setStep('error');
-        } else {
-          setStep('set-password');
-        }
-      });
+      // @supabase/ssr verwerkt de hash NIET automatisch via getSession().
+      // Gebruik setSession() om de tokens expliciet in te stellen.
+      const refreshToken = hashParams.get('refresh_token') ?? '';
+      console.log('[auth/confirm] flow: implicit → setSession aanroepen');
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ data: { session }, error }) => {
+          console.log('[auth/confirm] setSession resultaat:', { session: !!session, userId: session?.user?.id ?? null, error: error?.message ?? null });
+          if (error || !session) {
+            setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
+            setStep('error');
+          } else {
+            setStep('set-password');
+          }
+        });
       return;
     }
 
+    console.log('[auth/confirm] geen geldige token gevonden — beide flows falen');
     setErrorMsg('Ongeldige uitnodigingslink. Vraag een nieuwe link aan bij je beheerder.');
     setStep('error');
   // eslint-disable-next-line react-hooks/exhaustive-deps
