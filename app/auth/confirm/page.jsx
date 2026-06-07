@@ -74,16 +74,20 @@ function AuthConfirmInner() {
 
     // Implicit (legacy) flow: access_token in URL hash (#access_token=...&type=invite)
     if (hashType === 'invite' && accessToken) {
-      console.log('[auth/confirm] flow: implicit → getSession aanroepen');
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        console.log('[auth/confirm] getSession resultaat:', { session: !!session, userId: session?.user?.id ?? null, error: error?.message ?? null });
-        if (error || !session) {
-          setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
-          setStep('error');
-        } else {
-          setStep('set-password');
-        }
-      });
+      // @supabase/ssr verwerkt de hash NIET automatisch via getSession().
+      // Gebruik setSession() om de tokens expliciet in te stellen.
+      const refreshToken = hashParams.get('refresh_token') ?? '';
+      console.log('[auth/confirm] flow: implicit → setSession aanroepen');
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ data: { session }, error }) => {
+          console.log('[auth/confirm] setSession resultaat:', { session: !!session, userId: session?.user?.id ?? null, error: error?.message ?? null });
+          if (error || !session) {
+            setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
+            setStep('error');
+          } else {
+            setStep('set-password');
+          }
+        });
       return;
     }
 
