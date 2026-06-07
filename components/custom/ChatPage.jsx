@@ -297,9 +297,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         if (isConfirm) {
           // Herstart met analysisConfirmed=true — slaat analyse over en genereert direct
           // threadTxtAttachmentsRef.current NIET overschrijven — handleTaskGenerate heeft de ref al correct gevuld.
-          // pending.txtAttachments is leeg voor wizard-flow (geen [Bijlage:] in messageText via regex).
+          // Fallback: als pending.textAttachments leeg is (bijv. via een pad dat [] doorgaf), leid het af
+          // van pending.txtAttachments zodat de txt-pill ook in de generatiebubble zichtbaar blijft.
+          const pendingTextAtts = pending.textAttachments?.length > 0
+            ? pending.textAttachments
+            : (pending.txtAttachments ?? []).map(a => ({ filename: a.filename }));
           handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
-            pending.client, pending.imageAttachments, [], false, pending.wizardProject, pending.textAttachments ?? [], pending.pdfAttachments,
+            pending.client, pending.imageAttachments, [], false, pending.wizardProject, pendingTextAtts, pending.pdfAttachments,
             true /* analysisConfirmed */);
         } else {
           // Gebruiker wil iets aanvullen — gewone beurt, PDF's blijven in threadDocsRef
