@@ -37,26 +37,45 @@ function AuthConfirmInner() {
     const token_hash = searchParams.get('token_hash');
     const type = searchParams.get('type');
 
-    if (!token_hash || !type) {
-      setErrorMsg('Ongeldige uitnodigingslink. Vraag een nieuwe link aan bij je beheerder.');
-      setStep('error');
+    if (token_hash && type) {
+      // PKCE flow: token_hash via query params
+      supabase.auth
+        .verifyOtp({ token_hash, type })
+        .then(({ error }) => {
+          if (error) {
+            setErrorMsg(
+              error.message === 'Token has expired or is invalid'
+                ? 'Deze uitnodigingslink is verlopen of al gebruikt. Vraag een nieuwe aan bij je beheerder.'
+                : error.message
+            );
+            setStep('error');
+          } else {
+            setStep('set-password');
+          }
+        });
       return;
     }
 
-    supabase.auth
-      .verifyOtp({ token_hash, type })
-      .then(({ error }) => {
-        if (error) {
-          setErrorMsg(
-            error.message === 'Token has expired or is invalid'
-              ? 'Deze uitnodigingslink is verlopen of al gebruikt. Vraag een nieuwe aan bij je beheerder.'
-              : error.message
-          );
+    // Implicit (legacy) flow: access_token in URL hash (#access_token=...&type=invite)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hashType = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+
+    if (hashType === 'invite' && accessToken) {
+      // getSession() verwerkt de hash automatisch en bouwt een sessie op
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (error || !session) {
+          setErrorMsg('Uitnodigingslink kon niet worden verwerkt. Vraag een nieuwe aan bij je beheerder.');
           setStep('error');
         } else {
           setStep('set-password');
         }
       });
+      return;
+    }
+
+    setErrorMsg('Ongeldige uitnodigingslink. Vraag een nieuwe link aan bij je beheerder.');
+    setStep('error');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
