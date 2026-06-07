@@ -7,6 +7,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase-browser';
 
 export default function AuthConfirmPage() {
@@ -32,6 +33,8 @@ function AuthConfirmInner() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const token_hash = searchParams.get('token_hash');
@@ -143,25 +146,37 @@ function AuthConfirmInner() {
                 Kies een wachtwoord om je account te activeren.
               </p>
               <form onSubmit={handleSetPassword} className="space-y-3">
-                <input
-                  type="password"
-                  placeholder="Nieuw wachtwoord"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  disabled={step === 'saving'}
-                  className="w-full border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
-                />
-                <input
-                  type="password"
-                  placeholder="Bevestig wachtwoord"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={step === 'saving'}
-                  className="w-full border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
-                />
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    placeholder="Nieuw wachtwoord"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    disabled={step === 'saving'}
+                    className="w-full border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 pr-11 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                  />
+                  <button type="button" onClick={() => setShowNew(v => !v)} tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+                    {showNew ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    placeholder="Bevestig wachtwoord"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={step === 'saving'}
+                    className="w-full border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 pr-11 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                  />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)} tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+                    {showConfirm ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
+                  </button>
+                </div>
                 {passwordError && (
                   <p className="text-[12px] text-red-400/80">{passwordError}</p>
                 )}
