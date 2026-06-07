@@ -30,6 +30,8 @@ function AuthConfirmInner() {
   // Stap: 'verifying' | 'set-password' | 'saving' | 'done' | 'error'
   const [step, setStep] = useState('verifying');
   const [errorMsg, setErrorMsg] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -96,7 +98,14 @@ function AuthConfirmInner() {
     }
 
     setStep('saving');
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      },
+    });
     if (error) {
       setPasswordError(error.message);
       setStep('set-password');
@@ -141,11 +150,29 @@ function AuthConfirmInner() {
 
           {(step === 'set-password' || step === 'saving') && (
             <>
-              <p className="text-[14px] font-semibold text-white mb-1">Stel je wachtwoord in</p>
+              <p className="text-[14px] font-semibold text-white mb-1">Activeer je account</p>
               <p className="text-[12px] text-white/40 mb-5">
-                Kies een wachtwoord om je account te activeren.
+                Vul je naam in en kies een wachtwoord.
               </p>
               <form onSubmit={handleSetPassword} className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Voornaam"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    required
+                    disabled={step === 'saving'}
+                    className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                  />
+                  <input
+                    placeholder="Achternaam"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    required
+                    disabled={step === 'saving'}
+                    className="w-1/2 border border-white/[0.10] bg-white/[0.04] rounded-xl px-4 py-3 text-[14px] text-white placeholder-white/25 outline-none focus:border-orange/60 transition-colors disabled:opacity-50"
+                  />
+                </div>
                 <div className="relative">
                   <input
                     type={showNew ? 'text' : 'password'}
@@ -182,7 +209,7 @@ function AuthConfirmInner() {
                 )}
                 <button
                   type="submit"
-                  disabled={step === 'saving' || !newPassword || !confirmPassword}
+                  disabled={step === 'saving' || !firstName.trim() || !newPassword || !confirmPassword}
                   className="w-full h-11 bg-orange text-white rounded-xl text-[14px] font-semibold transition-all hover:bg-[#e03d00] shadow-[0_2px_8px_rgba(255,72,0,0.32)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {step === 'saving' ? 'Opslaan...' : 'Account activeren'}
