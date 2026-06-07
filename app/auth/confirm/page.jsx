@@ -5,11 +5,23 @@
 // Verwerkt Supabase invite-tokens: wisselt token_hash uit voor een sessie
 // en toont een formulier om een wachtwoord in te stellen.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 
 export default function AuthConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d]">
+        <p className="text-[14px] text-white/40">Laden...</p>
+      </div>
+    }>
+      <AuthConfirmInner />
+    </Suspense>
+  );
+}
+
+function AuthConfirmInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
