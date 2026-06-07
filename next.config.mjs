@@ -6,7 +6,8 @@ const nextConfig = {
       {
         source: '/',
         destination: '/app',
-        permanent: true,
+        permanent: false,
+        missing: [{ type: 'header', key: 'host', value: 'waybetter.nl' }],
       },
     ];
   },
