@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid } from 'lucide-react';
+import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid, KeyRound, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -28,6 +28,11 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [accountOpen, setAccountOpen] = useState(false);
+  const [passwordMode, setPasswordMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState('idle'); // idle | saving | done | error
+  const [passwordError, setPasswordError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
   const accountRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null); // { threadId, x, y } | null
@@ -41,7 +46,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   useEffect(() => {
     if (!accountOpen) return;
     function handleClick(e) {
-      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
+      if (accountRef.current && !accountRef.current.contains(e.target)) { setAccountOpen(false); closePasswordMode(); }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -74,6 +79,50 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
+  }
+
+  function openPasswordMode() {
+    setPasswordMode(true);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordStatus('idle');
+    setPasswordError('');
+  }
+
+  function closePasswordMode() {
+    setPasswordMode(false);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordStatus('idle');
+    setPasswordError('');
+  }
+
+  async function handlePasswordSave() {
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Wachtwoorden komen niet overeen.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('Wachtwoord moet minimaal 6 tekens zijn.');
+      return;
+    }
+    setPasswordStatus('saving');
+    setPasswordError('');
+    try {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordError(error.message);
+        setPasswordStatus('idle');
+      } else {
+        setPasswordStatus('done');
+        setTimeout(() => { closePasswordMode(); setAccountOpen(false); }, 2000);
+      }
+    } catch {
+      setPasswordError('Er is een fout opgetreden.');
+      setPasswordStatus('idle');
+    }
   }
 
   return (
@@ -254,20 +303,71 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
       <div className="px-3 py-3 border-t border-white/[0.06] relative" ref={accountRef}>
         {accountOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-2xl p-3 z-50">
-            <p className="text-[13px] font-semibold text-white truncate">{user.firstName}</p>
-            <p className="text-[11px] text-white/40 truncate mt-0.5">{user.email}</p>
-            {tenant?.name && (
-              <p className="text-[11px] text-white/25 truncate mt-0.5">{tenant.name}</p>
+            {passwordMode ? (
+              <>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <button onClick={closePasswordMode} className="text-white/40 hover:text-white/70 transition-colors">
+                    <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2} />
+                  </button>
+                  <span className="text-[12px] font-medium text-white/70">Wachtwoord wijzigen</span>
+                </div>
+                {passwordStatus === 'done' ? (
+                  <p className="text-[12px] text-green-400/80 text-center py-1">Wachtwoord opgeslagen.</p>
+                ) : (
+                  <>
+                    <input
+                      type="password"
+                      placeholder="Nieuw wachtwoord"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-[12px] text-white/80 placeholder-white/25 outline-none focus:border-white/[0.18] transition-colors mb-2"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Bevestig wachtwoord"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handlePasswordSave()}
+                      className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-[12px] text-white/80 placeholder-white/25 outline-none focus:border-white/[0.18] transition-colors"
+                    />
+                    {passwordError && (
+                      <p className="text-[11px] text-red-400/80 mt-1.5">{passwordError}</p>
+                    )}
+                    <button
+                      onClick={handlePasswordSave}
+                      disabled={!newPassword || !confirmPassword || passwordStatus === 'saving'}
+                      className="mt-2.5 w-full h-7 rounded-lg bg-white/[0.08] hover:bg-white/[0.13] text-[12px] text-white/70 hover:text-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {passwordStatus === 'saving' ? 'Opslaan...' : 'Opslaan'}
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-semibold text-white truncate">{user.firstName}</p>
+                <p className="text-[11px] text-white/40 truncate mt-0.5">{user.email}</p>
+                {tenant?.name && (
+                  <p className="text-[11px] text-white/25 truncate mt-0.5">{tenant.name}</p>
+                )}
+                <div className="border-t border-white/[0.06] mt-2.5 pt-2 flex flex-col gap-0.5">
+                  <button
+                    onClick={openPasswordMode}
+                    className="w-full flex items-center gap-2 text-[12px] text-white/50 hover:text-white/80 transition-colors py-0.5"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                    Wachtwoord wijzigen
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2 text-[12px] text-red-400/80 hover:text-red-400 transition-colors py-0.5"
+                  >
+                    <LogOut className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                    Uitloggen
+                  </button>
+                </div>
+              </>
             )}
-            <div className="border-t border-white/[0.06] mt-2.5 pt-2">
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-2 text-[12px] text-red-400/80 hover:text-red-400 transition-colors py-0.5"
-              >
-                <LogOut className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
-                Uitloggen
-              </button>
-            </div>
           </div>
         )}
         <button
