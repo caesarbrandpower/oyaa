@@ -60,6 +60,32 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
   });
 }
 
+// Vindt de paragraaf (gescheiden door \n\n) die de nth marker-occurrence bevat.
+// Geeft { text, start, end } terug of null als niet gevonden.
+function extractParagraph(content, markerIdx) {
+  const seps = [...content.matchAll(/\n\n+/g)];
+  const paras = [];
+  let start = 0;
+  for (const sep of seps) {
+    paras.push({ start, end: sep.index });
+    start = sep.index + sep[0].length;
+  }
+  paras.push({ start, end: content.length });
+
+  const labelRe = new RegExp(LABEL_REGEX.source, 'g');
+  let count = 0;
+  for (const para of paras) {
+    const text = content.slice(para.start, para.end);
+    if (!text.trim()) continue;
+    const matches = [...text.matchAll(labelRe)];
+    if (count + matches.length > markerIdx) {
+      return { text, start: para.start, end: para.end };
+    }
+    count += matches.length;
+  }
+  return null;
+}
+
 // ── PDF export (lokale versie vervangen door gedeelde — zie lib/doc-export.js) ─
 
 async function downloadPdfDoc(content, title, logos = {}, extras = null, filename = null, outputType = null, client = null, project = null) {
@@ -475,6 +501,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [shareUrl, setShareUrl] = useState(null);
   const [editingIdx, setEditingIdx] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [rewriting, setRewriting] = useState(false);
   const [highlightedCardIdx, setHighlightedCardIdx] = useState(null);
   const docBodyRef = useRef(null);
   const sidebarRef = useRef(null);
@@ -586,23 +613,66 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     }
   }
 
-  function handleSaveEdit(label, idx) {
+  async function handleSaveEdit(label, idx) {
     const trimmed = editValue.trim();
     if (!trimmed) {
       setEditingIdx(null);
       return;
     }
-    setLocalContent(prev => {
-      const newContent = replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
-      if (savedToken) {
-        fetch(`/api/share-document?token=${savedToken}`, {
-          method: 'PATCH',
+
+    setRewriting(true);
+    let success = false;
+
+    try {
+      const para = extractParagraph(localContent, idx);
+      if (para) {
+        const res = await fetch('/api/rewrite-marker', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: newContent }),
-        }).catch(() => {});
+          body: JSON.stringify({ paragraph: para.text, label, value: trimmed, outputType }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.rewritten) {
+            setLocalContent(prev => {
+              const freshPara = extractParagraph(prev, idx);
+              const newContent = freshPara
+                ? prev.slice(0, freshPara.start) + data.rewritten + prev.slice(freshPara.end)
+                : replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
+              if (savedToken) {
+                fetch(`/api/share-document?token=${savedToken}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ content: newContent }),
+                }).catch(() => {});
+              }
+              return newContent;
+            });
+            success = true;
+          }
+        }
       }
-      return newContent;
-    });
+    } catch (e) {
+      console.error('[rewrite-marker]', e);
+    } finally {
+      setRewriting(false);
+    }
+
+    if (!success) {
+      // Fallback: gewone token-replace
+      setLocalContent(prev => {
+        const newContent = replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
+        if (savedToken) {
+          fetch(`/api/share-document?token=${savedToken}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newContent }),
+          }).catch(() => {});
+        }
+        return newContent;
+      });
+    }
+
     setEditingIdx(null);
     setEditValue('');
   }
@@ -796,25 +866,33 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                           autoFocus
                           value={editValue}
                           onChange={e => setEditValue(e.target.value)}
+                          disabled={rewriting}
                           placeholder="Typ de aanvullende informatie..."
                           rows={3}
-                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-[11px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors"
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-[11px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
                         />
-                        <div className="flex gap-2 mt-1.5">
-                          <button
-                            onClick={() => handleSaveEdit(label, idx)}
-                            disabled={!editValue.trim()}
-                            className="flex-1 h-7 rounded-lg bg-orange text-white text-[11px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            Opslaan
-                          </button>
-                          <button
-                            onClick={() => { setEditingIdx(null); setEditValue(''); }}
-                            className="h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
-                          >
-                            Annuleer
-                          </button>
-                        </div>
+                        {rewriting ? (
+                          <div className="flex items-center gap-2 mt-1.5 px-1">
+                            <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin shrink-0" />
+                            <span className="text-[11px] text-white/40">Herschrijven...</span>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 mt-1.5">
+                            <button
+                              onClick={() => handleSaveEdit(label, idx)}
+                              disabled={!editValue.trim()}
+                              className="flex-1 h-7 rounded-lg bg-orange text-white text-[11px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              Opslaan
+                            </button>
+                            <button
+                              onClick={() => { setEditingIdx(null); setEditValue(''); }}
+                              className="h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
+                            >
+                              Annuleer
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : isRed ? (
                       <button
