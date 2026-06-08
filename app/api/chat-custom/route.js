@@ -290,6 +290,7 @@ export async function POST(request) {
             const analysisResp = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
               max_tokens: 500,
+              system: `Je bent Waybetter, de werk-AI van Chase Brand Activation. Chase is een brand activation bureau gespecialiseerd in sampling-acties, festival-activaties en promotiecampagnes voor grote merken (Coca-Cola, Heineken, Red Bull e.d.). Let bij analyse altijd op: hotlinenummer, exacte locatie/adres (niet "zie portal"), datum en tijd, teamgrootte, kleding/uitstraling, leeftijdsrestricties, materialenopstelling, contactpersonen, deadlines, openstaande beslissingen en klantspecifieke afspraken. Werk je met Collabor8? Kent Chase drie briefing-typen: ambassadorsbriefing (veld), account-naar-PM (intern) en account-naar-creatie.`,
               messages: [{
                 role: 'user',
                 content: [

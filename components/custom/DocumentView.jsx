@@ -587,21 +587,24 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   function handleSaveEdit(label, idx) {
-    if (!editValue.trim()) {
+    const trimmed = editValue.trim();
+    if (!trimmed) {
       setEditingIdx(null);
       return;
     }
-    const newContent = replaceOccurrence(localContent, LABEL_REGEX, idx, editValue.trim());
-    setLocalContent(newContent);
+    setLocalContent(prev => {
+      const newContent = replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
+      if (savedToken) {
+        fetch(`/api/share-document?token=${savedToken}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: newContent }),
+        }).catch(() => {});
+      }
+      return newContent;
+    });
     setEditingIdx(null);
     setEditValue('');
-    if (savedToken) {
-      fetch(`/api/share-document?token=${savedToken}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newContent }),
-      }).catch(() => {});
-    }
   }
 
   function handleConfirm(idx) {

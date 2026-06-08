@@ -195,13 +195,8 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     }
   }
 
-  async function handleMove(threadId, newClient) {
+  function handleMove(threadId, newClient) {
     const clientValue = newClient === 'Overige' ? null : newClient;
-    await fetch(`/api/threads/${threadId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client: clientValue, project: null }),
-    });
     setThreads(prev =>
       prev.map(t => t.id === threadId ? { ...t, client: clientValue, project: null } : t)
     );
@@ -209,6 +204,11 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
     setMoveMenu(null);
     setMoveInputVisible(false);
     setMoveInputValue('');
+    fetch(`/api/threads/${threadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client: clientValue, project: null }),
+    }).catch(err => console.error('[handleMove] failed:', err));
   }
 
   function closeMoveMenu() {
