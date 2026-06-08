@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import TryToolPage from '@/components/TryToolPage'
+import { redirect } from 'next/navigation'
 import { getTenant } from '@/lib/get-tenant'
+import { createClient } from '@/lib/supabase-server'
 import ScrollReveal from '@/components/ScrollReveal'
 import { FileText, Shield, Database, Layers, Users, TrendingUp, AlertTriangle, LayoutGrid, Brain, Mic, Video, FileUp, PenLine, ShieldCheck, CheckCircle, Lock } from 'lucide-react'
 
@@ -23,7 +24,9 @@ export default async function HomePage() {
   const isDefaultTenant = !tenant || tenant.hostname === DEFAULT_HOSTNAME
 
   if (!isDefaultTenant) {
-    return <TryToolPage tenant={tenant} />
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    redirect(user ? '/app' : '/login')
   }
 
   return (
