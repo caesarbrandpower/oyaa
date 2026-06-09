@@ -1192,13 +1192,33 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               );
             })()}
-            {/* Na transcript van opname: uitnodigingstekst als assistent-bericht */}
+            {/* Na transcript van opname: bevestiging + klikbare actie */}
             {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
               <div className="px-4 md:px-8 pb-8" style={{ opacity: recordingRevealStep >= 3 ? 1 : 0, transition: 'opacity 0.5s ease' }}>
                 <div className="max-w-3xl mx-auto flex justify-start items-start gap-3">
                   <img src="/icons/waybetter-icon.svg" alt="" aria-hidden="true" className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-70" />
                   <div className="flex-1 text-[14px] text-white/80 leading-relaxed">
-                    Je transcript is klaar en staat opgeslagen in de <span className="text-white">{activeThread.client ? activeThread.client : 'je klantmap'}</span>-map. Wil je hier nu iets van maken — een samenvatting, briefing naar PM, of iets anders? Sleep gerust nog andere bestanden erbij, dan gaan we aan de slag.
+                    <p>
+                      Je transcript is opgeslagen{' '}
+                      {activeThread.client
+                        ? <>in de map <span className="text-white font-medium">{activeThread.client}</span></>
+                        : <>onder <span className="text-white font-medium">Overige</span> in de klantmappen</>
+                      }. Je kunt het daar terugvinden via het menu.
+                    </p>
+                    <button
+                      onClick={() => handleSend(
+                        'Maak een samenvatting van dit transcript',
+                        'meeting-summary',
+                        'Samenvatting',
+                        'Samenvatting',
+                        activeThread.client ?? null,
+                        [], [], false, null, [], [], false
+                      )}
+                      disabled={sending}
+                      className="mt-3 inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-orange/15 border border-orange/30 text-orange text-[13px] font-semibold hover:bg-orange/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Zal ik hier een samenvatting van maken?
+                    </button>
                   </div>
                 </div>
               </div>
