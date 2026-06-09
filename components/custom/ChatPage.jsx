@@ -194,14 +194,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-      const isDoc = thread.output_type && thread.output_type !== 'recording'
+      const isDocThread = thread.output_type && thread.output_type !== 'recording'
         ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
         : false;
       let firstUserReplaced = false;
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
-        if (m.role === 'assistant') return { ...base, isDocument: isDoc || looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
-        if (isDoc && !firstUserReplaced && m.role === 'user' && thread.title) {
+        // isDocument per bericht bepaald door inhoud — niet door thread.output_type als override
+        if (m.role === 'assistant') return { ...base, isDocument: looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
+        if (isDocThread && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
         }
@@ -278,13 +279,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-    const isDoc = thread.output_type && thread.output_type !== 'recording'
+    const isDocThread = thread.output_type && thread.output_type !== 'recording'
       ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
       : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
-      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc || looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
-      if (isDoc && !firstUserReplaced && msg.role === 'user' && thread.title) {
+      if (msg.role === 'assistant') return { ...msg, isDocument: looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
+      if (isDocThread && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
       }
@@ -634,7 +635,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   )
                 );
               }
-              const finalIsDocument = isDocument || looksLikeDocument(event.content);
+              const finalIsDocument = isDocument;
               const finalMsg = {
                 id: event.messageId,
                 role: 'assistant',
