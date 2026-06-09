@@ -77,6 +77,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
   const recordingSplitRef = useRef(false);
   // recordingSplitRef: true tijdens een API-call waarbij een recording-thread een nieuw document-thread aanmaakt
+  const chunkBufferRef = useRef('');
+  const streamingPlaceholderIdRef = useRef(null);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [documentTokens, setDocumentTokens] = useState({});
@@ -113,6 +115,23 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   // Houd messagesRef synchroon — gebruikt door de stabiele handleSend useCallback
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Flush-loop: leegt chunkBufferRef elke 30ms in één state-update voor vloeiende streaming
+  useEffect(() => {
+    if (!sending) return;
+    const iv = setInterval(() => {
+      const id = streamingPlaceholderIdRef.current;
+      if (!id || !chunkBufferRef.current) return;
+      const text = chunkBufferRef.current;
+      chunkBufferRef.current = '';
+      setMessages((prev) =>
+        prev.map(m =>
+          m.id === id ? { ...m, streamContent: (m.streamContent || '') + text } : m
+        )
+      );
+    }, 30);
+    return () => clearInterval(iv);
+  }, [sending]);
 
   const outputTypes = Array.isArray(tenant?.enabled_output_types)
     ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
@@ -175,14 +194,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setBriefingExtras(thread.field_briefing_extras || {});
       setThreads((prev) => prev.some((t) => t.id === thread.id) ? prev : [thread, ...prev]);
       const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-      const isDoc = thread.output_type && thread.output_type !== 'recording'
+      const isDocThread = thread.output_type && thread.output_type !== 'recording'
         ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
         : false;
       let firstUserReplaced = false;
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
-        if (m.role === 'assistant') return { ...base, isDocument: isDoc || looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
-        if (isDoc && !firstUserReplaced && m.role === 'user' && thread.title) {
+        // isDocument per bericht bepaald door inhoud — niet door thread.output_type als override
+        if (m.role === 'assistant') return { ...base, isDocument: looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
+        if (isDocThread && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
         }
@@ -259,13 +279,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
-    const isDoc = thread.output_type && thread.output_type !== 'recording'
+    const isDocThread = thread.output_type && thread.output_type !== 'recording'
       ? (DOCUMENT_OUTPUT_TYPES.has(thread.output_type) || !SEARCH_IDS.has(thread.output_type))
       : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
-      if (msg.role === 'assistant') return { ...msg, isDocument: isDoc || looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
-      if (isDoc && !firstUserReplaced && msg.role === 'user' && thread.title) {
+      if (msg.role === 'assistant') return { ...msg, isDocument: looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
+      if (isDocThread && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
       }
@@ -433,11 +453,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const prevHasDoc = messagesRef.current.some(
         m => m.role === 'assistant' && m.isDocument === true
       );
-      const placeholderIsDoc = prevHasDoc || (effectiveType
-        ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
-        : false);
-      const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
+      const placeholderIsDoc = isGenerateIntent && effectiveType
+        ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
+        : false;
+      const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
       const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
       setMessages((prev) => {
@@ -511,6 +531,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         const decoder = new TextDecoder();
         let buffer = '';
         let isDocument = false;
+        chunkBufferRef.current = '';
+        streamingPlaceholderIdRef.current = placeholderId;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -600,15 +622,20 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 setThreads((prev) => prev.map(t => t.id === updated.id ? { ...t, output_type: metaOutputType } : t));
               }
             } else if (event.type === 'chunk') {
-              setMessages((prev) =>
-                prev.map(m =>
-                  m.id === placeholderId
-                    ? { ...m, streamContent: (m.streamContent || '') + event.text }
-                    : m
-                )
-              );
+              chunkBufferRef.current += event.text;
             } else if (event.type === 'done') {
-              const finalIsDocument = isDocument || looksLikeDocument(event.content);
+              // Flush resterende buffer voor de finale state-wissel
+              streamingPlaceholderIdRef.current = null;
+              if (chunkBufferRef.current) {
+                const remaining = chunkBufferRef.current;
+                chunkBufferRef.current = '';
+                setMessages((prev) =>
+                  prev.map(m =>
+                    m.id === placeholderId ? { ...m, streamContent: (m.streamContent || '') + remaining } : m
+                  )
+                );
+              }
+              const finalIsDocument = isDocument;
               const finalMsg = {
                 id: event.messageId,
                 role: 'assistant',
@@ -773,6 +800,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               setSendingState(false);
             } else if (event.type === 'error') {
+              streamingPlaceholderIdRef.current = null;
+              chunkBufferRef.current = '';
               setMessages((prev) => prev.filter(m => m.id !== placeholderId));
               setSendingState(false);
             }
@@ -782,6 +811,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         if (err.name !== 'AbortError') {
           console.error('handleSend error:', err);
         }
+        streamingPlaceholderIdRef.current = null;
+        chunkBufferRef.current = '';
         // Remove placeholder on any error or abort
         setMessages((prev) => prev.filter(m => m.id !== placeholderId));
         setSendingState(false);

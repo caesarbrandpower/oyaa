@@ -48,6 +48,15 @@ function TranscriptModal({ filename, content, onClose }) {
 
 marked.setOptions({ breaks: true });
 
+// Inline-only markdown voor de streaming fase — geen block-level parsing om layout-shifts te voorkomen
+function renderStreamInline(text) {
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return escaped
+    .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/gs, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
 function ExtrasSection({ messageId, extras, onExtrasChange }) {
   const { photos = [], links = [] } = extras || {};
   const [linkDraft, setLinkDraft] = useState({ label: '', url: '' });
@@ -312,11 +321,17 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
                   {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie', 'account-to-pm': 'briefing', 'field-briefing': 'briefing naar BA', 'account-to-creation': 'briefing naar creatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
                 </p>
+              ) : msg.streamContent ? (
+                <p
+                  className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: renderStreamInline(msg.streamContent) }}
+                />
               ) : (
-                <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
-                  {msg.streamContent}
-                  <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 animate-pulse" />
-                </p>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:300ms]" />
+                </div>
               )
             ) : msg.isDocument ? (
               <DocumentPreview
@@ -347,21 +362,6 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
         );
       })}
 
-      {sending && !isStreaming && (
-        <div className="flex justify-start items-start gap-3">
-          <img
-            src="/icons/waybetter-icon.svg"
-            alt=""
-            aria-hidden="true"
-            className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-40"
-          />
-          <div className="flex items-center gap-1.5 pt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:300ms]" />
-          </div>
-        </div>
-      )}
 
       <div ref={bottomRef} />
     </div>
