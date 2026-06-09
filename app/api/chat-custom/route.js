@@ -218,7 +218,7 @@ export async function POST(request) {
 
         // isDocument: bepaalt of de stream gebufferd wordt (nooit live opbouwen)
         // effectiveOutputType uit de DB (threadOutputTypeFromDb) triggert document-modus alleen als er expliciete intentie is.
-        const isDocument = prevHasDoc || hasGenerateIntent || (!!outputType && effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false);
+        const isDocument = hasGenerateIntent || (!!outputType && effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false);
 
         // Meta event zo vroeg mogelijk — geeft de client direct thread-context
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
