@@ -116,7 +116,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // Houd messagesRef synchroon — gebruikt door de stabiele handleSend useCallback
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Flush-loop: leegt chunkBufferRef elke 50ms in één state-update voor vloeiende streaming
+  // Flush-loop: leegt chunkBufferRef elke 30ms in één state-update voor vloeiende streaming
   useEffect(() => {
     if (!sending) return;
     const iv = setInterval(() => {
@@ -129,7 +129,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           m.id === id ? { ...m, streamContent: (m.streamContent || '') + text } : m
         )
       );
-    }, 50);
+    }, 30);
     return () => clearInterval(iv);
   }, [sending]);
 

@@ -355,10 +355,10 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             aria-hidden="true"
             className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-40"
           />
-          <div className="flex items-center gap-1.5 pt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce [animation-delay:300ms]" />
+          <div className="flex items-center gap-1 pt-2">
+            <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:0ms]" />
+            <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:150ms]" />
+            <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:300ms]" />
           </div>
         </div>
       )}
