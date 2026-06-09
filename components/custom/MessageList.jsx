@@ -313,10 +313,10 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                   {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie', 'account-to-pm': 'briefing', 'field-briefing': 'briefing naar BA', 'account-to-creation': 'briefing naar creatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
                 </p>
               ) : (
-                <p className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap">
-                  {msg.streamContent}
+                <div className="custom-prose prose-chat text-[14px]">
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(msg.streamContent || '') }} />
                   <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 animate-pulse" />
-                </p>
+                </div>
               )
             ) : msg.isDocument ? (
               <DocumentPreview
