@@ -321,19 +321,17 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
                   {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie', 'account-to-pm': 'briefing', 'field-briefing': 'briefing naar BA', 'account-to-creation': 'briefing naar creatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
                 </p>
+              ) : msg.streamContent ? (
+                <p
+                  className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: renderStreamInline(msg.streamContent) }}
+                />
               ) : (
-                {msg.streamContent ? (
-                  <p
-                    className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: renderStreamInline(msg.streamContent) }}
-                  />
-                ) : (
-                  <div className="flex items-center gap-1.5 pt-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:0ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:150ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:300ms]" />
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 animate-bounce [animation-delay:300ms]" />
+                </div>
               )
             ) : msg.isDocument ? (
               <DocumentPreview
