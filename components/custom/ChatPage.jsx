@@ -452,11 +452,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const prevHasDoc = messagesRef.current.some(
         m => m.role === 'assistant' && m.isDocument === true
       );
+      const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
       const placeholderIsDoc = prevHasDoc || (isGenerateIntent && effectiveType
         ? (DOCUMENT_OUTPUT_TYPES.has(effectiveType) || !SEARCH_IDS_PLACEHOLDER.has(effectiveType))
         : false);
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
-      const isGenerateIntent = !!outputType || /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(visibleContent);
       // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
       const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
       setMessages((prev) => {
