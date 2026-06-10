@@ -3,6 +3,7 @@ import { getInternalUserIds } from '@/lib/admin-config';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import InternFilterToggle from './components/InternFilterToggle';
+import TenantTypeFilter from './components/TenantTypeFilter';
 import ActivityChart from './components/ActivityChart';
 
 export const dynamic = 'force-dynamic';
@@ -13,9 +14,11 @@ export default async function AdminOverviewPage({ searchParams }) {
 
   const service = createServiceClient();
 
-  const [{ data: tenants }, { data: threads }, { data: recentThreads }, internalIds] =
+  const showType = params?.showType ?? 'klant';
+
+  const [{ data: allTenants }, { data: threads }, { data: recentThreads }, internalIds] =
     await Promise.all([
-      service.from('tenants').select('id, name, hostname').order('name'),
+      service.from('tenants').select('id, name, hostname, tenant_config').order('name'),
       service
         .from('threads')
         .select('tenant_id, output_type, user_id')
@@ -30,6 +33,13 @@ export default async function AdminOverviewPage({ searchParams }) {
         ),
       getInternalUserIds(service),
     ]);
+
+  // Filter tenants op type
+  const tenants = showType === 'alle'
+    ? (allTenants ?? [])
+    : (allTenants ?? []).filter(
+        (t) => (t.tenant_config?.tenant_type ?? 'klant') === showType
+      );
 
   function filterByIntern(thread) {
     if (showInternal) return true;
@@ -85,9 +95,14 @@ export default async function AdminOverviewPage({ searchParams }) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Overzicht</h1>
-        <Suspense fallback={null}>
-          <InternFilterToggle />
-        </Suspense>
+        <div className="flex items-center gap-3">
+          <Suspense fallback={null}>
+            <TenantTypeFilter current={showType} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <InternFilterToggle />
+          </Suspense>
+        </div>
       </div>
 
       {/* Toplevel statistieken */}
