@@ -22,7 +22,7 @@ export default async function AdminOverviewPage() {
     const tid = thread.tenant_id;
     if (!stats[tid]) stats[tid] = { total: 0, users: new Set(), types: {} };
     stats[tid].total++;
-    stats[tid].users.add(thread.user_id);
+    if (thread.user_id) stats[tid].users.add(thread.user_id);
     if (thread.output_type) {
       stats[tid].types[thread.output_type] = (stats[tid].types[thread.output_type] ?? 0) + 1;
     }
@@ -31,7 +31,7 @@ export default async function AdminOverviewPage() {
   const activeUsers = {};
   for (const t of recentThreads ?? []) {
     if (!activeUsers[t.tenant_id]) activeUsers[t.tenant_id] = new Set();
-    activeUsers[t.tenant_id].add(t.user_id);
+    if (t.user_id) activeUsers[t.tenant_id].add(t.user_id);
   }
 
   // Top-3 output types per tenant (voor weergave)
@@ -70,7 +70,7 @@ export default async function AdminOverviewPage() {
                   <td className="py-3 pr-6">{s?.total ?? 0}</td>
                   <td className="py-3 pr-6">{s?.users?.size ?? 0}</td>
                   <td className="py-3 pr-6">{activeUsers[t.id]?.size ?? 0}</td>
-                  <td className="py-3 text-white/50 text-xs">{s ? topTypes(s.types) : '—'}</td>
+                  <td className="py-3 text-white/50 text-xs">{s ? topTypes(s.types) : 'geen'}</td>
                 </tr>
               );
             })}
