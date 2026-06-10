@@ -357,6 +357,20 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }}
               />
             )}
+            {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {msg.sources.map((s) => (
+                  <span
+                    key={s.n}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.08] text-[10px] text-white/40"
+                    title={s.createdAt ? new Date(s.createdAt).toLocaleDateString('nl-NL') : undefined}
+                  >
+                    <span className="text-white/60 font-medium">Bron {s.n}</span>
+                    {s.title}{s.client ? ` · ${s.client}` : ''}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         );

@@ -531,6 +531,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         const decoder = new TextDecoder();
         let buffer = '';
         let isDocument = false;
+        let receivedSources = null;
         chunkBufferRef.current = '';
         streamingPlaceholderIdRef.current = placeholderId;
 
@@ -621,6 +622,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 setActiveThread(updated);
                 setThreads((prev) => prev.map(t => t.id === updated.id ? { ...t, output_type: metaOutputType } : t));
               }
+            } else if (event.type === 'sources') {
+              receivedSources = event.sources ?? null;
+              setMessages((prev) =>
+                prev.map(m => m.id === placeholderId ? { ...m, sources: receivedSources } : m)
+              );
             } else if (event.type === 'chunk') {
               chunkBufferRef.current += event.text;
             } else if (event.type === 'done') {
@@ -645,6 +651,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 bufferedStream: bufferedStream || finalIsDocument,
                 output_type: outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
+                sources: receivedSources,
               };
               const saveClient = event.detectedClient ?? client ?? activeThreadRef.current?.client ?? null;
               const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
