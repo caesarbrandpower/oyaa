@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { insertTokenUsage } from '@/lib/token-usage';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { PROMPTS } from '@/lib/prompts';
 
@@ -28,6 +29,15 @@ export async function POST(request) {
           content: PROMPTS[outputType](anonymized, recipient),
         },
       ],
+    });
+
+    insertTokenUsage({
+      tenantId: null,
+      userId: null,
+      threadId: null,
+      requestType: 'chat',
+      model: 'claude-sonnet-4-6',
+      usage: message.usage,
     });
 
     const rawOutput = message.content[0].text;
