@@ -1243,20 +1243,30 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                         : <>onder <span className="text-white font-medium">Overige</span> in de klantmappen</>
                       }. Je kunt het daar terugvinden via het menu.
                     </p>
-                    <button
-                      onClick={() => handleSend(
-                        'Maak een samenvatting van dit transcript',
-                        'meeting-summary',
-                        'Samenvatting',
-                        'Samenvatting',
-                        activeThread.client ?? null,
-                        [], [], false, null, [], [], false
-                      )}
-                      disabled={sending}
-                      className="mt-3 inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-orange/15 border border-orange/30 text-orange text-[13px] font-semibold hover:bg-orange/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Zal ik hier een samenvatting van maken?
-                    </button>
+                    {outputTypes.length > 0 && (
+                      <>
+                        <p className="mt-3 text-[13px] text-white/50">Wat wil je hiermee doen?</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {outputTypes.map(task => (
+                            <button
+                              key={task.id}
+                              onClick={() => handleSend(
+                                `Maak een ${task.label.toLowerCase()} van dit transcript`,
+                                task.id,
+                                task.label,
+                                task.label,
+                                activeThread.client ?? null,
+                                [], [], false, null, [], [], false
+                              )}
+                              disabled={sending}
+                              className="inline-flex items-center h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white/70 text-[12px] font-medium hover:bg-white/[0.09] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {task.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
--- supabase/migrations/014_vault.sql
+-- supabase/migrations/018_vault.sql
 -- De kluis: kennisbank per tenant met semantisch zoeken (pgvector).
 -- Opslag is ruw (consistent met de messages-tabel); anonimisering gebeurt
 -- aan de providergrens, niet bij opslag.

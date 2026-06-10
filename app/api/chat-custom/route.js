@@ -1,6 +1,7 @@
 // app/api/chat-custom/route.js
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase-server';
+import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
@@ -331,6 +332,14 @@ export async function POST(request) {
               }],
             });
             const analysisText = analysisResp.content[0]?.text?.trim() ?? '';
+            insertTokenUsage({
+              tenantId: tenant?.id ?? null,
+              userId: user.id,
+              threadId: activeThreadId,
+              requestType: 'chat-custom-analysis',
+              model: 'claude-haiku-4-5-20251001',
+              usage: analysisResp.usage,
+            });
             if (analysisText) {
               writeEvent(controller, { type: 'analysis', content: analysisText, bronnenZin, needsConfirmation: true });
             }
@@ -408,14 +417,15 @@ Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
 Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`
           : CUSTOM_SYSTEM_PROMPT;
 
-        // Kluiscontext alleen in conversatiemodus aan de system prompt hangen.
-        // In documentmodus gaat hij in de promptText, dichter bij de input.
-        let effectiveSystemPrompt = systemPrompt;
+        // Kluiscontext alleen in conversatiemodus, als APART system-blok: het
+        // statische promptdeel blijft dan cachebaar (cache_control), terwijl de
+        // kluiscontext per request wisselt. In documentmodus gaat hij in promptText.
+        let vaultSystemSuffix = '';
         if (!useStructuredPrompt) {
           if (vaultContext.found) {
-            effectiveSystemPrompt += `\n\nCONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}`;
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}`;
           } else if (vaultOn && !skipVaultRetrieval) {
-            effectiveSystemPrompt += `\n\nKLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
+            vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
         }
 
@@ -497,7 +507,13 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          system: effectiveSystemPrompt,
+          // system als array zodat cache_control werkt; het statische deel cachet,
+          // de kluiscontext wisselt per request en staat daarom in een eigen blok
+          // zonder cache_control, achter het cache-breekpunt
+          system: [
+            { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+            ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
+          ],
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : {}),
         });
@@ -508,6 +524,16 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
           }
         }
+
+        const finalMsg = await claudeStream.finalMessage();
+        insertTokenUsage({
+          tenantId: tenant?.id ?? null,
+          userId: user.id,
+          threadId: activeThreadId,
+          requestType: 'chat-custom-generation',
+          model: 'claude-sonnet-4-6',
+          usage: finalMsg.usage,
+        });
 
         const finalContent = deanonymize(fullText, map);
 

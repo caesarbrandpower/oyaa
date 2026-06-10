@@ -1,6 +1,7 @@
 // app/api/rewrite-marker/route.js
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase-server';
+import { insertTokenUsage } from '@/lib/token-usage';
 
 const client = new Anthropic();
 
@@ -22,6 +23,15 @@ export async function POST(request) {
       role: 'user',
       content: `Alinea:\n${paragraph}\n\nMarkering: [${label}]\nIngevulde waarde: ${value}\n\nHerschrijf de alinea met de waarde verwerkt. Verwijder alleen [${label}]. Geef alleen de herschreven alinea terug.`,
     }],
+  });
+
+  insertTokenUsage({
+    tenantId: null,
+    userId: user.id,
+    threadId: null,
+    requestType: 'rewrite-marker',
+    model: 'claude-haiku-4-5-20251001',
+    usage: resp.usage,
   });
 
   const rewritten = resp.content[0]?.text?.trim();

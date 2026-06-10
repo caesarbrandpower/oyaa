@@ -1,7 +1,7 @@
--- supabase/migrations/013_backfill_tenant_data.sql
+-- supabase/migrations/017_backfill_tenant_data.sql
 -- Datamigratie na de getTenant-fix. Definitief gemaakt op 2026-06-10:
 -- STAP 0 is gereviewd door Caesar en de e-maillijsten in STAP 1 en 1b
--- zijn geverifieerd. Vereist dat migratie 012 (user_tenants) al gedraaid is.
+-- zijn geverifieerd. Vereist dat migratie 016 (user_tenants) al gedraaid is.
 
 -- STAP 0 (alleen lezen, eerst reviewen):
 -- welke users bestaan er, hoeveel threads hebben ze, en welk tenant_id staat er nu?

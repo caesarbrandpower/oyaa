@@ -1,4 +1,4 @@
--- supabase/migrations/012_user_tenants.sql
+-- supabase/migrations/016_user_tenants.sql
 -- Koppeltabel user <-> tenant. Basis voor harde RLS op de kluis.
 -- Beheer (insert/update/delete) loopt uitsluitend via de service role.
 
