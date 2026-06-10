@@ -556,6 +556,40 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           new Promise(resolve => setTimeout(resolve, 2000)),
         ]);
 
+        // ── Kluis-ingest van PDF-bijlagen ─────────────────────────────────────
+        // Na de generatie zodat de stream er niet op wacht. Await is verplicht:
+        // fire-and-forget sterft in Vercel serverless. Dedup via content_hash.
+        if (tenant?.id && documentAttachments.length > 0) {
+          await Promise.race([
+            (async () => {
+              for (const doc of documentAttachments) {
+                try {
+                  const pdfText = await extractFileText(
+                    Buffer.from(doc.data, 'base64'),
+                    doc.filename || 'bijlage.pdf'
+                  );
+                  const result = await ingestDocument({
+                    tenantId: tenant.id,
+                    userId: user.id,
+                    threadId: activeThreadId,
+                    title: doc.filename || 'PDF-upload',
+                    sourceType: 'upload',
+                    client: detectedClient ?? null,
+                    project: detectedProject ?? null,
+                    rawContent: pdfText,
+                  });
+                  if (!result.skipped) {
+                    console.log('[VAULT] PDF geingest:', doc.filename, result.chunkCount, 'chunks');
+                  }
+                } catch (err) {
+                  console.error('[VAULT] PDF-ingest mislukt:', doc.filename, err?.message ?? err);
+                }
+              }
+            })(),
+            new Promise(resolve => setTimeout(resolve, 15000)),
+          ]);
+        }
+
         writeEvent(controller, {
           type: 'done',
           content: finalContent,
