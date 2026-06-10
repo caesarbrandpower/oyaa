@@ -19,6 +19,17 @@ export default async function AppPage({ searchParams }) {
 
   const tenant = await getTenant();
 
+  if (tenant?.tenant_config?.tenant_type === 'inactief') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#0d0d0d] text-white">
+        <div className="text-center max-w-sm">
+          <p className="text-2xl font-semibold mb-2">Deze omgeving is niet actief</p>
+          <p className="text-white/50 text-sm">Neem contact op met je beheerder voor meer informatie.</p>
+        </div>
+      </div>
+    );
+  }
+
   const { data: threads } = await supabase
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
