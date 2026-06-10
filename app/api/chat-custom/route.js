@@ -6,6 +6,9 @@ import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
+import { retrieveVaultContext, formatVaultBlock } from '@/lib/vault/retrieve';
+import { ingestDocument } from '@/lib/vault/ingest';
+import { extractFileText } from '@/lib/extract-file-text';
 
 export const maxDuration = 120;
 
@@ -164,18 +167,38 @@ export async function POST(request) {
           return;
         }
 
+        // ── Kluis-retrieval ────────────────────────────────────────────────────
+        // Voor de anonimisering, zodat de chunks meelopen in dezelfde request-map
+        // als de berichtgeschiedenis. Overslaan als deze beurt alleen het
+        // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
+        const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+        const skipVaultRetrieval = documentAttachments.length > 0 && !analysisConfirmed;
+        let vaultContext = { found: false, sources: [] };
+        if (tenant?.id && !skipVaultRetrieval) {
+          try {
+            vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage });
+          } catch (err) {
+            console.error('[VAULT] retrieval mislukt:', err?.message ?? err);
+          }
+        }
+
         const separator = `\n[---${crypto.randomUUID()}---]\n`;
-        const combined = allMessages.map(m => m.content).join(separator);
+        const combined = [
+          ...allMessages.map(m => m.content),
+          ...vaultContext.sources.map(s => s.content),
+        ].join(separator);
         const { anonymized: anonAll, map } = anonymize(combined);
         const anonParts = anonAll.split(separator);
+        // Geanonimiseerde varianten van de kluis-chunks (zelfde map als de berichten)
+        const anonVaultSources = vaultContext.sources.map((s, i) => ({
+          ...s,
+          content: anonParts[allMessages.length + i] ?? s.content,
+        }));
 
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
 
         // ── Stap 1 — Input normaliseren ────────────────────────────────────────
-
-        // Gebruikerstekst zonder bestandsinhoud — voor intentie- en klantnaamdetectie
-        const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
 
         // combinedUserContext: altijd op het hoogste niveau gebouwd, nooit binnen een if-blok
         // Bevat het geanonimiseerde laatste bericht inclusief ingebedde bijlagen
@@ -382,6 +405,17 @@ Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
 Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`
           : CUSTOM_SYSTEM_PROMPT;
 
+        // Kluiscontext alleen in conversatiemodus aan de system prompt hangen.
+        // In documentmodus gaat hij in de promptText, dichter bij de input.
+        let effectiveSystemPrompt = systemPrompt;
+        if (!useStructuredPrompt) {
+          if (vaultContext.found) {
+            effectiveSystemPrompt += `\n\nCONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker.\n\n${formatVaultBlock(anonVaultSources)}`;
+          } else if (!skipVaultRetrieval) {
+            effectiveSystemPrompt += `\n\nKLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
+          }
+        }
+
         let claudeMessages;
         if (useStructuredPrompt) {
           // Gebruikerstekst + txt-bijlagen als input — bij recording-thread: gebruik transcript als input
@@ -396,6 +430,9 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
+          if (vaultContext.found) {
+            promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
+          }
           const effectiveClientName = clientName || threadClientFromDb;
           const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
           if (effectiveClientName || effectiveProjectName) {
@@ -439,11 +476,25 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
+        if (vaultContext.found) {
+          writeEvent(controller, {
+            type: 'sources',
+            sources: vaultContext.sources.map(s => ({
+              n: s.n,
+              title: s.title,
+              client: s.client,
+              project: s.project,
+              createdAt: s.createdAt,
+              sourceType: s.sourceType,
+            })),
+          });
+        }
+
         let fullText = '';
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          system: systemPrompt,
+          system: effectiveSystemPrompt,
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : {}),
         });
