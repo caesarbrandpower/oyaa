@@ -1,7 +1,7 @@
 -- supabase/migrations/013_backfill_tenant_data.sql
--- Datamigratie na de getTenant-fix. NIET blind draaien:
--- voer STAP 0 uit, controleer de e-mailadressen, en pas STAP 1 aan
--- voor accounts die NIET bij Chase horen (eigen testaccounts e.d.).
+-- Datamigratie na de getTenant-fix. Definitief gemaakt op 2026-06-10:
+-- STAP 0 is gereviewd door Caesar en de e-maillijsten in STAP 1 en 1b
+-- zijn geverifieerd. Vereist dat migratie 012 (user_tenants) al gedraaid is.
 
 -- STAP 0 (alleen lezen, eerst reviewen):
 -- welke users bestaan er, hoeveel threads hebben ze, en welk tenant_id staat er nu?
@@ -14,23 +14,35 @@ group by u.id, u.email
 order by u.email;
 
 -- STAP 1: koppel users aan de Chase-tenant.
--- Chase is de enige live klant. De where-clausule hieronder is een bewuste
--- blind-run-beveiliging: zolang de placeholder niet vervangen is door echte
--- e-mailadressen uit STAP 0, voegt dit statement niets in.
--- Vervang de placeholder door de geverifieerde Chase-adressen na review van STAP 0.
+-- Adressen geverifieerd door Caesar op 2026-06-10 na review van STAP 0.
+-- monikaguys@gmail.com blijft bewust ongekoppeld.
+-- on conflict maakt herhaald draaien veilig (idempotent).
 begin;
 
 insert into public.user_tenants (user_id, tenant_id)
 select u.id, (select id from public.tenants where hostname = 'chase.waybetter.nl')
 from auth.users u
-where u.email in ('VUL-IN-NA-REVIEW-STAP-0');
+where u.email in (
+  'florien@chase.amsterdam',
+  'jaimy@chase.amsterdam',
+  'kelly@chase.amsterdam',
+  'michel@chase.amsterdam',
+  'michel@startthechase.com',
+  'mike@chase.amsterdam'
+)
+on conflict do nothing;
 
--- STAP 1b (optioneel): eigen account ook aan de default tenant koppelen
+-- STAP 1b: eigen accounts aan de default tenant koppelen
 -- zodat lokaal testen (localhost -> waybetter.nl fallback) werkt.
--- insert into public.user_tenants (user_id, tenant_id)
--- select u.id, (select id from public.tenants where hostname = 'waybetter.nl')
--- from auth.users u where u.email = 'eigen-account@voorbeeld.nl'
--- on conflict do nothing;
+insert into public.user_tenants (user_id, tenant_id)
+select u.id, (select id from public.tenants where hostname = 'waybetter.nl')
+from auth.users u
+where u.email in (
+  'caesar@newfound.agency',
+  'mailtocaesar@gmail.com',
+  'mail@caesarconcepts.nl'
+)
+on conflict do nothing;
 
 -- STAP 2: zet tenant_id van bestaande threads gelijk aan het tenant-lidmaatschap
 -- van de eigenaar. Bij users met meerdere tenants wint Chase.
