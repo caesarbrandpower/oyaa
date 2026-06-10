@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 
 export function middleware(request) {
   const host = request.headers.get('host') || '';
-  // Strip port voor lokale dev (localhost:3000 -> localhost)
   const hostname = host.replace(/:\d+$/, '');
 
-  // Headers moeten op de REQUEST staan — server components lezen via headers()
-  // de incoming request, niet de response
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-tenant-hostname', hostname);
+
+  // Admin subdomain: redirect root naar /admin
+  if (hostname === 'admin.waybetter.nl' && request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
 
   return NextResponse.next({
     request: { headers: requestHeaders },
@@ -16,6 +18,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  // Alle pagina-requests, maar niet static assets, API-routes, of publieke doc-links
   matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|sw.js|manifest.json|icon-|doc/).*)'],
 };

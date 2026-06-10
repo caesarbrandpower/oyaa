@@ -1,6 +1,7 @@
 // app/api/generate-title/route.js
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase-server';
+import { insertTokenUsage } from '@/lib/token-usage';
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function POST(request) {
   // Verify thread ownership
   const { data: thread } = await supabase
     .from('threads')
-    .select('id')
+    .select('id, tenant_id')
     .eq('id', threadId)
     .eq('user_id', user.id)
     .single();
@@ -45,6 +46,15 @@ export async function POST(request) {
         role: 'user',
         content: `Genereer een beknopte titel voor dit document. Format: "[Documenttype] — [klant of project]". Maximaal 6 woorden. Geef ALLEEN de titel terug, geen uitleg of aanhalingstekens.\n\nGebruik als documenttype EXACT dit label (niet vertalen, niet aanpassen): ${effectiveTypeLabel}\n\nInhoud (begin):\n${content.slice(0, 1200)}`,
       }],
+    });
+
+    insertTokenUsage({
+      tenantId: thread.tenant_id ?? null,
+      userId: user.id,
+      threadId,
+      requestType: 'generate-title',
+      model: 'claude-haiku-4-5-20251001',
+      usage: response.usage,
     });
 
     const title = response.content[0]?.text?.trim()

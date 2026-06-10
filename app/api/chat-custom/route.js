@@ -1,6 +1,7 @@
 // app/api/chat-custom/route.js
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase-server';
+import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
@@ -305,6 +306,14 @@ export async function POST(request) {
               }],
             });
             const analysisText = analysisResp.content[0]?.text?.trim() ?? '';
+            insertTokenUsage({
+              tenantId: tenant?.id ?? null,
+              userId: user.id,
+              threadId: activeThreadId,
+              requestType: 'chat-custom-analysis',
+              model: 'claude-haiku-4-5-20251001',
+              usage: analysisResp.usage,
+            });
             if (analysisText) {
               writeEvent(controller, { type: 'analysis', content: analysisText, bronnenZin, needsConfirmation: true });
             }
@@ -443,7 +452,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          system: systemPrompt,
+          // system als array zodat cache_control werkt; later uit te breiden met conversatiegeschiedenis
+          system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : {}),
         });
@@ -454,6 +464,16 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
           }
         }
+
+        const finalMsg = await claudeStream.finalMessage();
+        insertTokenUsage({
+          tenantId: tenant?.id ?? null,
+          userId: user.id,
+          threadId: activeThreadId,
+          requestType: 'chat-custom-generation',
+          model: 'claude-sonnet-4-6',
+          usage: finalMsg.usage,
+        });
 
         const finalContent = deanonymize(fullText, map);
 
