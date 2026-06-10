@@ -2,8 +2,9 @@
 import { createServiceClient } from '@/lib/supabase-server';
 
 export async function GET(request) {
+  const secret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return Response.json({ error: 'Verboden.' }, { status: 401 });
   }
 
@@ -34,11 +35,17 @@ export async function GET(request) {
     const used = usagePerTenant[tenant.id] ?? 0;
     const pct = used / budget;
     if (pct >= 0.8) {
-      alerts.push({ name: tenant.name, used, budget, pct: Math.round(pct * 100) });
+      alerts.push({ name: tenant.name, used, budget, pct: Math.round(pct * 100), tenant });
     }
   }
 
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
   for (const alert of alerts) {
+    // Skip if we already alerted this month
+    if (alert.tenant.tenant_config?.last_budget_alert_month === currentMonth) continue;
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -54,7 +61,11 @@ export async function GET(request) {
     });
     if (!res.ok) {
       console.error('[cron] Resend failed for', alert.name, res.status);
+      continue;
     }
+    // Mark alert sent for this month
+    const updatedConfig = { ...alert.tenant.tenant_config, last_budget_alert_month: currentMonth };
+    await service.from('tenants').update({ tenant_config: updatedConfig }).eq('id', alert.tenant.id);
   }
 
   return Response.json({ checked: Object.keys(usagePerTenant).length, alerts: alerts.length });

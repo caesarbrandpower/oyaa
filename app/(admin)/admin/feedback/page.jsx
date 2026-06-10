@@ -1,16 +1,20 @@
 // app/(admin)/admin/feedback/page.jsx
-import { createServiceClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
 async function updateStatus(formData) {
   'use server';
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== 'admin') return;
   const id = formData.get('id');
   const status = formData.get('status');
   if (!id || !['nieuw', 'gelezen', 'afgehandeld'].includes(status)) return;
   const service = createServiceClient();
-  await service.from('feedback').update({ status }).eq('id', id);
+  const { error } = await service.from('feedback').update({ status }).eq('id', id);
+  if (error) console.error('[updateStatus] DB update failed:', error);
   revalidatePath('/admin/feedback');
 }
 
