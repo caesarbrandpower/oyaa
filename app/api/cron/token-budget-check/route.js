@@ -10,6 +10,7 @@ export async function GET(request) {
 
   const service = createServiceClient();
   const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   const [{ data: usageRows }, { data: tenants }] = await Promise.all([
@@ -38,9 +39,6 @@ export async function GET(request) {
       alerts.push({ name: tenant.name, used, budget, pct: Math.round(pct * 100), tenant });
     }
   }
-
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   for (const alert of alerts) {
     // Skip if we already alerted this month
