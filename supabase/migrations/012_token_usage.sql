@@ -2,7 +2,7 @@
 CREATE TABLE public.token_usage (
   id                   uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id            uuid        REFERENCES public.tenants(id) ON DELETE SET NULL,
-  user_id              uuid,
+  user_id              uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
   thread_id            uuid        REFERENCES public.threads(id) ON DELETE SET NULL,
   request_type         text        NOT NULL,
   model                text        NOT NULL,
