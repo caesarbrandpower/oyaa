@@ -189,11 +189,12 @@ export async function POST(request) {
         ].join(separator);
         const { anonymized: anonAll, map } = anonymize(combined);
         const anonParts = anonAll.split(separator);
-        // Geanonimiseerde varianten van de kluis-chunks (zelfde map als de berichten)
-        const anonVaultSources = vaultContext.sources.map((s, i) => ({
-          ...s,
-          content: anonParts[allMessages.length + i] ?? s.content,
-        }));
+        // Geanonimiseerde varianten van de kluis-chunks (zelfde map als de berichten).
+        // Raakt de split misaligned, dan vervalt de chunk: liever geen context dan
+        // ruwe content richting de provider.
+        const anonVaultSources = vaultContext.sources
+          .map((s, i) => ({ ...s, content: anonParts[allMessages.length + i] ?? null }))
+          .filter((s) => s.content !== null);
 
         const userMessages = allMessages.filter(m => m.role === 'user');
         const isFirstTurn = userMessages.length === 1;
