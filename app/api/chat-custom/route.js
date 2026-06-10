@@ -9,6 +9,7 @@ import { fuzzyMatchClient } from '@/lib/client-utils';
 import { retrieveVaultContext, formatVaultBlock } from '@/lib/vault/retrieve';
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
+import { vaultEnabled } from '@/lib/vault/access';
 
 export const maxDuration = 120;
 
@@ -173,8 +174,9 @@ export async function POST(request) {
         // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
         const skipVaultRetrieval = documentAttachments.length > 0 && !analysisConfirmed;
+        const vaultOn = vaultEnabled(tenant);
         let vaultContext = { found: false, sources: [] };
-        if (tenant?.id && !skipVaultRetrieval) {
+        if (tenant?.id && vaultOn && !skipVaultRetrieval) {
           try {
             vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage });
           } catch (err) {
@@ -412,7 +414,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         if (!useStructuredPrompt) {
           if (vaultContext.found) {
             effectiveSystemPrompt += `\n\nCONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}`;
-          } else if (!skipVaultRetrieval) {
+          } else if (vaultOn && !skipVaultRetrieval) {
             effectiveSystemPrompt += `\n\nKLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
         }
@@ -559,7 +561,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         // ── Kluis-ingest van PDF-bijlagen ─────────────────────────────────────
         // Na de generatie zodat de stream er niet op wacht. Await is verplicht:
         // fire-and-forget sterft in Vercel serverless. Dedup via content_hash.
-        if (tenant?.id && documentAttachments.length > 0) {
+        if (tenant?.id && vaultOn && documentAttachments.length > 0) {
           await Promise.race([
             (async () => {
               for (const doc of documentAttachments) {

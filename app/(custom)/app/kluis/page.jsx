@@ -1,8 +1,9 @@
 // app/(custom)/app/kluis/page.jsx
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 import { redirect } from 'next/navigation';
 import VaultPage from '@/components/custom/VaultPage';
+import { isVaultAdmin, vaultEnabled } from '@/lib/vault/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,11 +18,16 @@ export default async function KluisPage() {
 
   const tenant = await getTenant();
 
-  // RLS filtert op tenant-lidmaatschap (user_tenants); bewust geen user_id-filter,
-  // de kluis is gedeelde kennis van het hele bureau
-  const { data: documents } = await supabase
+  // Kluis alleen voor tenants waar de vlag aan staat
+  if (!vaultEnabled(tenant)) redirect('/app');
+
+  // Admin-bypass: beheerder kijkt via de service role in elke tenant-kluis,
+  // met expliciet tenant-filter. Gewone gebruikers gaan via RLS (user_tenants).
+  const db = isVaultAdmin(user) ? createServiceClient() : supabase;
+  const { data: documents } = await db
     .from('vault_documents')
     .select('id, title, source_type, output_type, client, project, created_at')
+    .eq('tenant_id', tenant.id)
     .order('created_at', { ascending: false })
     .limit(100);
 

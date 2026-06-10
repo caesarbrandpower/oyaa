@@ -9,6 +9,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 import { extractFileText } from '@/lib/extract-file-text';
 import { ingestDocument } from '@/lib/vault/ingest';
+import { vaultEnabled } from '@/lib/vault/access';
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -17,6 +18,10 @@ export async function POST(request) {
 
   const tenant = await getTenant();
   if (!tenant?.id) return Response.json({ error: 'Geen tenant gevonden.' }, { status: 400 });
+
+  if (!vaultEnabled(tenant)) {
+    return Response.json({ error: 'De kluis is niet ingeschakeld voor deze omgeving.' }, { status: 403 });
+  }
 
   const formData = await request.formData();
   const file = formData.get('file');
