@@ -1,5 +1,5 @@
 // app/api/feedback/route.js
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -18,6 +18,30 @@ export async function POST(request) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
 
+  // Tenant ophalen via host-header (middleware loopt niet voor api/ routes)
+  const host = request.headers.get('host') || '';
+  const hostname = host.replace(/:\d+$/, '');
+  const service = createServiceClient();
+  const { data: tenant } = await service
+    .from('tenants')
+    .select('id')
+    .eq('hostname', hostname)
+    .single();
+
+  // DB-insert — onafhankelijk van e-mail
+  try {
+    await service.from('feedback').insert({
+      tenant_id: tenant?.id ?? null,
+      user_id: user.id,
+      user_email: user.email,
+      page_url: currentUrl || null,
+      message: message.trim(),
+    });
+  } catch (dbErr) {
+    console.error('[feedback] DB-insert mislukt:', dbErr);
+  }
+
+  // Resend e-mail — onafhankelijk van DB
   const apiKey = process.env.RESEND_API_KEY;
   console.log('[feedback] RESEND_API_KEY aanwezig:', !!apiKey, '| lengte:', apiKey?.length ?? 0);
 
