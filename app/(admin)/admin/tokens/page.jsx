@@ -112,8 +112,9 @@ export default async function AdminTokensPage({ searchParams }) {
   // Prev/next maand links
   const prevDate = new Date(year, month - 2, 1);
   const nextDate = new Date(year, month, 1);
-  const prevHref = `/admin/tokens?year=${prevDate.getFullYear()}&month=${prevDate.getMonth() + 1}`;
-  const nextHref = `/admin/tokens?year=${nextDate.getFullYear()}&month=${nextDate.getMonth() + 1}`;
+  const internSuffix = showInternal ? '&showInternal=1' : '';
+  const prevHref = `/admin/tokens?year=${prevDate.getFullYear()}&month=${prevDate.getMonth() + 1}${internSuffix}`;
+  const nextHref = `/admin/tokens?year=${nextDate.getFullYear()}&month=${nextDate.getMonth() + 1}${internSuffix}`;
 
   return (
     <div>
