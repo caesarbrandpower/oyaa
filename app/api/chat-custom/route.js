@@ -411,7 +411,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         let effectiveSystemPrompt = systemPrompt;
         if (!useStructuredPrompt) {
           if (vaultContext.found) {
-            effectiveSystemPrompt += `\n\nCONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker.\n\n${formatVaultBlock(anonVaultSources)}`;
+            effectiveSystemPrompt += `\n\nCONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}`;
           } else if (!skipVaultRetrieval) {
             effectiveSystemPrompt += `\n\nKLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
@@ -432,7 +432,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
           let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
           if (vaultContext.found) {
-            promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
+            promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken. Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
           }
           const effectiveClientName = clientName || threadClientFromDb;
           const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
