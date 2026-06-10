@@ -14,13 +14,16 @@ group by u.id, u.email
 order by u.email;
 
 -- STAP 1: koppel users aan de Chase-tenant.
--- Chase is de enige live klant; verwijder hieronder expliciet de user_ids
--- van eigen test-/beheeraccounts of geef die een andere tenant.
+-- Chase is de enige live klant. De where-clausule hieronder is een bewuste
+-- blind-run-beveiliging: zolang de placeholder niet vervangen is door echte
+-- e-mailadressen uit STAP 0, voegt dit statement niets in.
+-- Vervang de placeholder door de geverifieerde Chase-adressen na review van STAP 0.
+begin;
+
 insert into public.user_tenants (user_id, tenant_id)
 select u.id, (select id from public.tenants where hostname = 'chase.waybetter.nl')
 from auth.users u
--- where u.email not in ('eigen-testaccount@voorbeeld.nl')  -- aanpassen na review STAP 0
-on conflict do nothing;
+where u.email in ('VUL-IN-NA-REVIEW-STAP-0');
 
 -- STAP 1b (optioneel): eigen account ook aan de default tenant koppelen
 -- zodat lokaal testen (localhost -> waybetter.nl fallback) werkt.
@@ -37,6 +40,8 @@ from public.user_tenants ut
 join public.tenants tn on tn.id = ut.tenant_id
 where ut.user_id = t.user_id
   and tn.hostname = 'chase.waybetter.nl';
+
+commit;
 
 -- STAP 3 (controle): geen threads meer op het verkeerde tenant_id voor Chase-users?
 select tn.hostname, count(*) from public.threads t

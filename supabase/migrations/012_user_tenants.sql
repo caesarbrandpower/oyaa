@@ -9,6 +9,9 @@ create table public.user_tenants (
   primary key (user_id, tenant_id)
 );
 
+-- Lookups op tenant (admin-tooling, cascades); user_id-pad wordt door de PK gedekt
+create index user_tenants_tenant_idx on public.user_tenants (tenant_id);
+
 alter table public.user_tenants enable row level security;
 
 create policy "Users see own tenant memberships"

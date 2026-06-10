@@ -45,13 +45,27 @@ alter table public.vault_chunks enable row level security;
 -- Lezen: alleen leden van de tenant. Schrijven: alleen service role (geen policies).
 create policy "Tenant members read vault documents"
   on public.vault_documents for select
-  using (tenant_id in (select tenant_id from public.user_tenants where user_id = auth.uid()));
+  using (
+    exists (
+      select 1 from public.user_tenants
+      where user_tenants.user_id = auth.uid()
+      and user_tenants.tenant_id = vault_documents.tenant_id
+    )
+  );
 
 create policy "Tenant members read vault chunks"
   on public.vault_chunks for select
-  using (tenant_id in (select tenant_id from public.user_tenants where user_id = auth.uid()));
+  using (
+    exists (
+      select 1 from public.user_tenants
+      where user_tenants.user_id = auth.uid()
+      and user_tenants.tenant_id = vault_chunks.tenant_id
+    )
+  );
 
 -- Semantisch zoeken: chunks gejoind met document-metadata, altijd binnen 1 tenant.
+-- Bewust security invoker: via PostgREST beschermt RLS, via de service client is
+-- match_tenant_id de tenant-barriere (aanroepende code is daarvoor verantwoordelijk).
 create or replace function public.match_vault_chunks(
   query_embedding vector(1536),
   match_tenant_id uuid,
@@ -71,24 +85,27 @@ returns table (
   similarity float
 )
 language sql stable
+set search_path = public
 as $$
-  select
-    c.id as chunk_id,
-    d.id as document_id,
-    d.title,
-    d.source_type,
-    d.client,
-    d.project,
-    d.created_at,
-    c.chunk_index,
-    c.content,
-    1 - (c.embedding <=> query_embedding) as similarity
-  from public.vault_chunks c
-  join public.vault_documents d on d.id = c.document_id
-  where c.tenant_id = match_tenant_id
-    and 1 - (c.embedding <=> query_embedding) > match_threshold
-  order by c.embedding <=> query_embedding
-  limit match_count;
+  select * from (
+    select
+      c.id as chunk_id,
+      d.id as document_id,
+      d.title,
+      d.source_type,
+      d.client,
+      d.project,
+      d.created_at,
+      c.chunk_index,
+      c.content,
+      1 - (c.embedding <=> query_embedding) as similarity
+    from public.vault_chunks c
+    join public.vault_documents d on d.id = c.document_id
+    where c.tenant_id = match_tenant_id
+    order by c.embedding <=> query_embedding
+    limit match_count
+  ) ranked
+  where ranked.similarity > match_threshold;
 $$;
 
 -- Private bucket voor kluis-uploads (binaries). Service role only.
