@@ -782,7 +782,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }));
                 pendingWizardPhotosRef.current = [];
               }
-              if (finalIsDocument && activeThreadRef.current?.id) {
+              if (finalIsDocument && activeThreadRef.current?.id && !event.improved) {
                 // effectiveOT: gebruik event.outputType als fallback — outputType is null bij chat-flow
                 const effectiveOT = outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null;
                 const outputTypeLabel = outputTypes.find(t => t.id === effectiveOT)?.label ?? null;
