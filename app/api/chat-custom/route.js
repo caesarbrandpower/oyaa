@@ -1,6 +1,6 @@
 // app/api/chat-custom/route.js
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
@@ -575,8 +575,10 @@ ${userTextOnly}`;
         // ── Stap 4 — Opslaan ──────────────────────────────────────────────────
         let savedMsg;
         if (improveDocument && existingDocMsgId) {
-          // Verbetermodus: bestaand bericht overschrijven
-          const { error } = await supabase
+          // Verbetermodus: bestaand bericht overschrijven via service client — eigenaarschap
+          // is al geverifieerd via de ownedThread-check eerder in de route; de user-client
+          // heeft in streaming context geen betrouwbare auth.uid() voor de RLS-evaluatie.
+          const { error } = await createServiceClient()
             .from('messages')
             .update({ content: finalContent })
             .eq('id', existingDocMsgId);
