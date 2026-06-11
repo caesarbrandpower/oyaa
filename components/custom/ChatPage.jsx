@@ -408,10 +408,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && pdfAttachments.length === 0 && looksLikePastedTranscript(messageText);
       // Strip bestandsinhoud ([Bijlage: ...] en [Transcript: ...]) uit het zichtbare bericht
       const visibleContent = displayText || taskLabel || messageText.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
+      // Bij verbetermodus: lange aanvullende tekst vervangen door korte neutrale aanduiding
+      const isImproveBeforeSend = improveDocRef.current;
       const userMsg = {
         id: userMsgId,
         role: 'user',
-        content: visibleContent,
+        content: isImproveBeforeSend ? 'Aanvullende informatie ontvangen.' : visibleContent,
         created_at: new Date().toISOString(),
         attachments: [
           ...imageAttachments.map((a) => ({ type: 'image', filename: a.filename })),
@@ -686,7 +688,22 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 // (finalMsg krijgt het originele messageId, placeholder neemt die positie over)
                 const base = event.improved ? prev.filter(m => m.id !== event.messageId) : prev;
                 const updated = base.map(m => m.id === placeholderId ? finalMsg : m);
-                if (!finalIsDocument || !isGenerateIntent) return updated;
+                if (!finalIsDocument) return updated;
+                if (isImprove) {
+                  // Post-verbeter begeleidend bericht
+                  const improvePost = saveClient
+                    ? `De briefing is bijgewerkt en opgeslagen in de ${saveClient}-map. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`
+                    : `De briefing is bijgewerkt en opgeslagen in je klantmappen. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`;
+                  return [...updated, {
+                    id: 'post-doc-' + Date.now(),
+                    role: 'assistant',
+                    content: improvePost,
+                    streaming: false,
+                    local: true,
+                    created_at: new Date().toISOString(),
+                  }];
+                }
+                if (!isGenerateIntent) return updated;
                 const postContent = saveClient
                   ? `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
                   : `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?`;
