@@ -492,7 +492,7 @@ async function _unusedWordDoc(content, title, logos = {}, extras = null) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null }) {
+export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null, messageId = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -613,6 +613,23 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     }
   }
 
+  function persistContent(newContent) {
+    if (savedToken) {
+      fetch(`/api/share-document?token=${savedToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      }).catch(() => {});
+    }
+    if (messageId) {
+      fetch(`/api/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      }).catch(() => {});
+    }
+  }
+
   async function handleSaveEdit(label, idx) {
     const trimmed = editValue.trim();
     if (!trimmed) {
@@ -639,13 +656,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               const newContent = freshPara
                 ? prev.slice(0, freshPara.start) + data.rewritten + prev.slice(freshPara.end)
                 : replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
-              if (savedToken) {
-                fetch(`/api/share-document?token=${savedToken}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ content: newContent }),
-                }).catch(() => {});
-              }
+              persistContent(newContent);
               return newContent;
             });
             success = true;
@@ -662,13 +673,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
       // Fallback: gewone token-replace
       setLocalContent(prev => {
         const newContent = replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
-        if (savedToken) {
-          fetch(`/api/share-document?token=${savedToken}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: newContent }),
-          }).catch(() => {});
-        }
+        persistContent(newContent);
         return newContent;
       });
     }
