@@ -683,6 +683,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 'external-debrief':    'evaluatie',
               };
               const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';
+              // Post-verbeter bericht buiten de updater berekenen zodat de fetch geen side-effect in de updater is
+              const improvePostContent = finalIsDocument && isImprove
+                ? (saveClient
+                    ? `De briefing is bijgewerkt en opgeslagen in de ${saveClient}-map. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`
+                    : `De briefing is bijgewerkt en opgeslagen in je klantmappen. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`)
+                : null;
               setMessages((prev) => {
                 // Bij verbetering: oud documentbericht verwijderen zodat er geen duplicaat ontstaat
                 // (finalMsg krijgt het originele messageId, placeholder neemt die positie over)
@@ -690,14 +696,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const updated = base.map(m => m.id === placeholderId ? finalMsg : m);
                 if (!finalIsDocument) return updated;
                 if (isImprove) {
-                  // Post-verbeter begeleidend bericht
-                  const improvePost = saveClient
-                    ? `De briefing is bijgewerkt en opgeslagen in de ${saveClient}-map. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`
-                    : `De briefing is bijgewerkt en opgeslagen in je klantmappen. Wil je nog iets aanvullen of aanpassen? Gebruik dan de Aanvullen-knop bovenaan het document.`;
+                  // Post-verbeter begeleidend bericht — inhoud buiten updater berekend (zie hieronder)
                   return [...updated, {
                     id: 'post-doc-' + Date.now(),
                     role: 'assistant',
-                    content: improvePost,
+                    content: improvePostContent,
                     streaming: false,
                     local: true,
                     created_at: new Date().toISOString(),
@@ -716,6 +719,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   created_at: new Date().toISOString(),
                 }];
               });
+              // Post-verbeter bericht opslaan in DB zodat het na herladen zichtbaar blijft
+              if (improvePostContent && activeThreadRef.current?.id) {
+                fetch('/api/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ threadId: activeThreadRef.current.id, content: improvePostContent }),
+                }).catch(() => {});
+              }
               // Auto-save in background voor Aanvullen-overwrite
               if (finalIsDocument && isGenerateIntent && event.content) {
                 const savedMsgId = event.messageId;

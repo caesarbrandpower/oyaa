@@ -247,7 +247,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
       />
     )}
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
-      {messages.map((msg) => {
+      {messages.filter(msg => !(msg.role === 'user' && msg.content === 'Aanvullende informatie ontvangen.')).map((msg) => {
         const msgOutputTypeLabel = outputTypes.find(t => t.id === msg.output_type)?.label ?? null;
         return (
         <div
