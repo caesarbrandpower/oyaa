@@ -227,6 +227,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       project: threadFromList?.project ?? activeThreadRef.current?.project ?? null,
       extras: briefingExtras[msg.id] ?? null,
       savedToken: documentTokens[msg.id] ?? null,
+      messageId: msg.id,
     });
   }
 
@@ -1016,6 +1017,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         outputType={activeDocument.outputType ?? null}
         outputTypeLabel={activeDocument.outputTypeLabel ?? null}
         savedToken={activeDocument.savedToken ?? null}
+        messageId={activeDocument.messageId ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
       />

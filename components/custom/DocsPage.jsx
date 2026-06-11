@@ -188,7 +188,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       if (msgs?.[0]?.content) {
         const messageId = msgs[0].id;
         const extras = threadData?.field_briefing_extras?.[messageId] ?? null;
-        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras, threadId: thread.id });
+        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras, threadId: thread.id, messageId });
       }
     } finally {
       setLoadingThreadId(null);
@@ -555,6 +555,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           content={activeDocument.content}
           client={activeDocument.client ?? null}
           tenant={tenant}
+          messageId={activeDocument.messageId ?? null}
           onClose={() => setActiveDocument(null)}
           onImprove={(prefillOrObj) => {
             const prefillText = prefillOrObj && typeof prefillOrObj === 'object'
