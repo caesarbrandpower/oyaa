@@ -574,16 +574,43 @@ ${userTextOnly}`;
 
         // ── Stap 4 — Opslaan ──────────────────────────────────────────────────
         let savedMsg;
+        let updateSucceeded = false;
         if (improveDocument && existingDocMsgId) {
           // Verbetermodus: bestaand bericht overschrijven via service client — eigenaarschap
           // is al geverifieerd via de ownedThread-check eerder in de route; de user-client
           // heeft in streaming context geen betrouwbare auth.uid() voor de RLS-evaluatie.
-          const { error } = await createServiceClient()
+          const svc = createServiceClient();
+          const { error: updateError } = await svc
             .from('messages')
             .update({ content: finalContent })
             .eq('id', existingDocMsgId);
-          if (error) console.error('[DB] verbeter-bericht bijwerken mislukt:', error);
-          savedMsg = { id: existingDocMsgId };
+          if (updateError) {
+            console.error('[DB] verbeter-bericht bijwerken mislukt (UPDATE error):', updateError);
+          } else {
+            // Verifieer of de UPDATE daadwerkelijk een rij raakte
+            const { data: verifyRows } = await svc
+              .from('messages')
+              .select('id')
+              .eq('id', existingDocMsgId)
+              .eq('content', finalContent)
+              .limit(1);
+            updateSucceeded = (verifyRows?.length ?? 0) > 0;
+            if (!updateSucceeded) {
+              console.error('[DB] verbeter-bericht UPDATE raakte 0 rijen — existingDocMsgId:', existingDocMsgId);
+            }
+          }
+          if (updateSucceeded) {
+            savedMsg = { id: existingDocMsgId };
+          } else {
+            // Fallback: nieuwe rij invoegen via service client (bypast RLS)
+            const { data: insertData, error: insertError } = await svc
+              .from('messages')
+              .insert({ thread_id: activeThreadId, role: 'assistant', content: finalContent })
+              .select('id')
+              .single();
+            if (insertError) console.error('[DB] verbeter-bericht fallback INSERT mislukt:', insertError);
+            savedMsg = insertData;
+          }
         } else {
           const { data, error } = await supabase
             .from('messages')
@@ -668,7 +695,7 @@ ${userTextOnly}`;
           type: 'done',
           content: finalContent,
           messageId: savedMsg?.id ?? crypto.randomUUID(),
-          improved: !!(improveDocument && existingDocMsgId),
+          improved: updateSucceeded,
           detectedClient,
           detectedProject,
           outputType: effectiveOutputType ?? null,
