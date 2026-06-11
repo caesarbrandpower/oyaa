@@ -38,7 +38,7 @@ import DocumentCard from './DocumentCard';
 import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
-export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, projects = [] }) {
+export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, initialImprove = false, projects = [] }) {
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -77,6 +77,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingDocGenRef: context opgeslagen na analyse-bevestigingsvraag — bevat alles om generatie te hervatten
   const recordingSplitRef = useRef(false);
   // recordingSplitRef: true tijdens een API-call waarbij een recording-thread een nieuw document-thread aanmaakt
+  const improveDocRef = useRef(!!initialImprove);
   const chunkBufferRef = useRef('');
   const streamingPlaceholderIdRef = useRef(null);
   const [titleEditing, setTitleEditing] = useState(false);
@@ -229,10 +230,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     });
   }
 
-  function handleCloseDocument(prefillText) {
+  function handleCloseDocument(prefillOrObj) {
     setActiveDocument(null);
-    if (typeof prefillText === 'string' && prefillText) {
-      setChatPrefill({ text: prefillText, id: Date.now() });
+    if (prefillOrObj && typeof prefillOrObj === 'object') {
+      if (prefillOrObj.isImprove) improveDocRef.current = true;
+      if (prefillOrObj.prefillText) setChatPrefill({ text: prefillOrObj.prefillText, id: Date.now() });
+    } else if (typeof prefillOrObj === 'string' && prefillOrObj) {
+      setChatPrefill({ text: prefillOrObj, id: Date.now() });
     }
   }
 
@@ -252,12 +256,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setSidebarOpen(false);
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
+    improveDocRef.current = false;
   }
 
   async function handleSelectThread(thread) {
     abortRef.current?.abort();
     threadDocsRef.current = [];
     threadTxtAttachmentsRef.current = [];
+    improveDocRef.current = false;
     setActiveThreadBoth(thread);
     setSidebarOpen(false);
     setSendingState(true);
@@ -497,6 +503,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       recordingSplitRef.current = isRecordingSplit;
 
       try {
+        const isImprove = improveDocRef.current;
+        improveDocRef.current = false;
+
         const res = await fetch('/api/chat-custom', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -513,6 +522,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             prevHasDoc,
             project: wizardProject ?? null,
             analysisConfirmed,
+            ...(isImprove ? { improveDocument: true } : {}),
             ...(isRecordingSplit ? {
               recordingClient: activeThreadRef.current?.client ?? null,
               recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,

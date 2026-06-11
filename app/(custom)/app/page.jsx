@@ -60,6 +60,7 @@ export default async function AppPage({ searchParams }) {
 
   const prefill = (await searchParams)?.prefill ?? null;
   const initialThreadId = (await searchParams)?.thread ?? null;
+  const initialImprove = (await searchParams)?.improve === '1';
 
   return (
     <Suspense>
@@ -69,6 +70,7 @@ export default async function AppPage({ searchParams }) {
         initialThreads={threads ?? []}
         initialPrefill={prefill}
         initialThreadId={initialThreadId}
+        initialImprove={initialImprove}
         projects={projects}
       />
     </Suspense>

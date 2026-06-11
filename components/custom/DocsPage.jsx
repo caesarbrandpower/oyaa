@@ -188,7 +188,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       if (msgs?.[0]?.content) {
         const messageId = msgs[0].id;
         const extras = threadData?.field_briefing_extras?.[messageId] ?? null;
-        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras });
+        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras, threadId: thread.id });
       }
     } finally {
       setLoadingThreadId(null);
@@ -556,9 +556,18 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           client={activeDocument.client ?? null}
           tenant={tenant}
           onClose={() => setActiveDocument(null)}
-          onImprove={(prefillText) => {
+          onImprove={(prefillOrObj) => {
+            const prefillText = prefillOrObj && typeof prefillOrObj === 'object'
+              ? prefillOrObj.prefillText
+              : prefillOrObj;
+            const tid = activeDocument?.threadId;
             setActiveDocument(null);
-            router.push(prefillText ? '/app?prefill=' + encodeURIComponent(prefillText) : '/app');
+            if (tid) {
+              const qs = prefillText ? `&prefill=${encodeURIComponent(prefillText)}&improve=1` : '';
+              router.push(`/app?thread=${tid}${qs}`);
+            } else {
+              router.push(prefillText ? '/app?prefill=' + encodeURIComponent(prefillText) : '/app');
+            }
           }}
         />
       )}

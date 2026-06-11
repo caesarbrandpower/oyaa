@@ -59,6 +59,7 @@ export async function POST(request) {
     prevHasDoc = false,
     project: wizardProject = null,
     analysisConfirmed = false,
+    improveDocument = false,
     recordingTranscript = null,
     recordingClient = null,
     recordingProject = null,
@@ -442,18 +443,45 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
               .join('\n\n');
           }
 
-          let promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
-          if (vaultContext.found) {
-            promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken. Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
-          }
-          const effectiveClientName = clientName || threadClientFromDb;
-          const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
-          if (effectiveClientName || effectiveProjectName) {
-            const parts = [
-              effectiveClientName ? `De klantnaam is "${effectiveClientName}".` : null,
-              effectiveProjectName ? `De projectnaam is "${effectiveProjectName}".` : null,
-            ].filter(Boolean).join(' ');
-            promptText = `KRITIEKE REGEL: ${parts} Gebruik deze naam/namen EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf ze NOOIT anders.\n\n` + promptText;
+          let promptText;
+          if (improveDocument) {
+            // Verbetermodus: zoek het laatste assistant-bericht in de thread (het bestaande document)
+            const lastAssistantRawIdx = [...allMessages].reduceRight(
+              (found, m, i) => (found === -1 && m.role === 'assistant' ? i : found), -1
+            );
+            const anonExistingDoc = lastAssistantRawIdx >= 0
+              ? (anonParts[lastAssistantRawIdx] ?? '')
+              : '';
+
+            promptText = `VERBETEROPDRACHT
+
+Je verbetert een bestaand document met aanvullende informatie van de gebruiker. Pas de volgende regels mechanisch toe:
+- Behoud de volledige structuur en alle bestaande inhoud letterlijk
+- Vul [UITZOEKEN INTERN], [AFSTEMMEN MET KLANT] en [CIJFERS TOEVOEGEN] ALLEEN in als de aanvullende informatie de benodigde gegevens levert
+- Laat markeringen die je niet kunt invullen exact staan zoals ze zijn
+- Verzin niets en maak geen aannames die niet direct uit de aanvullende informatie volgen
+- Lever het volledige verbeterde document op zonder inleiding, toelichting of commentaar
+- Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is
+
+BESTAAND DOCUMENT:
+${anonExistingDoc}
+
+AANVULLENDE INFORMATIE:
+${userTextOnly}`;
+          } else {
+            promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
+            if (vaultContext.found) {
+              promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken. Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
+            }
+            const effectiveClientName = clientName || threadClientFromDb;
+            const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
+            if (effectiveClientName || effectiveProjectName) {
+              const parts = [
+                effectiveClientName ? `De klantnaam is "${effectiveClientName}".` : null,
+                effectiveProjectName ? `De projectnaam is "${effectiveProjectName}".` : null,
+              ].filter(Boolean).join(' ');
+              promptText = `KRITIEKE REGEL: ${parts} Gebruik deze naam/namen EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf ze NOOIT anders.\n\n` + promptText;
+            }
           }
           const extraBlocks = [
             ...buildDocumentBlocks(documentAttachments),

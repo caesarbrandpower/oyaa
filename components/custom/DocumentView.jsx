@@ -927,7 +927,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             {/* Verbeteren knop */}
             <div className="px-4 py-4 border-t border-white/[0.06] shrink-0">
               <button
-                onClick={() => onImprove?.('Ik wil dit document verbeteren. Aanvullende informatie: ')}
+                onClick={() => onImprove?.({ prefillText: 'Ik wil dit document verbeteren. Aanvullende informatie: ', isImprove: true })}
                 className="w-full h-9 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white transition-colors"
               >
                 Verbeteren met info
