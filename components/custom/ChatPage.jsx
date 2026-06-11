@@ -681,7 +681,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               };
               const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';
               setMessages((prev) => {
-                const updated = prev.map(m => m.id === placeholderId ? finalMsg : m);
+                // Bij verbetering: oud documentbericht verwijderen zodat er geen duplicaat ontstaat
+                // (finalMsg krijgt het originele messageId, placeholder neemt die positie over)
+                const base = event.improved ? prev.filter(m => m.id !== event.messageId) : prev;
+                const updated = base.map(m => m.id === placeholderId ? finalMsg : m);
                 if (!finalIsDocument || !isGenerateIntent) return updated;
                 const postContent = saveClient
                   ? `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`

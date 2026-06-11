@@ -160,7 +160,7 @@ export async function POST(request) {
         // ── Berichtgeschiedenis ophalen + anonimiseren ─────────────────────────
         const { data: allMessages, error: messagesError } = await supabase
           .from('messages')
-          .select('role, content')
+          .select('id, role, content')
           .eq('thread_id', activeThreadId)
           .order('created_at', { ascending: true });
 
@@ -430,6 +430,15 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
+        // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
+        // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
+        const existingDocMsgIdx = improveDocument
+          ? [...allMessages].reduceRight(
+              (found, m, i) => (found === -1 && m.role === 'assistant' ? i : found), -1
+            )
+          : -1;
+        const existingDocMsgId = existingDocMsgIdx >= 0 ? (allMessages[existingDocMsgIdx].id ?? null) : null;
+
         let claudeMessages;
         if (useStructuredPrompt) {
           // Gebruikerstekst + txt-bijlagen als input — bij recording-thread: gebruik transcript als input
@@ -445,12 +454,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
           let promptText;
           if (improveDocument) {
-            // Verbetermodus: zoek het laatste assistant-bericht in de thread (het bestaande document)
-            const lastAssistantRawIdx = [...allMessages].reduceRight(
-              (found, m, i) => (found === -1 && m.role === 'assistant' ? i : found), -1
-            );
-            const anonExistingDoc = lastAssistantRawIdx >= 0
-              ? (anonParts[lastAssistantRawIdx] ?? '')
+            const anonExistingDoc = existingDocMsgIdx >= 0
+              ? (anonParts[existingDocMsgIdx] ?? '')
               : '';
 
             promptText = `VERBETEROPDRACHT
@@ -568,14 +573,23 @@ ${userTextOnly}`;
         const finalContent = deanonymize(fullText, map);
 
         // ── Stap 4 — Opslaan ──────────────────────────────────────────────────
-        const { data: savedMsg, error: savedMsgError } = await supabase
-          .from('messages')
-          .insert({ thread_id: activeThreadId, role: 'assistant', content: finalContent })
-          .select('id')
-          .single();
-
-        if (savedMsgError) {
-          console.error('[DB] assistant message opslaan mislukt:', savedMsgError);
+        let savedMsg;
+        if (improveDocument && existingDocMsgId) {
+          // Verbetermodus: bestaand bericht overschrijven
+          const { error } = await supabase
+            .from('messages')
+            .update({ content: finalContent })
+            .eq('id', existingDocMsgId);
+          if (error) console.error('[DB] verbeter-bericht bijwerken mislukt:', error);
+          savedMsg = { id: existingDocMsgId };
+        } else {
+          const { data, error } = await supabase
+            .from('messages')
+            .insert({ thread_id: activeThreadId, role: 'assistant', content: finalContent })
+            .select('id')
+            .single();
+          if (error) console.error('[DB] assistant message opslaan mislukt:', error);
+          savedMsg = data;
         }
 
         // Klantdetectie: wizard → DB multi-turn → regex op gebruikerstekst
@@ -652,6 +666,7 @@ ${userTextOnly}`;
           type: 'done',
           content: finalContent,
           messageId: savedMsg?.id ?? crypto.randomUUID(),
+          improved: !!(improveDocument && existingDocMsgId),
           detectedClient,
           detectedProject,
           outputType: effectiveOutputType ?? null,
