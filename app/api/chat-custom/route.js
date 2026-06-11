@@ -579,13 +579,14 @@ ${userTextOnly}`;
           // Verbetermodus: bestaand bericht overschrijven via service client — eigenaarschap
           // is al geverifieerd via de ownedThread-check eerder in de route; de user-client
           // heeft in streaming context geen betrouwbare auth.uid() voor de RLS-evaluatie.
+          console.log('[VERBETER] stap 4 start — existingDocMsgId:', existingDocMsgId, '| thread:', activeThreadId, '| allMessages count:', allMessages.length, '| existingDocMsgIdx:', existingDocMsgIdx);
           const svc = createServiceClient();
           const { error: updateError } = await svc
             .from('messages')
             .update({ content: finalContent })
             .eq('id', existingDocMsgId);
           if (updateError) {
-            console.error('[DB] verbeter-bericht bijwerken mislukt (UPDATE error):', updateError);
+            console.error('[VERBETER] UPDATE mislukt:', updateError);
           } else {
             // Verifieer of de UPDATE daadwerkelijk een rij raakte
             const { data: verifyRows } = await svc
@@ -594,21 +595,23 @@ ${userTextOnly}`;
               .eq('id', existingDocMsgId)
               .eq('content', finalContent)
               .limit(1);
-            updateSucceeded = (verifyRows?.length ?? 0) > 0;
-            if (!updateSucceeded) {
-              console.error('[DB] verbeter-bericht UPDATE raakte 0 rijen — existingDocMsgId:', existingDocMsgId);
-            }
+            const verifyCount = verifyRows?.length ?? 0;
+            updateSucceeded = verifyCount > 0;
+            console.log('[VERBETER] UPDATE verify — rijen met nieuwe content:', verifyCount, '| updateSucceeded:', updateSucceeded);
           }
           if (updateSucceeded) {
             savedMsg = { id: existingDocMsgId };
+            console.log('[VERBETER] UPDATE geslaagd — savedMsg.id:', existingDocMsgId);
           } else {
             // Fallback: nieuwe rij invoegen via service client (bypast RLS)
+            console.warn('[VERBETER] UPDATE raakte 0 rijen — fallback INSERT via service client');
             const { data: insertData, error: insertError } = await svc
               .from('messages')
               .insert({ thread_id: activeThreadId, role: 'assistant', content: finalContent })
               .select('id')
               .single();
-            if (insertError) console.error('[DB] verbeter-bericht fallback INSERT mislukt:', insertError);
+            if (insertError) console.error('[VERBETER] fallback INSERT mislukt:', insertError);
+            else console.log('[VERBETER] fallback INSERT geslaagd — nieuw id:', insertData?.id);
             savedMsg = insertData;
           }
         } else {
