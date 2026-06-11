@@ -328,6 +328,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           const pendingTextAtts = pending.textAttachments?.length > 0
             ? pending.textAttachments
             : (pending.txtAttachments ?? []).map(a => ({ filename: a.filename }));
+          // Herstel het verbeter-signaal zodat de re-aanroep improveDocument=true meestuurt
+          if (pending.isImprove) improveDocRef.current = true;
           handleSend(pending.messageText, pending.outputType, pending.taskLabel, pending.displayText,
             pending.client, pending.imageAttachments, [], false, pending.wizardProject, pendingTextAtts, pending.pdfAttachments,
             true /* analysisConfirmed */);
@@ -592,6 +594,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   txtAttachments: txtAtts,
                   txtContext: threadTxtContextRef.current,
                   wizardProject,
+                  isImprove,
                 };
                 // Verwijder de streaming placeholder en toon alleen het analyse-bericht
                 setMessages(prev => [...prev.filter(m => m.id !== placeholderId), analysisMsg]);

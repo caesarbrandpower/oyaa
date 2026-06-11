@@ -297,7 +297,7 @@ export async function POST(request) {
 
         const hasSourceFiles = documentAttachments.length > 0 ||
           ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent);
-        if (hasSourceFiles && !analysisConfirmed) {
+        if (hasSourceFiles && !analysisConfirmed && !improveDocument) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm':        'briefing naar PM',
             'account-to-creation':  'briefing naar creatie',
@@ -483,7 +483,9 @@ ${userTextOnly}`;
               promptText = `KRITIEKE REGEL: ${parts} Gebruik deze naam/namen EXACT zoals opgegeven in je volledige output, inclusief hoofdletters, koppeltekens en spelling. Schrijf ze NOOIT anders.\n\n` + promptText;
             }
           }
-          const extraBlocks = [
+          // Verbetermodus: geen PDFs meesturen — die zijn al in de eerste generatie verwerkt;
+          // de verbeterprompt bevat het bestaande document als tekstblok.
+          const extraBlocks = improveDocument ? [] : [
             ...buildDocumentBlocks(documentAttachments),
             ...buildImageBlocks(imageAttachments),
           ];
