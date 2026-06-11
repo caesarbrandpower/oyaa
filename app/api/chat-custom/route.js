@@ -147,9 +147,12 @@ export async function POST(request) {
         }
 
         // ── Gebruikersbericht opslaan ──────────────────────────────────────────
+        // Bij verbetermodus: sla de korte aanduiding op zodat de chathistorie leesbaar blijft.
+        // De Claude-prompt gebruikt message uit de request body direct, niet deze DB-waarde.
+        const userMsgContent = improveDocument ? 'Aanvullende informatie ontvangen.' : message.trim();
         const { error: userMsgError } = await supabase
           .from('messages')
-          .insert({ thread_id: activeThreadId, role: 'user', content: message.trim() });
+          .insert({ thread_id: activeThreadId, role: 'user', content: userMsgContent });
 
         if (userMsgError) {
           writeEvent(controller, { type: 'error', error: 'Bericht opslaan mislukt.' });
