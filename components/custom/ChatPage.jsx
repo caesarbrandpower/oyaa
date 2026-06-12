@@ -679,7 +679,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 'evaluation':          'evaluatie',
                 'account-to-pm':       'briefing',
                 'account-to-creation': 'briefing naar creatie',
-                'field-briefing':      'briefing naar BA',
+                'field-briefing':      'ambassadorsbriefing',
                 'external-debrief':    'evaluatie',
               };
               const docNoun = DOC_NOUN[effectiveDocType] ?? 'document';

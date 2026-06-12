@@ -304,7 +304,7 @@ export async function POST(request) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm':        'briefing naar PM',
             'account-to-creation':  'briefing naar creatie',
-            'field-briefing':       'briefing naar BA',
+            'field-briefing':       'ambassadorsbriefing',
             'meeting-summary':      'samenvatting',
             'external-debrief':     'externe evaluatie',
             'project-briefing':     'projectbriefing',
@@ -318,6 +318,11 @@ export async function POST(request) {
           const totalSources = documentAttachments.length + (hasTxtAttachment ? 1 : 0);
           const bronnenZin = `Ik heb ${totalSources} bestand${totalSources !== 1 ? 'en' : ''} doorgelezen.`;
 
+          const hasProjectName = !!(wizardProject?.trim() || threadProjectFromDb);
+          const analysisClosingLine = hasProjectName
+            ? `Op basis van wat ik zie, plan ik dit als ${docTypeLabel}. Klopt dat, of wil je iets anders?`
+            : `Op basis van wat ik zie, plan ik dit als ${docTypeLabel}. Klopt dat, of wil je iets anders? En heb je al een projectnaam?`;
+
           try {
             const analysisResp = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
@@ -330,7 +335,7 @@ export async function POST(request) {
                   { type: 'text', text: combinedUserContext },
                   {
                     type: 'text',
-                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Geen koptekst. Geen inleiding. Begin direct met de eerste bullet. Schrijf in precies dit formaat, in het Nederlands:\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\nZal ik nu de ${docTypeLabel} maken, of wil je eerst nog iets aanvullen?\n\nHoud het compact. Geen extra uitleg.`,
+                    text: `Analyseer de aangeleverde bronnen voor een ${docTypeLabel}. Geen koptekst. Geen inleiding. Begin direct met de eerste bullet. Schrijf in precies dit formaat, in het Nederlands:\n\nWat me opvalt:\n- [punt 1, één zin]\n- [punt 2, één zin]\n- [punt 3 indien relevant, één zin]\n\nWat ik nog mis:\n- [punt 1, één zin]\n- [punt 2 indien relevant, één zin]\n\n${analysisClosingLine}\n\nHoud het compact. Geen extra uitleg.`,
                   },
                 ],
               }],

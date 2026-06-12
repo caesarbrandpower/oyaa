@@ -39,7 +39,7 @@ function extractTitle(markdown) {
 const DOC_TYPE_PREFIX = {
   'account-to-pm': 'Briefing',
   'account-to-creation': 'Briefing naar Creatie',
-  'field-briefing': 'Briefing naar BA',
+  'field-briefing': 'Ambassadorsbriefing',
   'meeting-summary': 'Samenvatting',
   'external-debrief': 'Evaluatie',
 };
