@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
-import { ArrowLeft, Copy, Download, MoreHorizontal, Share2 } from 'lucide-react';
+import { ArrowLeft, Copy, Download, MoreHorizontal, Share2, Mic, Square, ArrowUp, Undo2 } from 'lucide-react';
+import { useAudioTranscription } from '@/lib/use-audio';
 import {
   fetchImageAsBase64,
   fetchImageAsBuffer,
@@ -503,8 +504,18 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [editValue, setEditValue] = useState('');
   const [rewriting, setRewriting] = useState(false);
   const [highlightedCardIdx, setHighlightedCardIdx] = useState(null);
+  const [contentHistory, setContentHistory] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [applying, setApplying] = useState(false);
+  const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
   const sidebarRef = useRef(null);
+
+  const { transcribing, recording, toggleRecording } = useAudioTranscription({
+    onTranscript: (text) => setChatInput(prev => prev ? prev + ' ' + text : text),
+    onStatus: () => {},
+    onError: () => {},
+  });
 
   const title = extractTitle(localContent);
   const markeringen = parseMarkeringen(localContent);
@@ -613,6 +624,55 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     }
   }
 
+  function pushHistory(current) {
+    setContentHistory(prev => [...prev.slice(-9), current]);
+  }
+
+  function handleUndo() {
+    if (contentHistory.length === 0) return;
+    const previous = contentHistory[contentHistory.length - 1];
+    setContentHistory(prev => prev.slice(0, -1));
+    setLocalContent(previous);
+    persistContent(previous);
+  }
+
+  async function handleFreeTextApply(text) {
+    const trimmed = text.trim();
+    if (!trimmed || applying) return;
+    setApplying(true);
+    try {
+      const res = await fetch('/api/apply-to-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          freeText: trimmed,
+          fullDocument: localContent,
+          outputType,
+          markings: parseMarkeringen(localContent),
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.updates) && data.updates.length > 0) {
+        setLocalContent(prev => {
+          pushHistory(prev);
+          let updated = prev;
+          for (const u of data.updates) {
+            if (u.original && u.updated && updated.includes(u.original)) {
+              updated = updated.replace(u.original, u.updated);
+            }
+          }
+          persistContent(updated);
+          return updated;
+        });
+      }
+    } catch {
+      // stil falen — document ongewijzigd
+    } finally {
+      setApplying(false);
+    }
+  }
+
   function persistContent(newContent) {
     if (savedToken) {
       fetch(`/api/share-document?token=${savedToken}`, {
@@ -651,6 +711,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         if (res.ok) {
           const data = await res.json();
           if (data.rewritten) {
+            pushHistory(localContent);
             setLocalContent(prev => {
               const freshPara = extractParagraph(prev, idx);
               let newContent = freshPara
@@ -679,6 +740,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
     if (!success) {
       // Fallback: gewone token-replace
+      pushHistory(localContent);
       setLocalContent(prev => {
         const newContent = replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
         persistContent(newContent);
@@ -818,15 +880,25 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
         <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
             {/* Header */}
-            <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
+            <div className="px-4 py-4 border-b border-white/[0.06] shrink-0 flex items-center gap-2">
               <span className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.1em] uppercase text-white/30">
                 Markeringen
               </span>
               {markeringen.length > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
                   {markeringen.length}
                 </span>
               )}
+              <div className="ml-auto">
+                <button
+                  onClick={handleUndo}
+                  disabled={contentHistory.length === 0}
+                  title="Ongedaan maken"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                >
+                  <Undo2 className="w-3.5 h-3.5" strokeWidth={2} />
+                </button>
+              </div>
             </div>
 
             {markeringen.length === 0 ? (
@@ -937,8 +1009,64 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             </div>
             )}
 
+            {/* Mini chat-input */}
+            <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
+              <div className={`flex items-end gap-1.5 rounded-xl px-3 py-2 border transition-colors ${
+                applying ? 'border-orange/30 bg-orange/[0.03]' : 'border-white/[0.10] bg-white/[0.03] focus-within:border-white/[0.20]'
+              }`}>
+                <textarea
+                  ref={chatInputRef}
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (chatInput.trim() && !applying && !transcribing) {
+                        handleFreeTextApply(chatInput);
+                        setChatInput('');
+                      }
+                    }
+                  }}
+                  disabled={applying || transcribing}
+                  placeholder={transcribing ? 'Transcriberen...' : recording ? 'Aan het dicteren...' : 'Vul aan: "Het hotlinenummer is..."'}
+                  rows={2}
+                  className="flex-1 bg-transparent text-[12px] text-white placeholder-white/20 resize-none outline-none leading-relaxed"
+                />
+                <div className="flex items-center gap-1 shrink-0 pb-0.5">
+                  <button
+                    onClick={toggleRecording}
+                    disabled={applying || transcribing}
+                    title={recording ? 'Stop dicteren' : 'Dicteren'}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30 ${
+                      recording ? 'text-red-400 bg-red-950/30' : 'text-white/25 hover:text-white/60 hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {recording
+                      ? <Square className="w-3 h-3" strokeWidth={2} />
+                      : <Mic className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    }
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (chatInput.trim() && !applying && !transcribing) {
+                        handleFreeTextApply(chatInput);
+                        setChatInput('');
+                      }
+                    }}
+                    disabled={!chatInput.trim() || applying || transcribing}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-orange text-white hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {applying
+                      ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Verbeteren knop */}
-            <div className="px-4 py-4 border-t border-white/[0.06] shrink-0">
+            <div className="px-4 pb-4 shrink-0">
               <button
                 onClick={() => onImprove?.({ prefillText: 'Ik wil dit document verbeteren. Aanvullende informatie: ', isImprove: true })}
                 className="w-full h-9 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white transition-colors"
