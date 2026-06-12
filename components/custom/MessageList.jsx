@@ -201,7 +201,7 @@ function stripDocMarkers(text) {
   return text.replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '...');
 }
 
-function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel }) {
+function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel, onDelete }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Bijlagen sectie — voor alle documenttypes, boven de DocumentCard */}
@@ -221,12 +221,14 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
         extras={extras}
         outputType={outputType}
         outputTypeLabel={outputTypeLabel}
+        messageId={messageId}
+        onDelete={onDelete}
       />
     </div>
   );
 }
 
-export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, tenant = null, threadClient = null, threadProject = null, outputTypes = [] }) {
+export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, onMessageDelete, tenant = null, threadClient = null, threadProject = null, outputTypes = [] }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null);
 
@@ -345,6 +347,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 project={threadProject}
                 outputType={msg.output_type}
                 outputTypeLabel={msgOutputTypeLabel}
+                onDelete={onMessageDelete ? () => onMessageDelete(msg.id) : undefined}
               />
             ) : msg.type === 'followup' ? (
               /* Vervolgzin na document — visueel prominent */

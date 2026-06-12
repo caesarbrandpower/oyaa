@@ -646,16 +646,24 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         const res = await fetch('/api/rewrite-marker', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paragraph: para.text, label, value: trimmed, outputType }),
+          body: JSON.stringify({ paragraph: para.text, label, value: trimmed, outputType, fullDocument: localContent }),
         });
         if (res.ok) {
           const data = await res.json();
           if (data.rewritten) {
             setLocalContent(prev => {
               const freshPara = extractParagraph(prev, idx);
-              const newContent = freshPara
+              let newContent = freshPara
                 ? prev.slice(0, freshPara.start) + data.rewritten + prev.slice(freshPara.end)
                 : replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
+              // Propageer aanverwante secties atomair
+              if (Array.isArray(data.otherUpdates)) {
+                for (const u of data.otherUpdates) {
+                  if (u.original && u.updated && newContent.includes(u.original)) {
+                    newContent = newContent.replace(u.original, u.updated);
+                  }
+                }
+              }
               persistContent(newContent);
               return newContent;
             });

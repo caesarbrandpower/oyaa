@@ -1236,6 +1236,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 threadClient={threads.find(t => t.id === activeThread?.id)?.client ?? activeThread?.client ?? null}
                 threadProject={threads.find(t => t.id === activeThread?.id)?.project ?? activeThread?.project ?? null}
                 outputTypes={outputTypes}
+                onMessageDelete={(deletedId) => {
+                  setMessages(prev => prev.filter(m => m.id !== deletedId));
+                  if (activeDocument?.messageId === deletedId) setActiveDocument(null);
+                }}
                 onExtrasChange={(messageId, extras) => {
                   setBriefingExtras(prev => {
                     const updated = { ...prev, [messageId]: extras };

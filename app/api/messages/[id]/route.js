@@ -42,3 +42,40 @@ export async function PATCH(request, { params }) {
 
   return Response.json({ ok: true });
 }
+
+export async function DELETE(request, { params }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+
+  const { id } = await params;
+
+  const { data: msg } = await supabase
+    .from('messages')
+    .select('id, thread_id')
+    .eq('id', id)
+    .single();
+
+  if (!msg) return Response.json({ error: 'Bericht niet gevonden.' }, { status: 404 });
+
+  const { data: thread } = await supabase
+    .from('threads')
+    .select('id')
+    .eq('id', msg.thread_id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (!thread) return Response.json({ error: 'Geen toegang.' }, { status: 403 });
+
+  const { error } = await supabase
+    .from('messages')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[DELETE /api/messages/:id] delete mislukt:', error);
+    return Response.json({ error: 'Verwijderen mislukt.' }, { status: 500 });
+  }
+
+  return Response.json({ ok: true });
+}

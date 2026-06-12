@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Copy, ExternalLink, Download, Share2, Check } from 'lucide-react';
+import { FileText, Copy, ExternalLink, Download, Share2, Check, Trash2 } from 'lucide-react';
 import {
   downloadWordDoc,
   downloadPdfDoc,
@@ -48,6 +48,8 @@ export default function DocumentCard({
   showShare = true,
   createdAt = null,
   audioUrl = null,
+  messageId = null,
+  onDelete = null,
 }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
@@ -55,6 +57,21 @@ export default function DocumentCard({
   const [shareLoading, setShareLoading] = useState(false);
   const [shareLabel, setShareLabel] = useState('Deel als link');
   const [shareDone, setShareDone] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  async function handleDelete(e) {
+    e.stopPropagation();
+    if (!messageId) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+      if (res.ok) onDelete?.();
+    } catch {
+      // stil falen — card blijft staan
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   const contentTitle = extractTitle(content);
   const rawChaseTitle = buildChaseTitle(outputType, client, project);
@@ -223,6 +240,16 @@ export default function DocumentCard({
           >
             {shareDone ? <Check className="w-3 h-3 text-green-400" strokeWidth={2.5} /> : <Share2 className="w-3 h-3" strokeWidth={2} />}
             {shareLoading ? 'Bezig...' : shareLabel}
+          </button>
+        )}
+        {onDelete && messageId && (
+          <button
+            onClick={handleDelete}
+            disabled={deleteLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/40 hover:text-red-400 hover:bg-red-500/[0.08] hover:border-red-500/20 transition-colors disabled:opacity-40"
+          >
+            <Trash2 className="w-3 h-3" strokeWidth={2} />
+            {deleteLoading ? 'Bezig...' : 'Verwijder'}
           </button>
         )}
       </div>
