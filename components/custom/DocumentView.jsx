@@ -44,6 +44,45 @@ function annotateParaIdx(html) {
   });
 }
 
+function htmlBlockToMarkdown(block, markerMap) {
+  let result = '';
+  function walkInline(node) {
+    if (node.nodeType === 3) {
+      result += node.textContent;
+    } else if (node.nodeType === 1) {
+      const t = node.tagName.toLowerCase();
+      if (node.hasAttribute('data-marker-idx')) {
+        const idx = parseInt(node.getAttribute('data-marker-idx'), 10);
+        result += (markerMap[idx] ?? node.textContent);
+      } else if (t === 'strong' || t === 'b') {
+        result += '**'; node.childNodes.forEach(walkInline); result += '**';
+      } else if (t === 'em' || t === 'i') {
+        result += '_'; node.childNodes.forEach(walkInline); result += '_';
+      } else if (t === 'br') {
+        result += '\n';
+      } else {
+        node.childNodes.forEach(walkInline);
+      }
+    }
+  }
+  const tag = block.tagName.toLowerCase();
+  if (/^h[1-6]$/.test(tag)) {
+    result = '#'.repeat(parseInt(tag[1])) + ' ';
+    block.childNodes.forEach(walkInline);
+  } else if (tag === 'ul' || tag === 'ol') {
+    block.querySelectorAll(':scope > li').forEach(li => {
+      const before = result;
+      result = '';
+      li.childNodes.forEach(walkInline);
+      result = before + '- ' + result.trim() + '\n';
+    });
+    result = result.trimEnd();
+  } else {
+    block.childNodes.forEach(walkInline);
+  }
+  return result.trim();
+}
+
 function extractTitle(markdown) {
   const m = markdown.match(/^#{1,3}\s+(.+)$/m);
   if (m) return m[1].trim().replace(/→/g, 'naar');
@@ -511,17 +550,20 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [editValue, setEditValue] = useState('');
   const [rewriting, setRewriting] = useState(false);
   const [freeEditParaIdx, setFreeEditParaIdx] = useState(null);
-  const [freeEditValue, setFreeEditValue] = useState('');
-  const [freeEditRect, setFreeEditRect] = useState(null);
   const [chatFile, setChatFile] = useState(null);
   const [contentHistory, setContentHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [applying, setApplying] = useState(false);
   const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
-  const scrollContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const onTranscriptRef = useRef((text) => setChatInput(prev => prev ? prev + ' ' + text : text));
+  const localContentRef = useRef(localContent);
+  const freeEditBlockRef = useRef(null);
+  const freeEditParaIdxRef = useRef(null);
+  const freeEditOriginalHtmlRef = useRef(null);
+  const freeEditMarkerMapRef = useRef({});
+  localContentRef.current = localContent;
 
   const { transcribing, recording, toggleRecording } = useAudioTranscription({
     onTranscript: (text) => onTranscriptRef.current(text),
@@ -640,38 +682,46 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     setContentHistory(prev => [...prev.slice(-9), current]);
   }
 
+  function finishFreeEdit(save) {
+    const block = freeEditBlockRef.current;
+    if (!block) return;
+    block.contentEditable = 'false';
+    block.style.boxShadow = '';
+    block.style.cursor = '';
+    if (save) {
+      const paraIdx = freeEditParaIdxRef.current;
+      if (paraIdx !== null) {
+        const newParaContent = htmlBlockToMarkdown(block, freeEditMarkerMapRef.current);
+        const rawParas = localContentRef.current.split(/\n\n+/);
+        const original = rawParas[paraIdx] || '';
+        if (newParaContent !== original) {
+          const newParas = [...rawParas];
+          newParas[paraIdx] = newParaContent;
+          const newContent = newParas.join('\n\n');
+          pushHistory(localContentRef.current);
+          setLocalContent(newContent);
+          persistContent(newContent);
+        }
+      }
+    } else {
+      block.innerHTML = freeEditOriginalHtmlRef.current || block.innerHTML;
+    }
+    freeEditBlockRef.current = null;
+    freeEditParaIdxRef.current = null;
+    freeEditOriginalHtmlRef.current = null;
+    freeEditMarkerMapRef.current = {};
+    setFreeEditParaIdx(null);
+  }
+
   function handleUndo() {
     if (contentHistory.length === 0) return;
+    finishFreeEdit(false);
     const previous = contentHistory[contentHistory.length - 1];
     setContentHistory(prev => prev.slice(0, -1));
     setLocalContent(previous);
     persistContent(previous);
-    setFreeEditParaIdx(null);
-    setFreeEditValue('');
-    setFreeEditRect(null);
     setEditingIdx(null);
     setEditValue('');
-  }
-
-  function handleFreeEditSave() {
-    if (freeEditParaIdx === null) return;
-    const rawParas = localContent.split(/\n\n+/);
-    const trimmed = freeEditValue.trim();
-    if (!trimmed || trimmed === rawParas[freeEditParaIdx]?.trim()) {
-      setFreeEditParaIdx(null);
-      setFreeEditValue('');
-      setFreeEditRect(null);
-      return;
-    }
-    pushHistory(localContent);
-    const newParas = [...rawParas];
-    newParas[freeEditParaIdx] = freeEditValue;
-    const newContent = newParas.join('\n\n');
-    setLocalContent(newContent);
-    persistContent(newContent);
-    setFreeEditParaIdx(null);
-    setFreeEditValue('');
-    setFreeEditRect(null);
   }
 
   async function handleFileAttach(file) {
@@ -870,19 +920,6 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             {sharing ? 'Bezig...' : shareUrl ? 'Link gekopieerd!' : 'Deel als link'}
           </button>
           <button
-            onClick={handleUndo}
-            disabled={contentHistory.length === 0}
-            title="Ongedaan maken"
-            className={`hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-              contentHistory.length > 0
-                ? 'text-orange border-orange/30 hover:bg-orange/[0.08]'
-                : 'text-white/40 border-white/[0.08]'
-            }`}
-          >
-            <Undo2 className="w-3 h-3" strokeWidth={2} />
-            Ongedaan
-          </button>
-          <button
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
             aria-label="Meer opties"
           >
@@ -894,7 +931,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Document body */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10 relative">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
           <div
             ref={docBodyRef}
             className="max-w-2xl mx-auto doc-prose"
@@ -903,25 +940,50 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               const markerEl = e.target.closest('[data-marker-idx]');
               if (markerEl) {
                 const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
-                setFreeEditParaIdx(null); setFreeEditValue(''); setFreeEditRect(null);
+                if (freeEditBlockRef.current) finishFreeEdit(true);
                 setEditingIdx(idx);
                 setEditValue('');
                 onTranscriptRef.current = (text) => setEditValue(prev => prev ? prev + ' ' + text : text);
                 return;
               }
               const block = e.target.closest('[data-para-idx]');
-              if (!block || !scrollContainerRef.current) return;
+              if (!block) return;
               const paraIdx = parseInt(block.getAttribute('data-para-idx'), 10);
-              const rawParas = localContent.split(/\n\n+/);
+              const rawParas = localContentRef.current.split(/\n\n+/);
               if (paraIdx >= rawParas.length) return;
-              const blockRect = block.getBoundingClientRect();
-              const containerRect = scrollContainerRef.current.getBoundingClientRect();
-              const top = blockRect.top - containerRect.top + scrollContainerRef.current.scrollTop;
-              const left = blockRect.left - containerRect.left;
-              setEditingIdx(null); setEditValue('');
+              if (freeEditBlockRef.current === block) return;
+              if (freeEditBlockRef.current) finishFreeEdit(true);
+              const allMarkers = [...localContentRef.current.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
+              freeEditMarkerMapRef.current = Object.fromEntries(allMarkers.map((m, i) => [i, m[0]]));
+              freeEditOriginalHtmlRef.current = block.innerHTML;
+              freeEditParaIdxRef.current = paraIdx;
+              freeEditBlockRef.current = block;
               setFreeEditParaIdx(paraIdx);
-              setFreeEditValue(rawParas[paraIdx]);
-              setFreeEditRect({ top, left, width: blockRect.width, height: blockRect.height });
+              block.contentEditable = 'true';
+              block.style.outline = 'none';
+              block.style.borderRadius = '3px';
+              block.style.boxShadow = '0 0 0 1.5px rgba(255,255,255,0.12)';
+              block.style.cursor = 'text';
+              block.focus();
+              function onBlockBlur() {
+                block.removeEventListener('blur', onBlockBlur);
+                block.removeEventListener('keydown', onBlockKeydown);
+                finishFreeEdit(true);
+              }
+              function onBlockKeydown(ev) {
+                if (ev.key === 'Enter' && !ev.shiftKey) {
+                  ev.preventDefault();
+                  block.removeEventListener('blur', onBlockBlur);
+                  block.removeEventListener('keydown', onBlockKeydown);
+                  finishFreeEdit(true);
+                } else if (ev.key === 'Escape') {
+                  block.removeEventListener('blur', onBlockBlur);
+                  block.removeEventListener('keydown', onBlockKeydown);
+                  finishFreeEdit(false);
+                }
+              }
+              block.addEventListener('blur', onBlockBlur);
+              block.addEventListener('keydown', onBlockKeydown);
             }}
           />
 
@@ -964,34 +1026,21 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               )}
             </div>
           )}
-          {/* Notion-stijl inline bewerken — absolute binnen scroll-container */}
-          {freeEditParaIdx !== null && freeEditRect && (
-            <textarea
-              autoFocus
-              value={freeEditValue}
-              onChange={e => setFreeEditValue(e.target.value)}
-              onBlur={handleFreeEditSave}
-              onKeyDown={e => {
-                if ((e.key === 'Enter' && e.metaKey) || (e.key === 'Enter' && e.ctrlKey)) {
-                  e.preventDefault();
-                  handleFreeEditSave();
-                }
-                if (e.key === 'Escape') { setFreeEditParaIdx(null); setFreeEditValue(''); setFreeEditRect(null); }
-              }}
-              style={{
-                position: 'absolute',
-                top: freeEditRect.top,
-                left: freeEditRect.left,
-                width: freeEditRect.width,
-                minHeight: freeEditRect.height,
-                zIndex: 10,
-              }}
-              className="bg-[#0d0d0d] text-white/90 resize-none outline-none leading-[1.75] text-[15px] p-0 border-0 border-b border-white/20 font-[family-name:var(--font-lexend)]"
-            />
-          )}
         </div>
 
         <aside className="hidden md:flex w-[360px] shrink-0 flex-col border-l border-white/[0.06]">
+            {/* Ongedaan maken — alleen zichtbaar als er geschiedenis is */}
+            {contentHistory.length > 0 && (
+              <div className="px-4 pt-3 shrink-0">
+                <button
+                  onClick={handleUndo}
+                  className="flex items-center gap-1.5 text-[11px] text-white/35 hover:text-white/70 transition-colors"
+                >
+                  <Undo2 className="w-3 h-3" strokeWidth={2} />
+                  Ongedaan maken
+                </button>
+              </div>
+            )}
             {/* Bovenste sectie: edit-mode of teller */}
             {editingIdx !== null ? (
               <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 min-h-0">
@@ -1007,7 +1056,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                     <ChevronLeft className="w-4 h-4" strokeWidth={2} />
                   </button>
                   <p className="text-[10px] text-white/35 uppercase font-bold tracking-wider truncate flex-1">
-                    {markeringen[editingIdx]}
+                    {editingIdx + 1} · {markeringen[editingIdx]?.split(':')[0].trim()}
                   </p>
                 </div>
                 <textarea
@@ -1027,7 +1076,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                       onTranscriptRef.current = (text) => setChatInput(prev => prev ? prev + ' ' + text : text);
                     }
                   }}
-                  className="flex-1 w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2.5 text-[12px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
+                  className="h-[130px] w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2.5 text-[12px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
                 />
                 {rewriting ? (
                   <div className="flex items-center gap-2 px-1">
@@ -1047,7 +1096,6 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                       }`}
                     >
                       {recording ? <Square className="w-3 h-3" strokeWidth={2} /> : <Mic className="w-3.5 h-3.5" strokeWidth={1.75} />}
-                      <span>{recording ? 'Stop' : 'Dicteren'}</span>
                     </button>
                     <button
                       onClick={() => handleSaveEdit(markeringen[editingIdx], editingIdx)}
