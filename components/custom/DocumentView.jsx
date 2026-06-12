@@ -519,6 +519,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [applying, setApplying] = useState(false);
   const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const onTranscriptRef = useRef((text) => setChatInput(prev => prev ? prev + ' ' + text : text));
 
@@ -645,6 +646,11 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     setContentHistory(prev => prev.slice(0, -1));
     setLocalContent(previous);
     persistContent(previous);
+    setFreeEditParaIdx(null);
+    setFreeEditValue('');
+    setFreeEditRect(null);
+    setEditingIdx(null);
+    setEditValue('');
   }
 
   function handleFreeEditSave() {
@@ -668,13 +674,31 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     setFreeEditRect(null);
   }
 
-  function handleFileAttach(file) {
+  async function handleFileAttach(file) {
     if (!file) return;
-    const isText = file.type.startsWith('text/') || ['application/json', 'application/csv'].includes(file.type) || /\.(txt|md|csv|json)$/i.test(file.name);
-    if (!isText) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setChatFile({ name: file.name, content: e.target.result });
-    reader.readAsText(file);
+    const name = file.name;
+    const isPlainText = file.type.startsWith('text/') || ['application/json'].includes(file.type) || /\.(txt|md|csv|json)$/i.test(name);
+    const needsExtract = /\.(pdf|docx|doc|png|jpg|jpeg|gif|webp)$/i.test(name) || file.type === 'application/pdf' || file.type.includes('word') || file.type.startsWith('image/');
+    if (isPlainText) {
+      const reader = new FileReader();
+      reader.onload = (e) => setChatFile({ name, content: e.target.result });
+      reader.readAsText(file);
+    } else if (needsExtract) {
+      setChatFile({ name, content: null, loading: true });
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.text) {
+          setChatFile({ name, content: data.text });
+        } else {
+          setChatFile(null);
+        }
+      } catch {
+        setChatFile(null);
+      }
+    }
   }
 
   async function handleFreeTextApply(text) {
@@ -849,7 +873,11 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             onClick={handleUndo}
             disabled={contentHistory.length === 0}
             title="Ongedaan maken"
-            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className={`hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+              contentHistory.length > 0
+                ? 'text-orange border-orange/30 hover:bg-orange/[0.08]'
+                : 'text-white/40 border-white/[0.08]'
+            }`}
           >
             <Undo2 className="w-3 h-3" strokeWidth={2} />
             Ongedaan
@@ -866,29 +894,34 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Document body */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 py-10 relative">
           <div
             ref={docBodyRef}
             className="max-w-2xl mx-auto doc-prose"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
             onClick={(e) => {
               const markerEl = e.target.closest('[data-marker-idx]');
-              if (!markerEl) return;
-              const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
-              setEditingIdx(idx);
-              setEditValue('');
-              onTranscriptRef.current = (text) => setEditValue(prev => prev ? prev + ' ' + text : text);
-            }}
-            onDoubleClick={(e) => {
-              if (e.target.closest('[data-marker-idx]')) return;
+              if (markerEl) {
+                const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
+                setFreeEditParaIdx(null); setFreeEditValue(''); setFreeEditRect(null);
+                setEditingIdx(idx);
+                setEditValue('');
+                onTranscriptRef.current = (text) => setEditValue(prev => prev ? prev + ' ' + text : text);
+                return;
+              }
               const block = e.target.closest('[data-para-idx]');
-              if (!block) return;
+              if (!block || !scrollContainerRef.current) return;
               const paraIdx = parseInt(block.getAttribute('data-para-idx'), 10);
               const rawParas = localContent.split(/\n\n+/);
               if (paraIdx >= rawParas.length) return;
+              const blockRect = block.getBoundingClientRect();
+              const containerRect = scrollContainerRef.current.getBoundingClientRect();
+              const top = blockRect.top - containerRect.top + scrollContainerRef.current.scrollTop;
+              const left = blockRect.left - containerRect.left;
+              setEditingIdx(null); setEditValue('');
               setFreeEditParaIdx(paraIdx);
               setFreeEditValue(rawParas[paraIdx]);
-              setFreeEditRect(block.getBoundingClientRect());
+              setFreeEditRect({ top, left, width: blockRect.width, height: blockRect.height });
             }}
           />
 
@@ -931,19 +964,13 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               )}
             </div>
           )}
-        </div>
-
-        {/* Vrij bewerken overlay (dubbelklik op tekst) */}
-        {freeEditParaIdx !== null && freeEditRect && (
-          <>
-            <div
-              className="fixed inset-0 z-[98]"
-              onClick={() => { setFreeEditParaIdx(null); setFreeEditValue(''); setFreeEditRect(null); }}
-            />
+          {/* Notion-stijl inline bewerken — absolute binnen scroll-container */}
+          {freeEditParaIdx !== null && freeEditRect && (
             <textarea
               autoFocus
               value={freeEditValue}
               onChange={e => setFreeEditValue(e.target.value)}
+              onBlur={handleFreeEditSave}
               onKeyDown={e => {
                 if ((e.key === 'Enter' && e.metaKey) || (e.key === 'Enter' && e.ctrlKey)) {
                   e.preventDefault();
@@ -952,18 +979,17 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                 if (e.key === 'Escape') { setFreeEditParaIdx(null); setFreeEditValue(''); setFreeEditRect(null); }
               }}
               style={{
-                position: 'fixed',
+                position: 'absolute',
                 top: freeEditRect.top,
                 left: freeEditRect.left,
                 width: freeEditRect.width,
-                minHeight: Math.max(freeEditRect.height + 16, 48),
-                zIndex: 99,
+                minHeight: freeEditRect.height,
+                zIndex: 10,
               }}
-              className="bg-[#0d0d0d]/95 border border-orange/50 rounded-md px-3 py-2 text-[13px] text-white/90 resize-y outline-none leading-relaxed"
-              title="Cmd+Enter om op te slaan, Escape om te annuleren"
+              className="bg-[#0d0d0d] text-white/90 resize-none outline-none leading-[1.75] text-[15px] p-0 border-0 border-b border-white/20 font-[family-name:var(--font-lexend)]"
             />
-          </>
-        )}
+          )}
+        </div>
 
         <aside className="hidden md:flex w-[360px] shrink-0 flex-col border-l border-white/[0.06]">
             {/* Bovenste sectie: edit-mode of teller */}
@@ -990,7 +1016,6 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                   onChange={e => setEditValue(e.target.value)}
                   disabled={rewriting}
                   placeholder="Typ de aanvullende informatie..."
-                  rows={5}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -1002,7 +1027,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                       onTranscriptRef.current = (text) => setChatInput(prev => prev ? prev + ' ' + text : text);
                     }
                   }}
-                  className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2.5 text-[12px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
+                  className="flex-1 w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2.5 text-[12px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
                 />
                 {rewriting ? (
                   <div className="flex items-center gap-2 px-1">
@@ -1017,12 +1042,12 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                         toggleRecording();
                       }}
                       disabled={transcribing}
-                      title={recording ? 'Stop dicteren' : 'Dicteren'}
-                      className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30 shrink-0 ${
-                        recording ? 'text-red-400 bg-red-950/30' : 'text-white/30 hover:text-white/70 hover:bg-white/[0.06] border border-white/[0.08]'
+                      className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[12px] transition-colors disabled:opacity-30 shrink-0 border ${
+                        recording ? 'text-red-400 border-red-800/40 bg-red-950/30' : 'text-white/50 border-white/[0.10] hover:text-white/80 hover:bg-white/[0.06]'
                       }`}
                     >
                       {recording ? <Square className="w-3 h-3" strokeWidth={2} /> : <Mic className="w-3.5 h-3.5" strokeWidth={1.75} />}
+                      <span>{recording ? 'Stop' : 'Dicteren'}</span>
                     </button>
                     <button
                       onClick={() => handleSaveEdit(markeringen[editingIdx], editingIdx)}
@@ -1055,7 +1080,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                     </p>
                   )}
                   <p className="text-[11px] text-white/30 mt-1.5 leading-relaxed">
-                    Klik op een markering om aan te vullen. Dubbelklik op tekst om vrij te bewerken.
+                    Klik op een markering om aan te vullen. Klik op tekst om direct te bewerken.
                   </p>
                 </div>
                 <div className="flex-1" />
@@ -1065,15 +1090,22 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             {/* Bestandsbijlage chip */}
             {chatFile && (
               <div className="px-3 pt-2 shrink-0">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.10]">
-                  <Paperclip className="w-3 h-3 text-white/40 shrink-0" strokeWidth={2} />
-                  <span className="text-[11px] text-white/60 truncate flex-1">{chatFile.name}</span>
-                  <button
-                    onClick={() => setChatFile(null)}
-                    className="w-4 h-4 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors shrink-0"
-                  >
-                    <X className="w-3 h-3" strokeWidth={2.5} />
-                  </button>
+                <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border ${chatFile.loading ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white/[0.06] border-white/[0.10]'}`}>
+                  {chatFile.loading
+                    ? <div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin shrink-0" />
+                    : <Paperclip className="w-3 h-3 text-white/40 shrink-0" strokeWidth={2} />
+                  }
+                  <span className="text-[11px] text-white/60 truncate flex-1">
+                    {chatFile.loading ? `Laden: ${chatFile.name}` : chatFile.name}
+                  </span>
+                  {!chatFile.loading && (
+                    <button
+                      onClick={() => setChatFile(null)}
+                      className="w-4 h-4 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors shrink-0"
+                    >
+                      <X className="w-3 h-3" strokeWidth={2.5} />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1082,7 +1114,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,.md,.csv,.json"
+              accept=".txt,.md,.csv,.json,.pdf,.docx,.doc,.png,.jpg,.jpeg,.gif,.webp"
               className="hidden"
               onChange={e => { handleFileAttach(e.target.files?.[0]); e.target.value = ''; }}
             />
@@ -1157,15 +1189,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               </div>
             </div>
 
-            {/* Verbeteren knop */}
-            <div className="px-4 pb-4 shrink-0">
-              <button
-                onClick={() => onImprove?.({ prefillText: 'Ik wil dit document verbeteren. Aanvullende informatie: ', isImprove: true })}
-                className="w-full h-9 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white transition-colors"
-              >
-                Verbeteren met info
-              </button>
-            </div>
+            {/* Chat-input onderste padding */}
+            <div className="pb-2 shrink-0" />
           </aside>
       </div>
     </div>
