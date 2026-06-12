@@ -28,12 +28,12 @@ function injectLabelHtml(html) {
   const baseStyle = 'display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;margin:0 2px;cursor:pointer;font-family:var(--font-lexend)';
   return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
     const currentIdx = idx++;
-    // Toon alleen het sleutelwoord (voor de dubbele punt) — volledige tekst staat in het paneel rechts
     const displayLabel = label.split(':')[0].trim();
+    const numbered = `${currentIdx + 1} · ${displayLabel}`;
     if (isRedLabel(label)) {
-      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${displayLabel}</span>`;
+      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${numbered}</span>`;
     }
-    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${displayLabel}</span>`;
+    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${numbered}</span>`;
   });
 }
 
@@ -503,13 +503,12 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [editingIdx, setEditingIdx] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [rewriting, setRewriting] = useState(false);
-  const [highlightedCardIdx, setHighlightedCardIdx] = useState(null);
+  const [editPos, setEditPos] = useState(null);
   const [contentHistory, setContentHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [applying, setApplying] = useState(false);
   const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
-  const sidebarRef = useRef(null);
 
   const { transcribing, recording, toggleRecording } = useAudioTranscription({
     onTranscript: (text) => setChatInput(prev => prev ? prev + ' ' + text : text),
@@ -750,17 +749,12 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
     setEditingIdx(null);
     setEditValue('');
+    setEditPos(null);
   }
 
   function handleConfirm(idx) {
     setLocalContent(prev => replaceOccurrence(prev, LABEL_REGEX, idx, ''));
   }
-
-  useEffect(() => {
-    if (highlightedCardIdx === null) return;
-    const t = setTimeout(() => setHighlightedCardIdx(null), 2000);
-    return () => clearTimeout(t);
-  }, [highlightedCardIdx]);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0d0d0d] flex flex-col">
@@ -809,6 +803,15 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             {sharing ? 'Bezig...' : shareUrl ? 'Link gekopieerd!' : 'Deel als link'}
           </button>
           <button
+            onClick={handleUndo}
+            disabled={contentHistory.length === 0}
+            title="Ongedaan maken"
+            className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <Undo2 className="w-3 h-3" strokeWidth={2} />
+            Ongedaan
+          </button>
+          <button
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
             aria-label="Meer opties"
           >
@@ -829,11 +832,14 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               const markerEl = e.target.closest('[data-marker-idx]');
               if (!markerEl) return;
               const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
-              setHighlightedCardIdx(idx);
-              if (sidebarRef.current) {
-                const card = sidebarRef.current.querySelector(`[data-card-idx="${idx}"]`);
-                card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }
+              const rect = markerEl.getBoundingClientRect();
+              const panelW = 300;
+              const left = Math.min(rect.left, window.innerWidth - panelW - 16);
+              const spaceBelow = window.innerHeight - rect.bottom;
+              const top = spaceBelow > 200 ? rect.bottom + 6 : rect.top - 178;
+              setEditPos({ top, left, width: panelW });
+              setEditingIdx(idx);
+              setEditValue('');
             }}
           />
 
@@ -878,136 +884,77 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
           )}
         </div>
 
-        <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
-            {/* Header */}
-            <div className="px-4 py-4 border-b border-white/[0.06] shrink-0 flex items-center gap-2">
-              <span className="font-[family-name:var(--font-lexend)] text-[11px] font-semibold tracking-[0.1em] uppercase text-white/30">
-                Markeringen
-              </span>
-              {markeringen.length > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[10px] font-bold text-white/50">
-                  {markeringen.length}
-                </span>
+        {/* Floating inline edit overlay */}
+        {editingIdx !== null && editPos && (
+          <>
+            <div
+              className="fixed inset-0 z-[99]"
+              onClick={() => { setEditingIdx(null); setEditValue(''); setEditPos(null); }}
+            />
+            <div
+              style={{ position: 'fixed', top: editPos.top, left: editPos.left, width: editPos.width, zIndex: 100 }}
+              className="bg-[#1c1c1c] border border-white/[0.15] rounded-xl shadow-2xl p-3"
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-[10px] text-white/35 uppercase font-bold tracking-wider mb-2 truncate">
+                {markeringen[editingIdx]}
+              </p>
+              <textarea
+                autoFocus
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                disabled={rewriting}
+                placeholder="Typ de aanvullende informatie..."
+                rows={3}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (editValue.trim() && !rewriting) handleSaveEdit(markeringen[editingIdx], editingIdx);
+                  }
+                  if (e.key === 'Escape') { setEditingIdx(null); setEditValue(''); setEditPos(null); }
+                }}
+                className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-[12px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
+              />
+              {rewriting ? (
+                <div className="flex items-center gap-2 mt-2 px-1">
+                  <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin shrink-0" />
+                  <span className="text-[11px] text-white/40">Herschrijven...</span>
+                </div>
+              ) : (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => handleSaveEdit(markeringen[editingIdx], editingIdx)}
+                    disabled={!editValue.trim()}
+                    className="flex-1 h-7 rounded-lg bg-orange text-white text-[11px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Opslaan
+                  </button>
+                  <button
+                    onClick={() => { setEditingIdx(null); setEditValue(''); setEditPos(null); }}
+                    className="h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
+                  >
+                    Annuleer
+                  </button>
+                </div>
               )}
-              <div className="ml-auto">
-                <button
-                  onClick={handleUndo}
-                  disabled={contentHistory.length === 0}
-                  title="Ongedaan maken"
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
-                >
-                  <Undo2 className="w-3.5 h-3.5" strokeWidth={2} />
-                </button>
-              </div>
+            </div>
+          </>
+        )}
+
+        <aside className="hidden md:flex w-[280px] shrink-0 flex-col border-l border-white/[0.06]">
+            {/* Teller */}
+            <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
+              {markeringen.length === 0 ? (
+                <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white/40 italic">Alle punten afgehandeld</p>
+              ) : (
+                <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white/80">
+                  <span className="text-orange">{markeringen.length}</span> {markeringen.length === 1 ? 'markering open' : 'markeringen open'}
+                </p>
+              )}
+              <p className="text-[11px] text-white/30 mt-1.5 leading-relaxed">Klik op een markering in het document om aan te vullen.</p>
             </div>
 
-            {markeringen.length === 0 ? (
-              <div className="flex-1 px-4 py-6">
-                <p className="text-[12px] text-white/20 italic">Geen markeringen</p>
-              </div>
-            ) : (
-            <div ref={sidebarRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-              {markeringen.map((label, idx) => {
-                const isRed = isRedLabel(label);
-                const isEditing = editingIdx === idx;
-                return (
-                  <div
-                    key={idx}
-                    data-card-idx={idx}
-                    className={`rounded-lg border p-3 bg-white/[0.02] transition-colors cursor-pointer ${
-                      highlightedCardIdx === idx
-                        ? 'border-orange/60 bg-orange/[0.04]'
-                        : 'border-white/[0.06]'
-                    }`}
-                    onClick={(e) => {
-                      if (e.target.closest('button, textarea')) return;
-                      if (docBodyRef.current) {
-                        const pill = docBodyRef.current.querySelector(`[data-marker-idx="${idx}"]`);
-                        if (pill) {
-                          pill.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          pill.classList.remove('marker-pulse');
-                          void pill.offsetWidth;
-                          pill.classList.add('marker-pulse');
-                          setTimeout(() => pill.classList.remove('marker-pulse'), 1000);
-                        }
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isRed
-                            ? 'bg-red-950/60 text-red-400 border border-red-800/40'
-                            : 'bg-yellow-950/60 text-yellow-400 border border-yellow-800/40'
-                        }`}
-                      >
-                        {isRed ? 'Ontbreekt' : 'Check'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-white/55 leading-relaxed font-medium">{label}</p>
-                    {isEditing ? (
-                      <div className="mt-2">
-                        <textarea
-                          autoFocus
-                          value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          disabled={rewriting}
-                          placeholder="Typ de aanvullende informatie..."
-                          rows={3}
-                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-[11px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.25] transition-colors disabled:opacity-50"
-                        />
-                        {rewriting ? (
-                          <div className="flex items-center gap-2 mt-1.5 px-1">
-                            <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-orange rounded-full animate-spin shrink-0" />
-                            <span className="text-[11px] text-white/40">Herschrijven...</span>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2 mt-1.5">
-                            <button
-                              onClick={() => handleSaveEdit(label, idx)}
-                              disabled={!editValue.trim()}
-                              className="flex-1 h-7 rounded-lg bg-orange text-white text-[11px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              Opslaan
-                            </button>
-                            <button
-                              onClick={() => { setEditingIdx(null); setEditValue(''); }}
-                              className="h-7 px-3 rounded-lg text-[11px] text-white/40 hover:text-white border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
-                            >
-                              Annuleer
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : isRed ? (
-                      <button
-                        onClick={() => { setEditingIdx(idx); setEditValue(''); }}
-                        className="mt-2 text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
-                      >
-                        + Aanvullen
-                      </button>
-                    ) : (
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => handleConfirm(idx)}
-                          className="text-[11px] text-white/40 hover:text-white/70 font-semibold transition-colors"
-                        >
-                          ✓ Bevestigen
-                        </button>
-                        <span className="text-white/15">|</span>
-                        <button
-                          onClick={() => { setEditingIdx(idx); setEditValue(''); }}
-                          className="text-[11px] text-orange hover:text-orange/80 font-semibold transition-colors"
-                        >
-                          Wijzigen
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            )}
+            <div className="flex-1" />
 
             {/* Mini chat-input */}
             <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
