@@ -68,10 +68,10 @@ export default function FeedbackWidget({ userEmail }) {
   }
 
   return (
-    <div ref={panelRef} className="fixed bottom-6 right-6 z-50">
-      {/* Paneel — opent links-boven van de knop */}
+    <div ref={panelRef} className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex items-center">
+      {/* Paneel — opent links van de tab */}
       {open && (
-        <div className="absolute bottom-24 right-0 w-72 rounded-2xl border border-white/[0.10] bg-[#1a1a1a] shadow-2xl overflow-hidden">
+        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 w-72 rounded-2xl border border-white/[0.10] bg-[#1a1a1a] shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
             <span className="text-[13px] font-medium text-white/80">Feedback melden</span>
@@ -117,11 +117,12 @@ export default function FeedbackWidget({ userEmail }) {
         </div>
       )}
 
-      {/* Trigger-knop */}
+      {/* Verticale tab — rechterrand, licht afgeronde linkerkant */}
       <button
         onClick={() => { setOpen(v => !v); if (status === 'error') setStatus('idle'); }}
         title="Feedback geven"
-        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.07] border border-white/[0.10] text-white/40 hover:text-white/70 hover:bg-white/[0.12] hover:border-white/[0.18] transition-colors shadow-lg"
+        style={{ borderRadius: '6px 0 0 6px' }}
+        className="w-7 h-14 flex items-center justify-center bg-white/[0.06] border border-r-0 border-white/[0.10] text-white/35 hover:text-white/65 hover:bg-white/[0.10] transition-colors"
       >
         <Flag className="w-3.5 h-3.5" strokeWidth={1.75} />
       </button>
