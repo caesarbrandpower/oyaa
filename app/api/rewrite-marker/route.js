@@ -25,7 +25,7 @@ export async function POST(request) {
   if (useFullDoc) {
     systemPrompt = `Je verwerkt een ingevulde waarde in een briefingdocument. Schrijf altijd in het Nederlands, in bevestigende zin, nooit als vraag.
 
-STAP 1 — VERWERK DE MARKERING: Herschrijf de alinea die [${label}] bevat met de ingevulde waarde op de meest logische plek verwerkt. Behoud toon en structuur. Verwijder alleen [${label}].
+STAP 1 — VERWERK DE MARKERING: Herschrijf de alinea die [${label}] bevat met de ingevulde waarde op de meest logische plek verwerkt. Als de ingevulde waarde bestaande tekst in de alinea bevestigt, corrigeert of vervangt, overschrijf dan de tegenstrijdige of verouderde tekst — voeg niet toe naast tekst die dan klopt niet meer. Behoud toon en structuur. Verwijder alleen [${label}].
 
 STAP 2 — RESTERENDE DEELVRAGEN: Bevat [${label}] meerdere deelvragen gescheiden door komma's, en beantwoordt de ingevulde waarde niet alle deelvragen? Voeg dan een nieuwe markering met de resterende onbeantwoorde vragen toe in de herschreven alinea.
 Voorbeeld: [UITZOEKEN INTERN: naam contactpersoon, telefoonnummer, beschikbaarheid] + "Jan de Vries" → herschreven alinea eindigt met [UITZOEKEN INTERN: telefoonnummer, beschikbaarheid].
@@ -39,7 +39,7 @@ Als er geen aanverwante alinea's zijn: {"rewritten":"...","otherUpdates":[]}`;
     userMessage = `Volledig document:\n${fullDocument}\n\n---\n\nAlinea met markering:\n${paragraph}\n\nMarkering: [${label}]\nIngevulde waarde: ${value}\n\nRetourneer het JSON-object.`;
     maxTokens = 2000;
   } else {
-    systemPrompt = `Je verwerkt een ingevulde waarde in een bestaande alinea. Schrijf de alinea natuurlijk herschreven in het Nederlands, met de waarde op de meest logische plek verwerkt. Schrijf altijd in bevestigende zin — nooit als vraag. De ingevulde informatie wordt als feit verwerkt in de lopende tekst. Behoud de toon en structuur. Verwijder alleen de specifiek genoemde markering; laat eventuele andere markeringen ongewijzigd.
+    systemPrompt = `Je verwerkt een ingevulde waarde in een bestaande alinea. Schrijf de alinea natuurlijk herschreven in het Nederlands, met de waarde op de meest logische plek verwerkt. Als de ingevulde waarde bestaande tekst bevestigt, corrigeert of vervangt, overschrijf dan de tegenstrijdige of verouderde tekst in de alinea. Schrijf altijd in bevestigende zin — nooit als vraag. Behoud de toon en structuur. Verwijder alleen de specifiek genoemde markering; laat eventuele andere markeringen ongewijzigd.
 
 MEERDERE DEELVRAGEN: Bevat de markering meerdere deelvragen (gescheiden door komma's na de dubbele punt), en beantwoordt de ingevulde waarde niet alle deelvragen? Voeg dan een nieuwe markering toe met de resterende onbeantwoorde vragen in de herschreven alinea.
 Voorbeeld: [UITZOEKEN INTERN: naam contactpersoon, telefoonnummer, beschikbaarheid] + "Jan de Vries" → "...Jan de Vries... [UITZOEKEN INTERN: telefoonnummer, beschikbaarheid]"
