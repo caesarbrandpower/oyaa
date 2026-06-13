@@ -716,6 +716,16 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     pushHistory(localContentRef.current);
     setLocalContent(newContent);
     persistContent(newContent);
+    // Als de alinea een markering had maar die nu weg is: sluit de aside edit-mode.
+    // De markeringen-teller herberekent automatisch via React (parseMarkeringen(localContent)),
+    // maar editingIdx moet expliciet gereset worden anders toont de aside een
+    // verwijderde markering.
+    const markerRe = new RegExp(LABEL_REGEX.source);
+    if (markerRe.test(original) && !markerRe.test(newParaContent)) {
+      setEditingIdx(null);
+      setEditValue('');
+      onTranscriptRef.current = (text) => setChatInput(prev => prev ? prev + ' ' + text : text);
+    }
   }
 
   function handleUndo() {
