@@ -549,7 +549,6 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [editingIdx, setEditingIdx] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [rewriting, setRewriting] = useState(false);
-  const [freeEditParaIdx, setFreeEditParaIdx] = useState(null);
   const [chatFile, setChatFile] = useState(null);
   const [contentHistory, setContentHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -710,7 +709,6 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     freeEditParaIdxRef.current = null;
     freeEditOriginalHtmlRef.current = null;
     freeEditMarkerMapRef.current = {};
-    setFreeEditParaIdx(null);
   }
 
   function handleUndo() {
@@ -936,35 +934,29 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             ref={docBodyRef}
             className="max-w-2xl mx-auto doc-prose"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
-            onClick={(e) => {
-              const markerEl = e.target.closest('[data-marker-idx]');
-              if (markerEl) {
-                const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
-                if (freeEditBlockRef.current) finishFreeEdit(true);
-                setEditingIdx(idx);
-                setEditValue('');
-                onTranscriptRef.current = (text) => setEditValue(prev => prev ? prev + ' ' + text : text);
-                return;
-              }
+            onMouseDown={(e) => {
+              // Marker-clicks worden afgehandeld in onClick
+              if (e.target.closest('[data-marker-idx]')) return;
               const block = e.target.closest('[data-para-idx]');
-              if (!block) return;
+              if (!block || block.contentEditable === 'true') return;
               const paraIdx = parseInt(block.getAttribute('data-para-idx'), 10);
               const rawParas = localContentRef.current.split(/\n\n+/);
               if (paraIdx >= rawParas.length) return;
-              if (freeEditBlockRef.current === block) return;
+              // Sla vorige bewerking op
               if (freeEditBlockRef.current) finishFreeEdit(true);
+              // Setup refs
               const allMarkers = [...localContentRef.current.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
               freeEditMarkerMapRef.current = Object.fromEntries(allMarkers.map((m, i) => [i, m[0]]));
               freeEditOriginalHtmlRef.current = block.innerHTML;
               freeEditParaIdxRef.current = paraIdx;
               freeEditBlockRef.current = block;
-              setFreeEditParaIdx(paraIdx);
+              // Stel contentEditable in vóór mouseup zodat de browser de cursor
+              // op het klikpunt plaatst (browser handelt curseurpositie af bij mouseup)
               block.contentEditable = 'true';
               block.style.outline = 'none';
               block.style.borderRadius = '3px';
               block.style.boxShadow = '0 0 0 1.5px rgba(255,255,255,0.12)';
               block.style.cursor = 'text';
-              block.focus();
               function onBlockBlur() {
                 block.removeEventListener('blur', onBlockBlur);
                 block.removeEventListener('keydown', onBlockKeydown);
@@ -984,6 +976,15 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
               }
               block.addEventListener('blur', onBlockBlur);
               block.addEventListener('keydown', onBlockKeydown);
+            }}
+            onClick={(e) => {
+              const markerEl = e.target.closest('[data-marker-idx]');
+              if (!markerEl) return;
+              if (freeEditBlockRef.current) finishFreeEdit(true);
+              const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
+              setEditingIdx(idx);
+              setEditValue('');
+              onTranscriptRef.current = (text) => setEditValue(prev => prev ? prev + ' ' + text : text);
             }}
           />
 
@@ -1190,7 +1191,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                     }
                   }}
                   disabled={applying || transcribing}
-                  placeholder={transcribing ? 'Transcriberen...' : recording ? 'Aan het dicteren...' : 'Vul aan: "Het hotlinenummer is..."'}
+                  placeholder={transcribing ? 'Transcriberen...' : recording ? 'Aan het dicteren...' : 'Vul aan met info. Sleep bestand, typ of spreek in.'}
                   rows={2}
                   className="flex-1 bg-transparent text-[12px] text-white placeholder-white/20 resize-none outline-none leading-relaxed"
                 />
