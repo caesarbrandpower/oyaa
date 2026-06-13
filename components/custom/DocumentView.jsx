@@ -684,31 +684,38 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   function finishFreeEdit(save) {
     const block = freeEditBlockRef.current;
     if (!block) return;
-    block.contentEditable = 'false';
-    block.style.boxShadow = '';
-    block.style.cursor = '';
-    if (save) {
-      const paraIdx = freeEditParaIdxRef.current;
-      if (paraIdx !== null) {
-        const newParaContent = htmlBlockToMarkdown(block, freeEditMarkerMapRef.current);
-        const rawParas = localContentRef.current.split(/\n\n+/);
-        const original = rawParas[paraIdx] || '';
-        if (newParaContent !== original) {
-          const newParas = [...rawParas];
-          newParas[paraIdx] = newParaContent;
-          const newContent = newParas.join('\n\n');
-          pushHistory(localContentRef.current);
-          setLocalContent(newContent);
-          persistContent(newContent);
-        }
-      }
-    } else {
-      block.innerHTML = freeEditOriginalHtmlRef.current || block.innerHTML;
-    }
+    // Nul de ref als eerste zodat een eventuele synchrone blur (veroorzaakt door
+    // contentEditable='false' hieronder) niet opnieuw in deze functie belandt.
     freeEditBlockRef.current = null;
+    const paraIdx = freeEditParaIdxRef.current;
+    const originalHtml = freeEditOriginalHtmlRef.current;
+    const markerMap = freeEditMarkerMapRef.current;
     freeEditParaIdxRef.current = null;
     freeEditOriginalHtmlRef.current = null;
     freeEditMarkerMapRef.current = {};
+
+    block.contentEditable = 'false';
+    block.style.boxShadow = '';
+    block.style.cursor = '';
+
+    if (!save) {
+      block.innerHTML = originalHtml || block.innerHTML;
+      return;
+    }
+    // Als de DOM-inhoud niet veranderd is, niets opslaan (voorkomt false-positive saves)
+    if (block.innerHTML === originalHtml) return;
+    if (paraIdx === null) return;
+    const newParaContent = htmlBlockToMarkdown(block, markerMap);
+    const rawParas = localContentRef.current.split(/\n\n+/);
+    if (paraIdx >= rawParas.length) return;
+    const original = rawParas[paraIdx] || '';
+    if (newParaContent === original) return;
+    const newParas = [...rawParas];
+    newParas[paraIdx] = newParaContent;
+    const newContent = newParas.join('\n\n');
+    pushHistory(localContentRef.current);
+    setLocalContent(newContent);
+    persistContent(newContent);
   }
 
   function handleUndo() {
