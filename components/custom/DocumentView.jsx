@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Marked } from 'marked';
-import { ArrowLeft, ChevronLeft, Copy, Download, MoreHorizontal, Paperclip, Share2, Mic, Square, ArrowUp, Undo2, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, Copy, Download, MoreHorizontal, Paperclip, Pencil, Share2, Mic, Square, ArrowUp, Undo2, X } from 'lucide-react';
 import { useAudioTranscription } from '@/lib/use-audio';
 import {
   fetchImageAsBase64,
@@ -555,15 +555,12 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const [contentHistory, setContentHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [applying, setApplying] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
   const fileInputRef = useRef(null);
   const onTranscriptRef = useRef((text) => setChatInput(prev => prev ? prev + ' ' + text : text));
   const localContentRef = useRef(localContent);
-  const freeEditBlockRef = useRef(null);
-  const freeEditParaIdxRef = useRef(null);
-  const freeEditOriginalHtmlRef = useRef(null);
-  const freeEditMarkerMapRef = useRef({});
   localContentRef.current = localContent;
 
   const { transcribing, recording, toggleRecording } = useAudioTranscription({
@@ -596,10 +593,14 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }, [client]);
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        if (editMode) { handleSaveEditMode(); } else { onClose(); }
+      }
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, editMode]);
 
   function handleCopy() {
     navigator.clipboard.writeText(localContent).then(() => {
@@ -683,56 +684,13 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     setContentHistory(prev => [...prev.slice(-9), current]);
   }
 
-  function finishFreeEdit(save) {
-    const block = freeEditBlockRef.current;
-    if (!block) return;
-    // Nul de ref als eerste zodat een eventuele synchrone blur (veroorzaakt door
-    // contentEditable='false' hieronder) niet opnieuw in deze functie belandt.
-    freeEditBlockRef.current = null;
-    const paraIdx = freeEditParaIdxRef.current;
-    const originalHtml = freeEditOriginalHtmlRef.current;
-    const markerMap = freeEditMarkerMapRef.current;
-    freeEditParaIdxRef.current = null;
-    freeEditOriginalHtmlRef.current = null;
-    freeEditMarkerMapRef.current = {};
-
-    block.contentEditable = 'false';
-    block.style.boxShadow = '';
-    block.style.cursor = '';
-
-    if (!save) {
-      block.innerHTML = originalHtml || block.innerHTML;
-      return;
-    }
-    // Als de DOM-inhoud niet veranderd is, niets opslaan (voorkomt false-positive saves)
-    if (block.innerHTML === originalHtml) return;
-    if (paraIdx === null) return;
-    const newParaContent = htmlBlockToMarkdown(block, markerMap);
-    const rawParas = localContentRef.current.split(/\n\n+/);
-    if (paraIdx >= rawParas.length) return;
-    const original = rawParas[paraIdx] || '';
-    if (newParaContent === original) return;
-    const newParas = [...rawParas];
-    newParas[paraIdx] = newParaContent;
-    const newContent = newParas.join('\n\n');
-    pushHistory(localContentRef.current);
-    setLocalContent(newContent);
-    persistContent(newContent);
-    // Als de alinea een markering had maar die nu weg is: sluit de aside edit-mode.
-    // De markeringen-teller herberekent automatisch via React (parseMarkeringen(localContent)),
-    // maar editingIdx moet expliciet gereset worden anders toont de aside een
-    // verwijderde markering.
-    const markerRe = new RegExp(LABEL_REGEX.source);
-    if (markerRe.test(original) && !markerRe.test(newParaContent)) {
-      setEditingIdx(null);
-      setEditValue('');
-      onTranscriptRef.current = (text) => setChatInput(prev => prev ? prev + ' ' + text : text);
-    }
-  }
-
   function handleUndo() {
     if (contentHistory.length === 0) return;
-    finishFreeEdit(false);
+    if (editMode) {
+      const container = docBodyRef.current;
+      if (container) container.removeAttribute('contentEditable');
+      setEditMode(false);
+    }
     const previous = contentHistory[contentHistory.length - 1];
     setContentHistory(prev => prev.slice(0, -1));
     setLocalContent(previous);
@@ -740,6 +698,78 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     setEditingIdx(null);
     setEditValue('');
   }
+
+  function handleEnterEditMode() {
+    setEditMode(true);
+  }
+
+  function handleSaveEditMode() {
+    const container = docBodyRef.current;
+    if (!container) { setEditMode(false); return; }
+
+    // Bouw markerMap vanuit de huidige markdown-content
+    const allMarkers = [...localContentRef.current.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
+    const markerMap = Object.fromEntries(allMarkers.map((m, i) => [i, m[0]]));
+
+    // Itereer over alle directe child-elementen (incl. nieuw aangemaakte blokken door Enter)
+    const children = Array.from(container.children).filter(el => el.tagName !== 'BR');
+    const paras = children.map(block => htmlBlockToMarkdown(block, markerMap)).filter(Boolean);
+    const newContent = paras.join('\n\n');
+
+    container.removeAttribute('contentEditable');
+    setEditMode(false);
+
+    if (newContent && newContent !== localContentRef.current) {
+      pushHistory(localContentRef.current);
+      setLocalContent(newContent);
+      persistContent(newContent);
+    }
+  }
+
+  // Activeer/deactiveer contentEditable op de container bij wisselen bewerkmodus
+  useEffect(() => {
+    const container = docBodyRef.current;
+    if (!container) return;
+    if (editMode) {
+      container.contentEditable = 'true';
+      container.style.outline = 'none';
+      container.style.caretColor = 'white';
+      // Markering-spans: atomair (niet intern bewerkbaar) en niet te selecteren
+      container.querySelectorAll('[data-marker-idx]').forEach(span => {
+        span.setAttribute('contenteditable', 'false');
+        span.style.userSelect = 'none';
+        span.style.cursor = 'default';
+        span.style.pointerEvents = 'none';
+      });
+      container.focus();
+    } else {
+      container.removeAttribute('contentEditable');
+      container.style.outline = '';
+      container.style.caretColor = '';
+    }
+  }, [editMode]);
+
+  // Bescherm markering-spans tegen verwijdering via toetsenbord/knippen in bewerkmodus
+  useEffect(() => {
+    if (!editMode || !docBodyRef.current) return;
+    const container = docBodyRef.current;
+
+    function handleBeforeInput(e) {
+      if (!e.inputType?.startsWith('delete')) return;
+      const ranges = e.getTargetRanges?.();
+      if (!ranges?.length) return;
+      for (const range of ranges) {
+        const fragment = range.cloneContents();
+        if (fragment.querySelector('[data-marker-idx]')) {
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+
+    container.addEventListener('beforeinput', handleBeforeInput);
+    return () => container.removeEventListener('beforeinput', handleBeforeInput);
+  }, [editMode]);
 
   async function handleFileAttach(file) {
     if (!file) return;
@@ -936,6 +966,23 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             <Share2 className="w-3 h-3" strokeWidth={2} />
             {sharing ? 'Bezig...' : shareUrl ? 'Link gekopieerd!' : 'Deel als link'}
           </button>
+          {editMode ? (
+            <button
+              onClick={handleSaveEditMode}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white bg-orange hover:bg-[#e03d00] transition-colors font-semibold"
+            >
+              <Check className="w-3 h-3" strokeWidth={2.5} />
+              Klaar
+            </button>
+          ) : (
+            <button
+              onClick={handleEnterEditMode}
+              className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors"
+            >
+              <Pencil className="w-3 h-3" strokeWidth={2} />
+              Bewerken
+            </button>
+          )}
           <button
             className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
             aria-label="Meer opties"
@@ -952,54 +999,13 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
           <div
             ref={docBodyRef}
             className="max-w-2xl mx-auto doc-prose"
+            suppressContentEditableWarning
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
-            onMouseDown={(e) => {
-              // Marker-clicks worden afgehandeld in onClick
-              if (e.target.closest('[data-marker-idx]')) return;
-              const block = e.target.closest('[data-para-idx]');
-              if (!block || block.contentEditable === 'true') return;
-              const paraIdx = parseInt(block.getAttribute('data-para-idx'), 10);
-              const rawParas = localContentRef.current.split(/\n\n+/);
-              if (paraIdx >= rawParas.length) return;
-              // Sla vorige bewerking op
-              if (freeEditBlockRef.current) finishFreeEdit(true);
-              // Setup refs
-              const allMarkers = [...localContentRef.current.matchAll(new RegExp(LABEL_REGEX.source, 'g'))];
-              freeEditMarkerMapRef.current = Object.fromEntries(allMarkers.map((m, i) => [i, m[0]]));
-              freeEditOriginalHtmlRef.current = block.innerHTML;
-              freeEditParaIdxRef.current = paraIdx;
-              freeEditBlockRef.current = block;
-              // Stel contentEditable in vóór mouseup zodat de browser de cursor
-              // op het klikpunt plaatst (browser handelt curseurpositie af bij mouseup)
-              block.contentEditable = 'true';
-              block.style.outline = 'none';
-              block.style.borderRadius = '3px';
-              block.style.boxShadow = '0 0 0 1.5px rgba(255,255,255,0.12)';
-              block.style.cursor = 'text';
-              function onBlockBlur() {
-                block.removeEventListener('blur', onBlockBlur);
-                block.removeEventListener('keydown', onBlockKeydown);
-                finishFreeEdit(true);
-              }
-              function onBlockKeydown(ev) {
-                if (ev.key === 'Enter' && !ev.shiftKey) {
-                  ev.preventDefault();
-                  block.removeEventListener('blur', onBlockBlur);
-                  block.removeEventListener('keydown', onBlockKeydown);
-                  finishFreeEdit(true);
-                } else if (ev.key === 'Escape') {
-                  block.removeEventListener('blur', onBlockBlur);
-                  block.removeEventListener('keydown', onBlockKeydown);
-                  finishFreeEdit(false);
-                }
-              }
-              block.addEventListener('blur', onBlockBlur);
-              block.addEventListener('keydown', onBlockKeydown);
-            }}
             onClick={(e) => {
+              // In bewerkmodus: markeringen zijn niet aanklikbaar (pointer-events:none op spans)
+              if (editMode) return;
               const markerEl = e.target.closest('[data-marker-idx]');
               if (!markerEl) return;
-              if (freeEditBlockRef.current) finishFreeEdit(true);
               const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
               setEditingIdx(idx);
               setEditValue('');
@@ -1148,7 +1154,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
                     </p>
                   )}
                   <p className="text-[11px] text-white/30 mt-1.5 leading-relaxed">
-                    Klik op een markering om aan te vullen. Klik op tekst om direct te bewerken.
+                    Klik op een markering om aan te vullen, of gebruik &lsquo;Bewerken&rsquo; om de tekst te wijzigen.
                   </p>
                 </div>
                 <div className="flex-1" />
