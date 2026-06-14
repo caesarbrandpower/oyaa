@@ -713,16 +713,35 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
     // Itereer over alle directe child-elementen (incl. nieuw aangemaakte blokken door Enter)
     const children = Array.from(container.children).filter(el => el.tagName !== 'BR');
-    const paras = children.map(block => htmlBlockToMarkdown(block, markerMap)).filter(Boolean);
+
+    console.group('[handleSaveEditMode] Klaar geklikt');
+    console.log('messageId:', messageId);
+    console.log('savedToken:', savedToken);
+    console.log('childElements:', children.length, children.map(el => el.tagName));
+
+    const paras = children.map((block, i) => {
+      const md = htmlBlockToMarkdown(block, markerMap);
+      console.log(`  block[${i}] <${block.tagName.toLowerCase()}>:`, JSON.stringify(md));
+      return md;
+    }).filter(Boolean);
+
     const newContent = paras.join('\n\n');
+    console.log('newContent (eerste 200 tekens):', JSON.stringify(newContent.slice(0, 200)));
+    console.log('localContent (eerste 200 tekens):', JSON.stringify(localContentRef.current.slice(0, 200)));
+    console.log('content gewijzigd?', newContent !== localContentRef.current);
 
     container.removeAttribute('contentEditable');
     setEditMode(false);
 
     if (newContent && newContent !== localContentRef.current) {
+      console.log('→ persistContent wordt aangeroepen');
+      console.groupEnd();
       pushHistory(localContentRef.current);
       setLocalContent(newContent);
       persistContent(newContent);
+    } else {
+      console.log('→ persistContent NIET aangeroepen (leeg of ongewijzigd)');
+      console.groupEnd();
     }
   }
 
