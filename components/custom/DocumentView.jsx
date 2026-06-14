@@ -52,6 +52,8 @@ function htmlBlockToMarkdown(block, markerMap) {
     } else if (node.nodeType === 1) {
       const t = node.tagName.toLowerCase();
       if (node.hasAttribute('data-marker-idx')) {
+        // Lege span: gebruiker heeft de markering-tekst verwijderd → overslaan
+        if (!node.textContent.trim()) return;
         const idx = parseInt(node.getAttribute('data-marker-idx'), 10);
         result += (markerMap[idx] ?? node.textContent);
       } else if (t === 'strong' || t === 'b') {
@@ -80,7 +82,7 @@ function htmlBlockToMarkdown(block, markerMap) {
   } else {
     block.childNodes.forEach(walkInline);
   }
-  return result.trim();
+  return result.replace(/\n\n+/g, '\n').trim();
 }
 
 function extractTitle(markdown) {
