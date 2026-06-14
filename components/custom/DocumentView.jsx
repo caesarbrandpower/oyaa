@@ -843,14 +843,28 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newContent }),
-      }).catch(() => {});
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            console.error(`[persistContent] share-document PATCH mislukt: ${res.status}`, body);
+          }
+        })
+        .catch((err) => console.error('[persistContent] share-document netwerk-fout:', err));
     }
     if (messageId) {
       fetch(`/api/messages/${messageId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newContent }),
-      }).catch(() => {});
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            console.error(`[persistContent] messages PATCH mislukt: ${res.status}`, body);
+          }
+        })
+        .catch((err) => console.error('[persistContent] messages netwerk-fout:', err));
     }
   }
 
