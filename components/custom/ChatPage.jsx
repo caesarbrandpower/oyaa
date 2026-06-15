@@ -1048,6 +1048,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         messageId={activeDocument.messageId ?? null}
         onClose={handleCloseDocument}
         onImprove={handleCloseDocument}
+        onContentSaved={(newContent) => {
+          const msgId = activeDocument?.messageId;
+          if (msgId) setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: newContent } : m));
+        }}
       />
     )}
     <div className="flex h-full overflow-hidden">

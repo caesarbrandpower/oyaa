@@ -594,7 +594,7 @@ async function _unusedWordDoc(content, title, logos = {}, extras = null) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DocumentView({ content, onClose, onImprove, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null, messageId = null }) {
+export default function DocumentView({ content, onClose, onImprove, onContentSaved = null, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null, messageId = null }) {
   const [localContent, setLocalContent] = useState(content);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
@@ -913,6 +913,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
   function persistContent(newContent) {
     console.log('[persistContent] aangeroepen met messageId:', messageIdRef.current);
+    onContentSaved?.(newContent);
     if (savedToken) {
       fetch(`/api/share-document?token=${savedToken}`, {
         method: 'PATCH',
