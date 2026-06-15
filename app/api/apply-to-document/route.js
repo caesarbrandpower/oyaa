@@ -36,7 +36,8 @@ TAAK: Bepaal welke markeringen in het document door deze informatie beantwoord o
 REGELS:
 - Verwerk de informatie alleen waar die inhoudelijk relevant is voor de markering
 - Als de gebruiker bestaande informatie bevestigt, corrigeert of bijwerkt, VERVANG dan de tegenstrijdige of verouderde tekst door de nieuwe versie — voeg niet toe naast bestaande tekst die dan klopt
-- Als een markering meerdere deelvragen bevat en de tekst beantwoordt er maar één, voeg een nieuwe markering toe met de resterende onbeantwoorde vragen
+- MARKERING VERWIJDEREN: als een markering volledig beantwoord is, verwijder dan de volledige [LABEL] inclusief blokhaken uit de herschreven alinea — vervang hem door de verwerkte tekst, geen blokhaken
+- Als een markering meerdere deelvragen bevat en de tekst beantwoordt er maar één, voeg een nieuwe markering toe met ALLEEN de resterende onbeantwoorde vragen in blokhaken: [LABEL: resterende vragen]
 - Verzin nooit informatie — verwerk alleen wat de gebruiker letterlijk aanlevert
 - Als de tekst voor geen enkele markering relevant is, geef een lege array terug
 
