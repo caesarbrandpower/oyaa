@@ -25,10 +25,14 @@ function isRedLabel(label) {
 
 function injectLabelHtml(html) {
   let idx = 0;
-  const tagStyle = 'display:inline-flex;align-items:center;padding:0 5px;border-radius:3px;font-size:11px;font-weight:700;background:#f97316;color:#fff;margin:0 2px;cursor:pointer;font-family:var(--font-lexend);vertical-align:baseline;line-height:1.6';
+  const baseStyle = 'display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;margin:0 2px;cursor:pointer;font-family:var(--font-lexend)';
+  const xStyle = 'margin-left:5px;font-size:10px;font-weight:400;opacity:0.65;line-height:1;flex-shrink:0';
   return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
     const currentIdx = idx++;
-    return `<span data-marker-idx="${currentIdx}" style="${tagStyle}">[${currentIdx + 1}]</span>`;
+    const displayLabel = label.split(':')[0].trim();
+    const numbered = `${currentIdx + 1} · ${displayLabel}`;
+    const xBtn = `<span data-marker-dismiss="${currentIdx}" style="${xStyle}">✕</span>`;
+    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#f97316;color:#fff">${numbered}${xBtn}</span>`;
   });
 }
 
@@ -1217,7 +1221,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
                     <ChevronLeft className="w-4 h-4" strokeWidth={2} />
                   </button>
                   <p className="text-[10px] text-white/35 uppercase font-bold tracking-wider truncate flex-1">
-                    [{editingIdx + 1}] {markeringen[editingIdx]?.split(':')[0].trim()}
+                    {editingIdx + 1} · {markeringen[editingIdx]?.split(':')[0].trim()}
                   </p>
                 </div>
                 {(() => {
@@ -1289,27 +1293,14 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
                 <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
                   {markeringen.length === 0 ? (
                     <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white/40 italic">Alle markeringen ingevuld</p>
-                  ) : initialMarkerCount > 0 ? (
-                    <>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] text-white/50">{initialMarkerCount - markeringen.length} van {initialMarkerCount} ingevuld</span>
-                        <span className="text-[11px] font-semibold text-orange">{Math.round(((initialMarkerCount - markeringen.length) / initialMarkerCount) * 100)}%</span>
-                      </div>
-                      <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                        <div
-                          className="h-1 bg-orange rounded-full transition-all duration-300"
-                          style={{ width: `${((initialMarkerCount - markeringen.length) / initialMarkerCount) * 100}%` }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-white/30 mt-2.5 leading-relaxed">
-                        Klik op een markering om aan te vullen, of gebruik &lsquo;Bewerken&rsquo; om de tekst te wijzigen.
-                      </p>
-                    </>
                   ) : (
-                    <p className="text-[11px] text-white/30 leading-relaxed">
-                      Klik op een markering om aan te vullen, of gebruik &lsquo;Bewerken&rsquo; om de tekst te wijzigen.
+                    <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white/80">
+                      <span className="text-orange">{initialMarkerCount - markeringen.length}</span> van {initialMarkerCount} {initialMarkerCount === 1 ? 'markering ingevuld' : 'markeringen ingevuld'}
                     </p>
                   )}
+                  <p className="text-[11px] text-white/30 mt-1.5 leading-relaxed">
+                    Klik op een markering om aan te vullen, of gebruik &lsquo;Bewerken&rsquo; om de tekst te wijzigen.
+                  </p>
                 </div>
                 <div className="flex-1" />
               </div>
