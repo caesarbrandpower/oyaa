@@ -69,6 +69,15 @@ function htmlBlockToMarkdown(block, markerMap) {
       }
     }
   }
+  // Inline-inhoud van een tabelcel extraheren zonder de outer result te vervuilen
+  function cellText(cell) {
+    const saved = result;
+    result = '';
+    cell.childNodes.forEach(walkInline);
+    const text = result.replace(/\|/g, '\\|').trim();
+    result = saved;
+    return text;
+  }
   const tag = block.tagName.toLowerCase();
   if (/^h[1-6]$/.test(tag)) {
     result = '#'.repeat(parseInt(tag[1])) + ' ';
@@ -81,6 +90,32 @@ function htmlBlockToMarkdown(block, markerMap) {
       result = before + '- ' + result.trim() + '\n';
     });
     result = result.trimEnd();
+  } else if (tag === 'table') {
+    // Header-rij uit <thead>
+    const headerCells = [];
+    const thead = block.querySelector('thead');
+    if (thead) {
+      const headerRow = thead.querySelector('tr');
+      if (headerRow) headerRow.querySelectorAll('th, td').forEach(cell => headerCells.push(cellText(cell)));
+    }
+    // Data-rijen uit <tbody> (of direct <tr> in tabel als er geen tbody is)
+    const dataRows = [];
+    const tbody = block.querySelector('tbody');
+    const dataRowEls = tbody ? tbody.querySelectorAll(':scope > tr') : block.querySelectorAll(':scope > tr');
+    dataRowEls.forEach(tr => {
+      const cells = [];
+      tr.querySelectorAll('td, th').forEach(cell => cells.push(cellText(cell)));
+      if (cells.length) dataRows.push(cells);
+    });
+    const colCount = Math.max(headerCells.length, ...dataRows.map(r => r.length), 0);
+    if (colCount > 0) {
+      const headers = headerCells.length ? headerCells : (dataRows.shift() ?? []);
+      const pad = (arr) => arr.concat(Array(Math.max(0, colCount - arr.length)).fill(''));
+      result = '| ' + pad(headers).join(' | ') + ' |\n';
+      result += '| ' + Array(colCount).fill('---').join(' | ') + ' |\n';
+      dataRows.forEach(row => { result += '| ' + pad(row).join(' | ') + ' |\n'; });
+      result = result.trimEnd();
+    }
   } else {
     block.childNodes.forEach(walkInline);
   }
