@@ -26,14 +26,16 @@ function isRedLabel(label) {
 function injectLabelHtml(html) {
   let idx = 0;
   const baseStyle = 'display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;margin:0 2px;cursor:pointer;font-family:var(--font-lexend)';
+  const xStyle = 'margin-left:5px;font-size:10px;font-weight:400;opacity:0.65;line-height:1;flex-shrink:0';
   return html.replace(/\[([A-Z][A-Z\s]*(:[^\]]*)?)\]/g, (_, label) => {
     const currentIdx = idx++;
     const displayLabel = label.split(':')[0].trim();
     const numbered = `${currentIdx + 1} · ${displayLabel}`;
+    const xBtn = `<span data-marker-dismiss="${currentIdx}" style="${xStyle}">✕</span>`;
     if (isRedLabel(label)) {
-      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${numbered}</span>`;
+      return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#CC2200;color:#fff">${numbered}${xBtn}</span>`;
     }
-    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${numbered}</span>`;
+    return `<span data-marker-idx="${currentIdx}" style="${baseStyle};background:#F59E0B;color:#7C4A00">${numbered}${xBtn}</span>`;
   });
 }
 
@@ -107,6 +109,13 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
     count++;
     return match;
   });
+}
+
+function dismissMarkerFromContent(content, idx) {
+  const sentinel = "__OYAA_DISMISS__";
+  const withSentinel = replaceOccurrence(content, LABEL_REGEX, idx, sentinel);
+  const cleaned = withSentinel.replace(/[^\n]*__OYAA_DISMISS__[^\n]*\n?/g, "");
+  return cleaned.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 // Vindt de paragraaf (gescheiden door \n\n) die de nth marker-occurrence bevat.
@@ -908,24 +917,53 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         if (res.ok) {
           const data = await res.json();
           if (data.rewritten) {
-            pushHistory(localContent);
-            setLocalContent(prev => {
-              const freshPara = extractParagraph(prev, idx);
-              let newContent = freshPara
-                ? prev.slice(0, freshPara.start) + data.rewritten + prev.slice(freshPara.end)
-                : replaceOccurrence(prev, LABEL_REGEX, idx, trimmed);
-              // Propageer aanverwante secties atomair
-              if (Array.isArray(data.otherUpdates)) {
-                for (const u of data.otherUpdates) {
-                  if (u.original && u.updated && newContent.includes(u.original)) {
-                    newContent = newContent.replace(u.original, u.updated);
-                  }
+            // Bereken newContent buiten de functional update zodat we hem doorgeven aan apply-to-document
+            const freshPara = extractParagraph(localContent, idx);
+            let newContent = freshPara
+              ? localContent.slice(0, freshPara.start) + data.rewritten + localContent.slice(freshPara.end)
+              : replaceOccurrence(localContent, LABEL_REGEX, idx, trimmed);
+            if (Array.isArray(data.otherUpdates)) {
+              for (const u of data.otherUpdates) {
+                if (u.original && u.updated && newContent.includes(u.original)) {
+                  newContent = newContent.replace(u.original, u.updated);
                 }
               }
-              persistContent(newContent);
-              return newContent;
-            });
+            }
+            pushHistory(localContent);
+            setLocalContent(newContent);
+            persistContent(newContent);
             success = true;
+
+            // Propageer dezelfde info naar de rest van het document
+            try {
+              const applyRes = await fetch('/api/apply-to-document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  freeText: trimmed,
+                  fullDocument: newContent,
+                  outputType,
+                  markings: parseMarkeringen(newContent),
+                }),
+              });
+              if (applyRes.ok) {
+                const applyData = await applyRes.json();
+                if (Array.isArray(applyData.updates) && applyData.updates.length > 0) {
+                  setLocalContent(prev => {
+                    let propagated = prev;
+                    for (const u of applyData.updates) {
+                      if (u.original && u.updated && propagated.includes(u.original)) {
+                        propagated = propagated.replace(u.original, u.updated);
+                      }
+                    }
+                    if (propagated !== prev) persistContent(propagated);
+                    return propagated;
+                  });
+                }
+              }
+            } catch {
+              // propagatie mislukt — hoofdrewrite al opgeslagen
+            }
           }
         }
       }
@@ -951,6 +989,19 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
 
   function handleConfirm(idx) {
     setLocalContent(prev => replaceOccurrence(prev, LABEL_REGEX, idx, ''));
+  }
+
+  function handleDismissMarker(idx) {
+    pushHistory(localContent);
+    setLocalContent(prev => {
+      const newContent = dismissMarkerFromContent(prev, idx);
+      persistContent(newContent);
+      return newContent;
+    });
+    if (editingIdx === idx) {
+      setEditingIdx(null);
+      setEditValue('');
+    }
   }
 
   return (
@@ -1037,6 +1088,13 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
             onClick={(e) => {
               // In bewerkmodus: markeringen zijn niet aanklikbaar (pointer-events:none op spans)
               if (editMode) return;
+              // X-knop: dismiss vóór marker-click checken (X zit ín de marker-span)
+              const dismissEl = e.target.closest('[data-marker-dismiss]');
+              if (dismissEl) {
+                e.stopPropagation();
+                handleDismissMarker(parseInt(dismissEl.getAttribute('data-marker-dismiss'), 10));
+                return;
+              }
               const markerEl = e.target.closest('[data-marker-idx]');
               if (!markerEl) return;
               const idx = parseInt(markerEl.getAttribute('data-marker-idx'), 10);
