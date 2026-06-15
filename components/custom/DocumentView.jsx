@@ -912,6 +912,7 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   }
 
   function persistContent(newContent) {
+    console.log('[persistContent] aangeroepen met messageId:', messageIdRef.current);
     if (savedToken) {
       fetch(`/api/share-document?token=${savedToken}`, {
         method: 'PATCH',
@@ -1041,6 +1042,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
     pushHistory(localContent);
     setLocalContent(prev => {
       const newContent = dismissMarkerFromContent(prev, idx);
+      console.log('[dismiss] newContent lengte:', newContent.length);
+      console.log('[dismiss] messageId:', messageIdRef.current);
       persistContent(newContent);
       return newContent;
     });
