@@ -606,6 +606,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
   const onTranscriptRef = useRef((text) => setChatInput(prev => prev ? prev + ' ' + text : text));
   const localContentRef = useRef(localContent);
   localContentRef.current = localContent;
+  const messageIdRef = useRef(messageId);
+  messageIdRef.current = messageId;
 
   const { transcribing, recording, toggleRecording } = useAudioTranscription({
     onTranscript: (text) => onTranscriptRef.current(text),
@@ -915,8 +917,8 @@ export default function DocumentView({ content, onClose, onImprove, client = nul
         })
         .catch((err) => console.error('[persistContent] share-document netwerk-fout:', err));
     }
-    if (messageId) {
-      fetch(`/api/messages/${messageId}`, {
+    if (messageIdRef.current) {
+      fetch(`/api/messages/${messageIdRef.current}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newContent }),
