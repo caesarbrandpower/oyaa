@@ -149,8 +149,17 @@ function replaceOccurrence(text, labelPattern, occurrenceIndex, replacement) {
 function dismissMarkerFromContent(content, idx) {
   const sentinel = "__OYAA_DISMISS__";
   const withSentinel = replaceOccurrence(content, LABEL_REGEX, idx, sentinel);
-  const cleaned = withSentinel.replace(/[^\n]*__OYAA_DISMISS__[^\n]*\n?/g, "");
-  return cleaned.replace(/\n{3,}/g, "\n\n").trim();
+  const lines = withSentinel.split('\n');
+  const filtered = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(sentinel)) {
+      // Sla ook de direct volgende niet-lege regel over (de bijbehorende vraagzin)
+      if (i + 1 < lines.length && lines[i + 1].trim()) i++;
+      continue;
+    }
+    filtered.push(lines[i]);
+  }
+  return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 // Vindt de paragraaf (gescheiden door \n\n) die de nth marker-occurrence bevat.
