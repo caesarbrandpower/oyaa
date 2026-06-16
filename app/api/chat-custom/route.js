@@ -7,7 +7,7 @@ import { anonymize, deanonymize } from '@/lib/anonymize';
 import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
-import { retrieveVaultContext, formatVaultBlock } from '@/lib/vault/retrieve';
+import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/lib/vault/retrieve';
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
@@ -180,10 +180,22 @@ export async function POST(request) {
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
         const skipVaultRetrieval = documentAttachments.length > 0 && !analysisConfirmed;
         const vaultOn = vaultEnabled(tenant);
+
+        const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
+        const wantsFullSummary = FULL_SUMMARY_KEYWORDS.some(kw => userOnlyMessage.toLowerCase().includes(kw));
+
         let vaultContext = { found: false, sources: [] };
         if (tenant?.id && vaultOn && !skipVaultRetrieval) {
           try {
             vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage });
+            if (wantsFullSummary && vaultContext.found) {
+              const topDocId = vaultContext.sources[0].documentId;
+              const fullDocContext = await retrieveFullDocument({ tenantId: tenant.id, documentId: topDocId });
+              if (fullDocContext) {
+                vaultContext = fullDocContext;
+                console.log(`[VAULT] volledig document opgehaald: ${fullDocContext.sources.length} chunks`);
+              }
+            }
           } catch (err) {
             console.error('[VAULT] retrieval mislukt:', err?.message ?? err);
           }
@@ -432,7 +444,10 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         let vaultSystemSuffix = '';
         if (!useStructuredPrompt) {
           if (vaultContext.found) {
-            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}`;
+            const proactiveInstruction = !wantsFullSummary
+              ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
+              : '';
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
           } else if (vaultOn && !skipVaultRetrieval) {
             vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
@@ -484,7 +499,10 @@ ${userTextOnly}`;
           } else {
             promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
             if (vaultContext.found) {
-              promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken. Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is:\n\n${formatVaultBlock(anonVaultSources)}\n\n---\n\n` + promptText;
+              const proactiveInstruction = !wantsFullSummary
+                ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
+                : '';
+              promptText = `CONTEXT UIT DE KLUIS - eerdere documenten van het bureau. Gebruik dit alleen waar de input ernaar verwijst of waar het een feitelijk gat in de input vult; vul je een gat vanuit deze context, markeer dat veld dan niet als ontbrekend. Dit is GEEN input van de gebruiker en mag de input nooit tegenspreken. Placeholders zoals [Naam 1] of [TELEFOON 1] behandel je als gewone waarden; benoem nooit dat iets geanonimiseerd is:\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}\n\n---\n\n` + promptText;
             }
             const effectiveClientName = clientName || threadClientFromDb;
             const effectiveProjectName = wizardProject?.trim() || threadProjectFromDb;
