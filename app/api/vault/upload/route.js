@@ -29,13 +29,17 @@ export async function POST(request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  console.log(`[VAULT] upload gestart: "${file.name}" (${file.type || 'onbekend type'}, ${buffer.length} bytes)`);
+
   let text;
   try {
     text = await extractFileText(buffer, file.name);
   } catch (err) {
+    console.error(`[VAULT] tekstextractie mislukt voor "${file.name}":`, err.message);
     return Response.json({ error: err.message }, { status: 400 });
   }
   if (!text?.trim()) {
+    console.warn(`[VAULT] geen tekst gevonden in "${file.name}" — mogelijk gescand PDF of leeg bestand`);
     return Response.json({ error: 'Geen tekst gevonden in dit bestand.' }, { status: 400 });
   }
 
