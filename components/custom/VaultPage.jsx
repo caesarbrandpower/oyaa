@@ -20,21 +20,48 @@ export default function VaultPage({ tenant, documents: initialDocuments }) {
     if (!files.length) return;
     setBusy(true);
     for (const file of files) {
-      setStatus(`Bezig met ${file.name}...`);
-      const fd = new FormData();
-      fd.append('file', file);
       try {
-        const res = await fetch('/api/vault/upload', { method: 'POST', body: fd });
-        const json = await res.json();
-        if (!res.ok) {
-          setStatus(`${file.name}: ${json.error ?? 'uploaden mislukt'}`);
-        } else if (json.skipped) {
+        // Stap 1: signed upload URL ophalen
+        setStatus(`${file.name}: upload voorbereiden...`);
+        const urlRes = await fetch('/api/vault/request-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name }),
+        });
+        const urlJson = await urlRes.json();
+        if (!urlRes.ok) {
+          setStatus(`${file.name}: ${urlJson.error ?? 'upload starten mislukt'}`);
+          continue;
+        }
+
+        // Stap 2: bestand direct naar Supabase Storage (omzeilt Vercel limiet)
+        setStatus(`${file.name}: uploaden...`);
+        const formData = new FormData();
+        formData.append('cacheControl', '3600');
+        formData.append('', file);
+        const putRes = await fetch(urlJson.signedUrl, { method: 'PUT', body: formData });
+        if (!putRes.ok) {
+          setStatus(`${file.name}: upload naar opslag mislukt`);
+          continue;
+        }
+
+        // Stap 3: tekst extraheren en in de kluis zetten
+        setStatus(`${file.name}: verwerken...`);
+        const ingestRes = await fetch('/api/vault/ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath: urlJson.storagePath, fileName: file.name }),
+        });
+        const ingestJson = await ingestRes.json();
+        if (!ingestRes.ok) {
+          setStatus(`${file.name}: ${ingestJson.error ?? 'verwerken mislukt'}`);
+        } else if (ingestJson.skipped) {
           setStatus(`${file.name}: stond al in de kluis`);
         } else {
-          setStatus(`${file.name}: toegevoegd (${json.chunkCount} fragmenten)`);
+          setStatus(`${file.name}: toegevoegd (${ingestJson.chunkCount} fragmenten)`);
           setDocuments((prev) => [
             {
-              id: json.documentId,
+              id: ingestJson.documentId,
               title: file.name,
               source_type: 'upload',
               output_type: null,
