@@ -45,7 +45,8 @@ export async function POST(request) {
 
   // Binarie bewaren; mislukt dit, dan gaat de ingest gewoon door (file_path null)
   const service = createServiceClient();
-  const storagePath = `${tenant.id}/uploads/${Date.now()}-${file.name}`;
+  const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+  const storagePath = `${tenant.id}/uploads/${Date.now()}-${safeName}`;
   const { error: storageError } = await service.storage
     .from('vault')
     .upload(storagePath, buffer, { contentType: file.type || 'application/octet-stream' });
