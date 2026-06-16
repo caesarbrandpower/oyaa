@@ -11,6 +11,7 @@ import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
+import { uploadToDrive } from '@/lib/google-drive';
 
 export const maxDuration = 120;
 
@@ -723,6 +724,20 @@ ${userTextOnly}`;
               }
             })(),
             new Promise(resolve => setTimeout(resolve, 15000)),
+          ]);
+        }
+
+        // ── Google Drive upload ───────────────────────────────────────────────
+        const driveConfig = tenant?.tenant_config?.google_drive;
+        if (isDocument && finalContent && driveConfig?.enabled && driveConfig?.folder_id) {
+          const ts = new Date().toISOString().slice(0, 10);
+          const parts = [effectiveOutputType, detectedClient, ts].filter(Boolean);
+          const driveFileName = `${parts.join(' - ')}.docx`;
+          await Promise.race([
+            uploadToDrive(finalContent, driveFileName, driveConfig.folder_id)
+              .then((file) => console.log('[DRIVE] geüpload:', driveFileName, file.id))
+              .catch((err) => console.error('[DRIVE] upload mislukt:', err?.message ?? err)),
+            new Promise(resolve => setTimeout(resolve, 10000)),
           ]);
         }
 
