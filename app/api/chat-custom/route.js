@@ -533,10 +533,16 @@ ${userTextOnly}`;
         }
 
         if (vaultContext.found) {
+          const seenDocIds = new Set();
+          const dedupedSources = vaultContext.sources.filter(s => {
+            if (seenDocIds.has(s.documentId)) return false;
+            seenDocIds.add(s.documentId);
+            return true;
+          });
           writeEvent(controller, {
             type: 'sources',
-            sources: vaultContext.sources.map(s => ({
-              n: s.n,
+            sources: dedupedSources.map((s, i) => ({
+              n: i + 1,
               title: s.title,
               client: s.client,
               project: s.project,
