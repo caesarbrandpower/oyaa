@@ -734,10 +734,15 @@ ${userTextOnly}`;
           const parts = [effectiveOutputType, detectedClient, ts].filter(Boolean);
           const driveFileName = `${parts.join(' - ')}.docx`;
           await Promise.race([
-            uploadToDrive(finalContent, driveFileName, driveConfig.folder_id)
-              .then((file) => console.log('[DRIVE] geüpload:', driveFileName, file.id))
-              .catch((err) => console.error('[DRIVE] upload mislukt:', err?.message ?? err)),
-            new Promise(resolve => setTimeout(resolve, 10000)),
+            uploadToDrive(finalContent, driveFileName, {
+              rootFolderId: driveConfig.folder_id,
+              clientName: detectedClient ?? null,
+              outputType: effectiveOutputType,
+              rawTranscript: (effectiveOutputType === 'meeting-summary' && recordingTranscriptContent) ? recordingTranscriptContent : null,
+            })
+              .then((file) => console.log('[DRIVE] geüpload:', driveFileName, file?.id))
+              .catch((err) => console.error('[DRIVE] upload mislukt:', err?.response?.data ?? err?.message ?? err)),
+            new Promise(resolve => setTimeout(resolve, 15000)),
           ]);
         }
 
