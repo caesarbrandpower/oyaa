@@ -29,6 +29,13 @@ function formatDate(dateStr) {
   });
 }
 
+function formatDateTime(dateStr) {
+  const d = new Date(dateStr);
+  const date = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }).replace('.', '');
+  const time = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
 function buildFolderTree(threads) {
   // Returns { clientName: { __direct: [], __projects: { projectName: [] } } }
   const tree = {};
@@ -384,7 +391,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
               title="Klik om te hernoemen"
             >
               <p className="text-[13px] font-medium text-white/80 truncate">{thread.title}</p>
-              <p className="text-[11px] text-white/30 mt-0.5">{typeInfo.label}</p>
+              <p className="text-[11px] text-white/30 mt-0.5">{typeInfo.label} · {formatDateTime(thread.created_at)}</p>
             </button>
           )}
         </div>

@@ -247,7 +247,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           }`}
         >
           <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
-          Klantmappen
+          Mijn klanten
         </Link>
         {tenant?.tenant_config?.vault_enabled === true && (
           <Link

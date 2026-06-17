@@ -730,7 +730,8 @@ ${userTextOnly}`;
         // ── Google Drive upload ───────────────────────────────────────────────
         const driveConfig = tenant?.tenant_config?.google_drive;
         if (isDocument && finalContent && driveConfig?.enabled && driveConfig?.folder_id) {
-          const ts = new Date().toISOString().slice(0, 10);
+          const nowDrive = new Date();
+          const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
           const parts = [effectiveOutputType, detectedClient, ts].filter(Boolean);
           const driveFileName = `${parts.join(' - ')}.docx`;
           await Promise.race([
