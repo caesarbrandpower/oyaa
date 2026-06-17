@@ -308,7 +308,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false, hasUserContent = true) => {
       if (sendingRef.current) return;
 
       // Analyse-bevestigingsflow: gebruiker reageert op "Zal ik de briefing maken?"
@@ -527,6 +527,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             prevHasDoc,
             project: wizardProject ?? null,
             analysisConfirmed,
+            hasUserContent,
             ...(isImprove ? { improveDocument: true } : {}),
             ...(isRecordingSplit ? {
               recordingClient: activeThreadRef.current?.client ?? null,
@@ -881,13 +882,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setActiveTask(task);
   }
 
-  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = [], txtAttachments = []) {
+  function handleTaskGenerate(prompt, outputType, taskLabel, displayText, client, imageAttachments = [], wizardProject = null, pdfAttachments = [], txtAttachments = [], hasUserContent = true) {
     setActiveTask(null);
     // Sla wizard-foto's op in ref zodat handleSend ze kan toevoegen aan briefingExtras na genereren
     pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously, resets threadTxtAttachmentsRef
     threadTxtAttachmentsRef.current = txtAttachments; // na handleNewThread zetten — anders overschreven
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */);
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */, hasUserContent);
   }
 
   function handleTaskPanelClose(prefillText) {

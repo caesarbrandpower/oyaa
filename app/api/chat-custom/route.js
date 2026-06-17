@@ -60,6 +60,7 @@ export async function POST(request) {
     prevHasDoc = false,
     project: wizardProject = null,
     analysisConfirmed = false,
+    hasUserContent: bodyHasUserContent = true,
     improveDocument = false,
     recordingTranscript = null,
     recordingClient = null,
@@ -179,7 +180,8 @@ export async function POST(request) {
         // als de berichtgeschiedenis. Overslaan als deze beurt alleen het
         // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
-        const skipVaultRetrieval = documentAttachments.length > 0 && !analysisConfirmed;
+        const hasUserContent = bodyHasUserContent !== false;
+        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];

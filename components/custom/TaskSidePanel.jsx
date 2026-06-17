@@ -177,7 +177,8 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
       }
     }
 
-    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments, txtAttachments);
+    const hasUserContent = !!(description.trim() || transcript.trim() || validAttachments.length || validDocAttachments.length || txtAttachments.length);
+    onGenerate(prompt, task.id, task.label, displayText, clientInput.trim() || null, validAttachments, projectInput.trim() || null, validDocAttachments, txtAttachments, hasUserContent);
   }
 
   function handleDirectChat() {
