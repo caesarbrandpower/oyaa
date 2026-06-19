@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
-import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES } from '@/lib/custom-prompts';
+import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/lib/vault/retrieve';
@@ -734,7 +734,8 @@ ${userTextOnly}`;
         if (isDocument && finalContent && driveConfig?.enabled && driveConfig?.folder_id) {
           const nowDrive = new Date();
           const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
-          const parts = [effectiveOutputType, detectedClient, ts].filter(Boolean);
+          const driveTypeLabel = OUTPUT_TYPE_INFO[effectiveOutputType]?.label ?? effectiveOutputType;
+          const parts = [driveTypeLabel, detectedClient, ts].filter(Boolean);
           const driveFileName = `${parts.join(' - ')}.docx`;
           await Promise.race([
             uploadToDrive(finalContent, driveFileName, {
