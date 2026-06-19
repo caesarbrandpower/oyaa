@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Image as ImageIcon, Mic, Square, Mic2, StopCircle } from 'lucide-react';
 import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 
-const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
+const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml', '.csv', '.xlsx', '.xls'];
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 const PDF_EXTS = ['.pdf'];
 
@@ -369,7 +369,7 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
           <input
             ref={fileInputRef}
             type="file"
-            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.jpg,.jpeg,.png,.gif,.webp"
+            accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.csv,.xlsx,.xls,.jpg,.jpeg,.png,.gif,.webp"
             multiple
             className="hidden"
             onChange={handleFileChange}
