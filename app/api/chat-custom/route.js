@@ -734,7 +734,9 @@ ${userTextOnly}`;
         if (isDocument && finalContent && driveConfig?.enabled && driveConfig?.folder_id) {
           const nowDrive = new Date();
           const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
-          const driveTypeLabel = OUTPUT_TYPE_INFO[effectiveOutputType]?.label ?? effectiveOutputType;
+          const tenantTypes = Array.isArray(tenant?.enabled_output_types) ? tenant.enabled_output_types : [];
+          const tenantTypeEntry = tenantTypes.find(t => typeof t === 'object' && t?.id === effectiveOutputType);
+          const driveTypeLabel = tenantTypeEntry?.label ?? OUTPUT_TYPE_INFO[effectiveOutputType]?.label ?? effectiveOutputType;
           const parts = [driveTypeLabel, detectedClient, ts].filter(Boolean);
           const driveFileName = `${parts.join(' - ')}.docx`;
           await Promise.race([
