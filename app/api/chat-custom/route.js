@@ -179,7 +179,8 @@ export async function POST(request) {
         // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
         const hasUserContent = bodyHasUserContent !== false;
-        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent;
+        const isEvaluationType = outputType === 'evaluation' || threadOutputTypeFromDb === 'evaluation';
+        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -410,6 +411,10 @@ export async function POST(request) {
           (!!outputType || hasGenerateIntent || documentAttachments.length > 0)
         );
 
+        if (effectiveOutputType === 'evaluation' || outputType === 'evaluation') {
+          console.log('[EVAL] effectiveOutputType:', effectiveOutputType, '| outputType:', outputType, '| hasGenerateIntent:', hasGenerateIntent, '| docAtts:', documentAttachments.length, '| useStructuredPrompt:', useStructuredPrompt);
+        }
+
         const structuredDocSystemPrompt = `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
 
 VERPLICHTE MARKEERREGELS — mechanisch toepassen, geen interpretatie:
@@ -469,15 +474,21 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         let claudeMessages;
         if (useStructuredPrompt) {
-          // Gebruikerstekst + txt-bijlagen als input — bij recording-thread: gebruik transcript als input
-          let userTextOnly = recordingTranscriptContent
-            ?? combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+          // Gebruikerstekst + bijlagen als input.
+          // Evaluation: volledige context inclusief CSV-bijlagen meegeven (niet strippen).
+          // Overige types: alleen gebruikerstekst, bijlagen via txtAttachments of transcript.
+          let userTextOnly;
+          if (effectiveOutputType === 'evaluation') {
+            userTextOnly = combinedUserContext;
+          } else {
+            userTextOnly = recordingTranscriptContent
+              ?? combinedUserContext.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
 
-          // Txt-bijlagen toevoegen aan de input zodat ze deel uitmaken van de "Input:" sectie in het custom prompt
-          if (txtAttachments.length > 0) {
-            userTextOnly += '\n\n' + txtAttachments
-              .map(t => `[Bijlage: ${t.filename}]\n${t.data}`)
-              .join('\n\n');
+            if (txtAttachments.length > 0) {
+              userTextOnly += '\n\n' + txtAttachments
+                .map(t => `[Bijlage: ${t.filename}]\n${t.data}`)
+                .join('\n\n');
+            }
           }
 
           let promptText;

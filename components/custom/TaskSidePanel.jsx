@@ -7,7 +7,7 @@ import { useAudioTranscription, isAudioFile } from '@/lib/use-audio';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 
 const PDF_EXTS = ['.pdf'];
-const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml'];
+const TEXT_EXTS = ['.doc', '.docx', '.ppt', '.pptx', '.txt', '.eml', '.csv', '.xlsx', '.xls'];
 function isPdfFile(file) {
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   return PDF_EXTS.includes(ext);
@@ -415,7 +415,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.mp3,.m4a,.wav,.ogg"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.eml,.csv,.xlsx,.xls,.mp3,.m4a,.wav,.ogg"
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
