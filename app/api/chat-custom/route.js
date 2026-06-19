@@ -744,6 +744,7 @@ ${userTextOnly}`;
               rootFolderId: driveConfig.folder_id,
               clientName: detectedClient ?? null,
               outputType: effectiveOutputType,
+              typeLabel: driveTypeLabel,
               rawTranscript: (effectiveOutputType === 'meeting-summary' && recordingTranscriptContent) ? recordingTranscriptContent : null,
             })
               .then((file) => console.log('[DRIVE] geüpload:', driveFileName, file?.id))
