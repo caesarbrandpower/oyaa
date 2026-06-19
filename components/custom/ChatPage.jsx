@@ -9,6 +9,7 @@ import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
+import { buildWordBlob, fetchImageAsBuffer, fetchLogoBuffer } from '@/lib/doc-export';
 
 function looksLikePastedTranscript(text) {
   if (text.length < 500) return false;
@@ -744,6 +745,54 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   if (!data?.token) return;
                   setDocumentTokens(prev => ({ ...prev, [savedMsgId]: data.token }));
                 }).catch(() => {});
+              }
+              // ── Client-side Google Drive upload (fire-and-forget) ──────────
+              const driveConfig = tenant?.tenant_config?.google_drive;
+              if (finalIsDocument && driveConfig?.enabled && driveConfig?.folder_id && event.content) {
+                const driveContent = event.content;
+                const driveClient = saveClient;
+                const driveOutputType = effectiveDocType;
+                const driveFolderId = driveConfig.folder_id;
+                const tenantTypes = Array.isArray(tenant?.enabled_output_types) ? tenant.enabled_output_types : [];
+                const tenantTypeEntry = tenantTypes.find(t => typeof t === 'object' && t?.id === driveOutputType);
+                const driveTypeLabel = tenantTypeEntry?.label ?? OUTPUT_TYPE_INFO[driveOutputType]?.label ?? driveOutputType;
+                const nowDrive = new Date();
+                const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
+                const driveFileName = [driveTypeLabel, driveClient, ts].filter(Boolean).join(' - ') + '.docx';
+                const chaseLogoUrl = tenant?.logo_url ?? null;
+                const clientLogoSlug = driveClient ? driveClient.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : null;
+                const clientLogoUrl = clientLogoSlug && process.env.NEXT_PUBLIC_SUPABASE_URL
+                  ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/client-logos/${clientLogoSlug}.png`
+                  : null;
+                (async () => {
+                  try {
+                    const [chaseBuffer, clientBuffer] = await Promise.all([
+                      chaseLogoUrl ? fetchImageAsBuffer(chaseLogoUrl) : Promise.resolve(null),
+                      clientLogoUrl ? fetchLogoBuffer(clientLogoUrl) : Promise.resolve(null),
+                    ]);
+                    const blob = await buildWordBlob(
+                      driveContent,
+                      driveTypeLabel || driveOutputType || '',
+                      { chaseBuffer, clientBuffer },
+                      null,
+                      driveOutputType,
+                      driveClient,
+                      saveProject,
+                    );
+                    if (!blob) return;
+                    const fd = new FormData();
+                    fd.append('file', blob, driveFileName);
+                    fd.append('fileName', driveFileName);
+                    fd.append('clientName', driveClient || '');
+                    fd.append('outputType', driveOutputType || '');
+                    fd.append('rootFolderId', driveFolderId);
+                    const uploadRes = await fetch('/api/drive-upload', { method: 'POST', body: fd });
+                    if (uploadRes.ok) console.log('[DRIVE] client-side upload geslaagd:', driveFileName);
+                    else console.error('[DRIVE] upload mislukt — status:', uploadRes.status);
+                  } catch (err) {
+                    console.error('[DRIVE] client-side upload fout:', err?.message ?? err);
+                  }
+                })();
               }
               // detectedClient/Project/outputType buiten setMessages updater — nooit side effects in een pure updater
               const currentThreadId = activeThreadRef.current?.id;

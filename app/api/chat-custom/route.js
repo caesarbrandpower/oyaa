@@ -11,8 +11,6 @@ import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
-import { uploadToDrive } from '@/lib/google-drive';
-
 export const maxDuration = 120;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -725,30 +723,6 @@ ${userTextOnly}`;
                 }
               }
             })(),
-            new Promise(resolve => setTimeout(resolve, 15000)),
-          ]);
-        }
-
-        // ── Google Drive upload ───────────────────────────────────────────────
-        const driveConfig = tenant?.tenant_config?.google_drive;
-        if (isDocument && finalContent && driveConfig?.enabled && driveConfig?.folder_id) {
-          const nowDrive = new Date();
-          const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
-          const tenantTypes = Array.isArray(tenant?.enabled_output_types) ? tenant.enabled_output_types : [];
-          const tenantTypeEntry = tenantTypes.find(t => typeof t === 'object' && t?.id === effectiveOutputType);
-          const driveTypeLabel = tenantTypeEntry?.label ?? OUTPUT_TYPE_INFO[effectiveOutputType]?.label ?? effectiveOutputType;
-          const parts = [driveTypeLabel, detectedClient, ts].filter(Boolean);
-          const driveFileName = `${parts.join(' - ')}.docx`;
-          await Promise.race([
-            uploadToDrive(finalContent, driveFileName, {
-              rootFolderId: driveConfig.folder_id,
-              clientName: detectedClient ?? null,
-              outputType: effectiveOutputType,
-              typeLabel: driveTypeLabel,
-              rawTranscript: (effectiveOutputType === 'meeting-summary' && recordingTranscriptContent) ? recordingTranscriptContent : null,
-            })
-              .then((file) => console.log('[DRIVE] geüpload:', driveFileName, file?.id))
-              .catch((err) => console.error('[DRIVE] upload mislukt:', err?.response?.data ?? err?.message ?? err)),
             new Promise(resolve => setTimeout(resolve, 15000)),
           ]);
         }
