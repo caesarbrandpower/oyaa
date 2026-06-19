@@ -596,6 +596,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingPptx, setDownloadingPptx] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
   const [editingIdx, setEditingIdx] = useState(null);
@@ -677,6 +678,35 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
       await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleDownloadPptx() {
+    setDownloadingPptx(true);
+    try {
+      const evaluationData = {
+        ...(extras ?? {}),
+        foto_product: extras?.foto_product ?? null,
+        foto_actie1:  extras?.foto_actie1  ?? null,
+        foto_actie2:  extras?.foto_actie2  ?? null,
+      };
+      const res = await fetch('/api/generate-pptx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evaluationData),
+      });
+      if (!res.ok) throw new Error(`generate-pptx ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Chase_Evaluatie_${(extras?.campagne || title).replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 80)}.pptx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[PPTX] download mislukt:', err?.message ?? err);
+    } finally {
+      setDownloadingPptx(false);
     }
   }
 
@@ -1090,6 +1120,16 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
             <Download className="w-3 h-3" strokeWidth={2} />
             {downloadingPdf ? 'Bezig...' : 'PDF'}
           </button>
+          {outputType === 'evaluation' && (
+            <button
+              onClick={handleDownloadPptx}
+              disabled={downloadingPptx}
+              className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] transition-colors disabled:opacity-40"
+            >
+              <Download className="w-3 h-3" strokeWidth={2} />
+              {downloadingPptx ? 'Bezig...' : 'PowerPoint'}
+            </button>
+          )}
           <button
             onClick={handleShare}
             disabled={sharing}

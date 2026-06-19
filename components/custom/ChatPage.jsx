@@ -849,6 +849,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }
               }
               setSendingState(false);
+              // Evaluatiedata (van Collabor8-export) koppelen als extras voor de PowerPoint-flow
+              if (finalIsDocument && event.evaluationData && event.messageId) {
+                setBriefingExtras(prev => ({
+                  ...prev,
+                  [event.messageId]: { ...event.evaluationData },
+                }));
+              }
               // Wizard-foto's koppelen aan het gegenereerde document-bericht
               if (finalIsDocument && pendingWizardPhotosRef.current.length > 0) {
                 const wizardPhotos = pendingWizardPhotosRef.current.map(a => ({
@@ -857,7 +864,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 }));
                 setBriefingExtras(prev => ({
                   ...prev,
-                  [event.messageId]: { photos: wizardPhotos, links: [] },
+                  [event.messageId]: { ...(prev[event.messageId] ?? {}), photos: wizardPhotos, links: [] },
                 }));
                 pendingWizardPhotosRef.current = [];
               }

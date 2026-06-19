@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
-import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
+import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, CUSTOM_SYSTEM_PROMPTS, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/lib/vault/retrieve';
@@ -410,8 +410,7 @@ export async function POST(request) {
           (!!outputType || hasGenerateIntent || documentAttachments.length > 0)
         );
 
-        const systemPrompt = useStructuredPrompt
-          ? `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
+        const structuredDocSystemPrompt = `Je bent een werk-AI bij een bureau. Jouw enige taak is het gevraagde document DIRECT en VOLLEDIG genereren. Je stelt GEEN vragen. Je weigert NOOIT. Begin direct met het document, geen inleiding.
 
 VERPLICHTE MARKEERREGELS — mechanisch toepassen, geen interpretatie:
 
@@ -436,8 +435,13 @@ Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
 - Aantallen (bereik, samples, targets)
 - Percentages of KPI's
 
-Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`
-          : CUSTOM_SYSTEM_PROMPT;
+Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`;
+
+        const systemPrompt = useStructuredPrompt && CUSTOM_SYSTEM_PROMPTS?.[effectiveOutputType]
+          ? CUSTOM_SYSTEM_PROMPTS[effectiveOutputType]
+          : useStructuredPrompt
+            ? structuredDocSystemPrompt
+            : CUSTOM_SYSTEM_PROMPT;
 
         // Kluiscontext alleen in conversatiemodus, als APART system-blok: het
         // statische promptdeel blijft dan cachebaar (cache_control), terwijl de
@@ -605,6 +609,15 @@ ${userTextOnly}`;
 
         const finalContent = deanonymize(fullText, map);
 
+        // Evaluatie: extraheer JSON-blok uit de response voor de PowerPoint-flow
+        let evaluationData = null;
+        if (effectiveOutputType === 'evaluation') {
+          const jsonMatch = finalContent.match(/```json\n([\s\S]+?)\n```/);
+          if (jsonMatch) {
+            try { evaluationData = JSON.parse(jsonMatch[1]); } catch { /* malformed JSON — skip */ }
+          }
+        }
+
         // ── Stap 4 — Opslaan ──────────────────────────────────────────────────
         let savedMsg;
         let updateSucceeded = false;
@@ -735,6 +748,7 @@ ${userTextOnly}`;
           detectedClient,
           detectedProject,
           outputType: effectiveOutputType ?? null,
+          ...(evaluationData ? { evaluationData } : {}),
         });
 
         controller.close();
