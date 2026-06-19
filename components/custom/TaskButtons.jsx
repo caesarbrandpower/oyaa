@@ -20,19 +20,16 @@ const ICON_MAP = {
 };
 
 const ROW1_ORDER = ['meeting-summary', 'account-to-pm', 'field-briefing', 'account-to-creation'];
-const ROW2_ORDER = ['evaluation', 'locaties', 'leveranciers'];
-const ROW2_FALLBACK = {
-  locaties:     { id: 'locaties',     label: 'Locaties',     icon: 'map-pin' },
-  leveranciers: { id: 'leveranciers', label: 'Leveranciers', icon: 'building-2' },
-};
+const ROW2_ITEMS = [
+  { id: 'evaluation',   label: 'Evaluatie',    icon: 'bar-chart-2' },
+  { id: 'locaties',     label: 'Locaties',     icon: 'map-pin' },
+  { id: 'leveranciers', label: 'Leveranciers', icon: 'building-2' },
+];
 
 export default function TaskButtons({ outputTypes, onTaskClick }) {
   const byId = Object.fromEntries(outputTypes.map((t) => [t.id, t]));
 
   const row1 = ROW1_ORDER.map((id) => byId[id]).filter(Boolean);
-  const row2 = ROW2_ORDER.map((id) => byId[id] ?? ROW2_FALLBACK[id]).filter(Boolean);
-
-  const btnClass = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap';
 
   return (
     <div className="space-y-2 mb-4">
@@ -40,7 +37,11 @@ export default function TaskButtons({ outputTypes, onTaskClick }) {
         {row1.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
           return (
-            <button key={task.id} onClick={() => onTaskClick(task)} className={btnClass}>
+            <button
+              key={task.id}
+              onClick={() => onTaskClick(task)}
+              className="flex items-center gap-1.5 h-8 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap"
+            >
               <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
               {task.label}
             </button>
@@ -48,16 +49,25 @@ export default function TaskButtons({ outputTypes, onTaskClick }) {
         })}
       </div>
       <div className="flex gap-1.5">
-        {row2.map((task) => {
+        {ROW2_ITEMS.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
-          const isClickable = !!byId[task.id];
-          return (
+          const active = !!byId[task.id];
+          return active ? (
             <button
               key={task.id}
-              onClick={isClickable ? () => onTaskClick(task) : undefined}
-              className={btnClass}
+              onClick={() => onTaskClick(byId[task.id])}
+              className="flex items-center gap-1.5 h-8 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap"
             >
               <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
+              {task.label}
+            </button>
+          ) : (
+            <button
+              key={task.id}
+              disabled
+              className="flex items-center gap-1.5 h-8 px-4 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[12px] text-white/25 cursor-not-allowed whitespace-nowrap"
+            >
+              <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
               {task.label}
             </button>
           );
