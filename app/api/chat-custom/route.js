@@ -263,7 +263,7 @@ export async function POST(request) {
 
         // isDocument: bepaalt of de stream gebufferd wordt (nooit live opbouwen)
         // effectiveOutputType uit de DB (threadOutputTypeFromDb) triggert document-modus alleen als er expliciete intentie is.
-        const isDocument = hasGenerateIntent || (!!outputType && effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false);
+        const isDocument = hasGenerateIntent || isEvaluationType || (!!outputType && effectiveOutputType ? DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType) : false);
 
         // Meta event zo vroeg mogelijk — geeft de client direct thread-context
         writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument, outputType: effectiveOutputType ?? null });
@@ -591,7 +591,7 @@ ${userTextOnly}`;
         let fullText = '';
         const claudeStream = client.messages.stream({
           model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
+          max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
           // system als array zodat cache_control werkt; het statische deel cachet,
           // de kluiscontext wisselt per request en staat daarom in een eigen blok
           // zonder cache_control, achter het cache-breekpunt
@@ -625,7 +625,7 @@ ${userTextOnly}`;
         // Evaluatie: extraheer JSON-blok uit de response voor de PowerPoint-flow
         let evaluationData = null;
         if (effectiveOutputType === 'evaluation') {
-          const jsonMatch = finalContent.match(/```json\n([\s\S]+?)\n```/);
+          const jsonMatch = finalContent.match(/```json\s*([\s\S]+?)\s*```/);
           if (jsonMatch) {
             try { evaluationData = JSON.parse(jsonMatch[1]); } catch { /* malformed JSON — skip */ }
           }
