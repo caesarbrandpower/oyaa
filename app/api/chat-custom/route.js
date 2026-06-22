@@ -312,8 +312,10 @@ export async function POST(request) {
           }
         }
 
-        const hasSourceFiles = documentAttachments.length > 0 ||
-          ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent);
+        const hasSourceFiles = effectiveOutputType !== 'evaluation' && (
+          documentAttachments.length > 0 ||
+          ((effectiveOutputType === 'meeting-summary' || effectiveOutputType === 'field-briefing') && hasTxtContent)
+        );
         if (hasSourceFiles && !analysisConfirmed && !improveDocument) {
           const ANALYSIS_TYPE_LABELS = {
             'account-to-pm':        'briefing naar PM',

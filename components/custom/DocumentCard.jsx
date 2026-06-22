@@ -54,6 +54,7 @@ export default function DocumentCard({
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pptxLoading, setPptxLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareLabel, setShareLabel] = useState('Deel als link');
   const [shareDone, setShareDone] = useState(false);
@@ -136,6 +137,30 @@ export default function DocumentCard({
     }
   }
 
+  async function handlePptx(e) {
+    e.stopPropagation();
+    setPptxLoading(true);
+    try {
+      const res = await fetch('/api/generate-pptx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...(extras ?? {}), klant: extras?.klant ?? client ?? '', campagne: extras?.campagne ?? contentTitle }),
+      });
+      if (!res.ok) throw new Error(`generate-pptx ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Chase_Evaluatie_${(extras?.campagne || contentTitle).replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 80)}.pptx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[PPTX] download mislukt:', err?.message ?? err);
+    } finally {
+      setPptxLoading(false);
+    }
+  }
+
   async function handleShare(e) {
     e.stopPropagation();
     setShareLoading(true);
@@ -176,7 +201,7 @@ export default function DocumentCard({
         </div>
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-wrap items-center gap-1.5">
-        {showOpen && (
+        {showOpen && outputType !== 'evaluation' && (
           <button
             onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
             className="flex items-center gap-1.5 h-8 px-3 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
@@ -192,22 +217,36 @@ export default function DocumentCard({
           <Copy className="w-3 h-3" strokeWidth={2} />
           {copyLabel}
         </button>
-        <button
-          onClick={handleWord}
-          disabled={wordLoading}
-          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
-        >
-          <Download className="w-3 h-3" strokeWidth={2} />
-          {wordLoading ? 'Bezig...' : 'Word'}
-        </button>
-        <button
-          onClick={handlePdf}
-          disabled={pdfLoading}
-          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
-        >
-          <Download className="w-3 h-3" strokeWidth={2} />
-          {pdfLoading ? 'Bezig...' : 'PDF'}
-        </button>
+        {outputType !== 'evaluation' && (
+          <button
+            onClick={handleWord}
+            disabled={wordLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            {wordLoading ? 'Bezig...' : 'Word'}
+          </button>
+        )}
+        {outputType !== 'evaluation' && (
+          <button
+            onClick={handlePdf}
+            disabled={pdfLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            {pdfLoading ? 'Bezig...' : 'PDF'}
+          </button>
+        )}
+        {outputType === 'evaluation' && (
+          <button
+            onClick={handlePptx}
+            disabled={pptxLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            {pptxLoading ? 'Bezig...' : 'PowerPoint'}
+          </button>
+        )}
         {audioUrl && (
           <button
             onClick={async (e) => {
