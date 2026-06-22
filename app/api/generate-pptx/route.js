@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase-server';
 import { buildPresentation } from '@/lib/generate-pptx';
 import { getTenant } from '@/lib/get-tenant';
 import { uploadToDrive } from '@/lib/google-drive';
+import { execFile } from 'node:child_process';
+import { writeFile, readFile, unlink } from 'node:fs/promises';
+import path from 'node:path';
 
 async function fetchAsDataUri(url) {
   const res = await fetch(url);
@@ -14,6 +17,27 @@ async function fetchAsDataUri(url) {
 
 function sanitizeFilename(str) {
   return str.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '_').slice(0, 80);
+}
+
+async function embedFonts(buffer) {
+  const tmpIn  = `/tmp/eval-${Date.now()}.pptx`;
+  const tmpOut = `/tmp/eval-final-${Date.now()}.pptx`;
+  const script = path.resolve(process.cwd(), 'lib/embed-fonts.py');
+
+  try {
+    await writeFile(tmpIn, buffer);
+    await new Promise((resolve, reject) => {
+      execFile('python3', [script, tmpIn, tmpOut], { timeout: 30000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
+      });
+    });
+    const result = await readFile(tmpOut);
+    return result;
+  } finally {
+    await unlink(tmpIn).catch(() => {});
+    await unlink(tmpOut).catch(() => {});
+  }
 }
 
 export async function POST(request) {
@@ -41,7 +65,15 @@ export async function POST(request) {
       }
     }
 
-    const buffer = await buildPresentation(data);
+    const rawBuffer = await buildPresentation(data);
+
+    // Font embedding via Python post-processing; fallback op originele buffer als het mislukt
+    let buffer = rawBuffer;
+    try {
+      buffer = await embedFonts(rawBuffer);
+    } catch (err) {
+      console.error('[PPTX] font embedding mislukt, terug naar origineel:', err?.message ?? err);
+    }
 
     const filename = `Chase_Evaluatie_${sanitizeFilename(data.campagne)}.pptx`;
 
