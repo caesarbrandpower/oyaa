@@ -1,17 +1,8 @@
 import { createClient } from '@/lib/supabase-server';
 import { buildPresentation } from '@/lib/generate-pptx';
-import { embedFonts } from '@/lib/embed-fonts';
+import { addPhotoPlaceholders } from '@/lib/patch-placeholders';
 import { getTenant } from '@/lib/get-tenant';
 import { uploadToDrive } from '@/lib/google-drive';
-
-async function fetchAsDataUri(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Foto ophalen mislukt: ${url} (${res.status})`);
-  const contentType = res.headers.get('content-type') || 'image/jpeg';
-  const arrayBuffer = await res.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  return `data:${contentType};base64,${base64}`;
-}
 
 function sanitizeFilename(str) {
   return str.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '_').slice(0, 80);
@@ -36,20 +27,14 @@ export async function POST(request) {
   try {
     const data = { ...body };
 
-    for (const field of ['foto_product', 'foto_actie1', 'foto_actie2']) {
-      if (data[field] && typeof data[field] === 'string' && data[field].startsWith('http')) {
-        data[field] = await fetchAsDataUri(data[field]);
-      }
-    }
-
     const rawBuffer = await buildPresentation(data);
 
-    // Font embedding als post-processing stap; fallback op originele buffer als het mislukt
+    // Foto-placeholders/afbeeldingen invoegen als post-processing
     let buffer = rawBuffer;
     try {
-      buffer = await embedFonts(rawBuffer);
+      buffer = await addPhotoPlaceholders(rawBuffer, data);
     } catch (err) {
-      console.error('[PPTX] font embedding mislukt, terug naar origineel:', err?.message ?? err);
+      console.error('[PPTX] foto-placeholders mislukt, terug naar origineel:', err?.message ?? err);
     }
 
     const filename = `Chase_Evaluatie_${sanitizeFilename(data.campagne)}.pptx`;
