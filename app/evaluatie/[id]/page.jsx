@@ -41,7 +41,11 @@ export default async function EvaluatiePage({ params }) {
       .eval-kern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
       @media (min-width: 768px) { .eval-kern-grid { grid-template-columns: repeat(4, 1fr); } }
       .eval-header-foto { width: 38%; flex-shrink: 0; position: relative; }
-      @media (max-width: 767px) { .eval-header-foto { display: none; } }
+      .eval-header-tekst { flex: 1 1 0; }
+      @media (max-width: 767px) {
+        .eval-header-foto { flex: 0 0 40%; width: 40%; }
+        .eval-header-tekst { flex: 0 0 60%; }
+      }
       .eval-verloop-row { display: flex; gap: 1.5rem; align-items: stretch; }
       .eval-verloop-foto { width: 38%; object-fit: cover; border-radius: 12px; flex-shrink: 0; display: block; }
       @media (max-width: 767px) {
@@ -55,7 +59,7 @@ export default async function EvaluatiePage({ params }) {
         {/* SECTIE 1 — Header */}
         <section style={{ background: C.navy, borderRadius: 16, overflow: 'hidden', position: 'relative', display: 'flex', minHeight: 180 }}>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, background: C.geel, zIndex: 1 }} />
-          <div style={{ flex: '1 1 0', padding: '2rem 2rem 2rem 2.5rem', zIndex: 1, minWidth: 0 }}>
+          <div className="eval-header-tekst" style={{ padding: '2rem 2rem 2rem 2.5rem', zIndex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
               <div>
                 <p style={{ color: C.greyblue, fontSize: 13, marginBottom: 6 }}>
