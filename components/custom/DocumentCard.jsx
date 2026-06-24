@@ -292,7 +292,7 @@ export default function DocumentCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const url = `https://chase.waybetter.nl/evaluatie/${threadId}`;
+              const url = `${window.location.origin}/evaluatie/${threadId}`;
               navigator.clipboard.writeText(url).then(() => {
                 setShareDone(true);
                 setShareLabel('Link gekopieerd!');
