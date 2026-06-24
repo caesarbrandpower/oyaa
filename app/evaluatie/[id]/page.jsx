@@ -2,17 +2,15 @@
 // Publieke evaluatie-preview pagina — geen auth vereist.
 import { createServiceClient } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
+import PrintBar from './PrintBar';
 
 async function getEvalData(threadId) {
   const supabase = createServiceClient();
-  const { data: thread, error } = await supabase
+  const { data: thread } = await supabase
     .from('threads')
     .select('field_briefing_extras')
     .eq('id', threadId)
     .single();
-
-  console.log('[EVAL] thread error:', JSON.stringify(error));
-  console.log('[EVAL] field_briefing_extras:', JSON.stringify(thread?.field_briefing_extras)?.slice(0, 200));
 
   if (!thread?.field_briefing_extras) return null;
 
@@ -22,11 +20,7 @@ async function getEvalData(threadId) {
 
 export default async function EvaluatiePage({ params }) {
   const { id } = await params;
-  console.log('[EVAL] threadId:', id);
-
   const d = await getEvalData(id);
-  console.log('[EVAL] evalData found:', !!d, d?.campagne);
-
   if (!d) notFound();
 
   const totaalSamples   = d.dagen?.reduce((s, dag) => s + (dag.samples   || 0), 0) ?? d.totaal_samples   ?? 0;
@@ -44,6 +38,19 @@ export default async function EvaluatiePage({ params }) {
   };
 
   return (
+    <>
+    <style>{`
+      .eval-kern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      @media (min-width: 768px) { .eval-kern-grid { grid-template-columns: repeat(4, 1fr); } }
+      .eval-print-bar { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; }
+      @media print {
+        .eval-print-bar { display: none; }
+        section { page-break-after: always; }
+        section:last-of-type { page-break-after: avoid; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      }
+    `}</style>
+    <PrintBar />
     <main style={{ background: C.lichtbg, minHeight: '100vh', padding: '2.5rem 1rem', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -81,7 +88,7 @@ export default async function EvaluatiePage({ params }) {
             <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Kernresultaten</h2>
             <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+          <div className="eval-kern-grid">
             {[
               { label: 'Target',       value: target.toLocaleString('nl-NL'),          sub: 'samples',         highlight: false },
               { label: 'Gerealiseerd', value: totaalSamples.toLocaleString('nl-NL'),   sub: 'samples',         highlight: true  },
@@ -268,5 +275,6 @@ export default async function EvaluatiePage({ params }) {
 
       </div>
     </main>
+    </>
   );
 }

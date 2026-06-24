@@ -289,6 +289,7 @@ export default function DocumentCard({
           </button>
         )}
         {showShare && outputType === 'evaluation' && threadId && (
+          <>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -304,6 +305,17 @@ export default function DocumentCard({
             {shareDone ? <Check className="w-3 h-3 text-green-400" strokeWidth={2.5} /> : <Share2 className="w-3 h-3" strokeWidth={2} />}
             {shareLabel}
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`${window.location.origin}/evaluatie/${threadId}`, '_blank');
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" strokeWidth={2} />
+            Bekijk online
+          </button>
+          </>
         )}
         {showShare && outputType !== 'evaluation' && (
           <button
