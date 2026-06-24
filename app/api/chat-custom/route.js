@@ -251,6 +251,8 @@ export async function POST(request) {
             effectiveOutputType = 'meeting-summary';
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';
+          else if (/\b(evaluatie\s+maken|maak\s+een?\s+evaluatie|campagne[\s-]?evaluatie|sampling[\s-]?evaluatie)\b/i.test(recentText))
+            effectiveOutputType = 'evaluation';
           // Fallback voor recording-threads: als auto-detectie niets vindt, gebruik meeting-summary
           if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
             effectiveOutputType = 'meeting-summary';
