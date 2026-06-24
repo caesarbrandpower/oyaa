@@ -18,6 +18,7 @@ export default async function AppPage({ searchParams }) {
   if (!user) redirect('/login');
 
   const tenant = await getTenant();
+  console.log('[TENANT-DEBUG]', { hostname: tenant?.hostname, enabled_output_types: tenant?.enabled_output_types });
 
   if (tenant?.tenant_config?.tenant_type === 'inactief') {
     return (
