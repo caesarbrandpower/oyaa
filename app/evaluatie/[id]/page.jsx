@@ -2,8 +2,6 @@
 // Publieke evaluatie-preview pagina — geen auth vereist.
 import { createServiceClient } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
-import PrintBar from './PrintBar';
-
 async function getEvalData(threadId) {
   const supabase = createServiceClient();
   const { data: thread } = await supabase
@@ -42,15 +40,7 @@ export default async function EvaluatiePage({ params }) {
     <style>{`
       .eval-kern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
       @media (min-width: 768px) { .eval-kern-grid { grid-template-columns: repeat(4, 1fr); } }
-      .eval-print-bar { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; }
-      @media print {
-        .eval-print-bar { display: none; }
-        section { page-break-after: always; }
-        section:last-of-type { page-break-after: avoid; }
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      }
     `}</style>
-    <PrintBar />
     <main style={{ background: C.lichtbg, minHeight: '100vh', padding: '2.5rem 1rem', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
