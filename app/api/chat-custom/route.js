@@ -710,6 +710,7 @@ ${userTextOnly}`;
         const bgUpdate = { updated_at: new Date().toISOString() };
         if (detectedClient) bgUpdate.client = detectedClient;
         if (detectedProject) bgUpdate.project = detectedProject;
+        if (evaluationData && savedMsg?.id) bgUpdate.field_briefing_extras = { [savedMsg.id]: evaluationData };
         await Promise.race([
           supabase.from('threads').update(bgUpdate).eq('id', activeThreadId)
             .then(
