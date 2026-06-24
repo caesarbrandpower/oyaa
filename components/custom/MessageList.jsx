@@ -256,7 +256,7 @@ function stripDocMarkers(text) {
   return text.replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '...');
 }
 
-function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel, onDelete }) {
+function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel, onDelete, threadId }) {
   const [fotoVoor, setFotoVoor] = useState(null);
   const [fotoMidden, setFotoMidden] = useState(null);
   const [fotoAchter, setFotoAchter] = useState(null);
@@ -296,12 +296,13 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
         fotoVoor={fotoVoor}
         fotoMidden={fotoMidden}
         fotoAchter={fotoAchter}
+        threadId={threadId}
       />
     </div>
   );
 }
 
-export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, onMessageDelete, tenant = null, threadClient = null, threadProject = null, outputTypes = [] }) {
+export default function MessageList({ messages, sending, onOpenDocument, briefingExtras = {}, onExtrasChange, onMessageDelete, tenant = null, threadClient = null, threadProject = null, outputTypes = [], threadId = null }) {
   const bottomRef = useRef(null);
   const [openTranscript, setOpenTranscript] = useState(null);
 
@@ -421,6 +422,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 outputType={msg.output_type}
                 outputTypeLabel={msgOutputTypeLabel}
                 onDelete={onMessageDelete ? () => onMessageDelete(msg.id) : undefined}
+                threadId={threadId}
               />
             ) : msg.type === 'followup' ? (
               /* Vervolgzin na document — visueel prominent */

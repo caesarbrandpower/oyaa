@@ -891,7 +891,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   outputTypeLabel,
                   userMsgId,
                   fallbackTitle: displayText || taskLabel,
-                  evaluationCampagne: effectiveOT === 'evaluation' ? (event.evaluationData?.campagne ?? null) : null,
+                  evaluationCampagne: effectiveOT === 'evaluation' && event.evaluationData?.campagne
+                    ? [event.evaluationData.klant, event.evaluationData.campagne].filter(Boolean).join(' ')
+                    : null,
                 });
               }
             } else if (event.type === 'confirm') {
@@ -1310,6 +1312,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 threadClient={threads.find(t => t.id === activeThread?.id)?.client ?? activeThread?.client ?? null}
                 threadProject={threads.find(t => t.id === activeThread?.id)?.project ?? activeThread?.project ?? null}
                 outputTypes={outputTypes}
+                threadId={activeThread?.id ?? null}
                 onMessageDelete={(deletedId) => {
                   setMessages(prev => prev.filter(m => m.id !== deletedId));
                   if (activeDocument?.messageId === deletedId) setActiveDocument(null);
