@@ -143,34 +143,46 @@ function ExtrasSection({ messageId, extras, onExtrasChange, outputType, fotoVoor
 
       {/* Upload knop(pen) */}
       {outputType === 'evaluation' ? (
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           {[
             { label: 'Voorblad foto', field: 'foto_voor',   state: fotoVoor   },
             { label: 'Actiefoto',     field: 'foto_midden', state: fotoMidden  },
             { label: 'Afsluitfoto',   field: 'foto_achter', state: fotoAchter  },
           ].map(({ label, field, state }) => (
-            <label
-              key={field}
-              className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors cursor-pointer whitespace-nowrap"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const data64 = await fileToBase64(file);
-                  onFotoChange?.(field, { name: file.name, data64 });
-                  e.target.value = '';
-                }}
-              />
+            <div key={field} className="relative group/photo">
               {state ? (
-                <span className="text-white/70 truncate max-w-[110px]">{state.name}</span>
+                <>
+                  <img src={state.data64} alt={state.name} className="rounded-lg object-cover w-full aspect-video" />
+                  <div className="absolute top-1 left-1 w-5 h-5 bg-green-500/90 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                  </div>
+                  <button
+                    onClick={() => onFotoChange?.(field, null)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3 text-white/70" strokeWidth={2} />
+                  </button>
+                  <p className="text-[10px] text-white/30 mt-1 truncate px-0.5">{label}</p>
+                </>
               ) : (
-                <><Plus className="w-3 h-3" strokeWidth={2} />{label}</>
+                <label className="flex flex-col items-center justify-center gap-1 text-[11px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg hover:bg-white/[0.04] transition-colors cursor-pointer w-full aspect-video">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const data64 = await fileToBase64(file);
+                      onFotoChange?.(field, { name: file.name, data64 });
+                      e.target.value = '';
+                    }}
+                  />
+                  <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  {label}
+                </label>
               )}
-            </label>
+            </div>
           ))}
         </div>
       ) : (
