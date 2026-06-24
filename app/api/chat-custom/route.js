@@ -212,6 +212,7 @@ export async function POST(request) {
         }
         const isEvaluationType = effectiveOutputType === 'evaluation';
         const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
+        console.log('[EVAL-DEBUG]', { outputType, threadOutputTypeFromDb, effectiveOutputType, isEvaluationType, skipVaultRetrieval });
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
