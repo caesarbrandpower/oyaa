@@ -40,6 +40,14 @@ export default async function EvaluatiePage({ params }) {
     <style>{`
       .eval-kern-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
       @media (min-width: 768px) { .eval-kern-grid { grid-template-columns: repeat(4, 1fr); } }
+      .eval-header-foto { width: 38%; flex-shrink: 0; position: relative; }
+      @media (max-width: 767px) { .eval-header-foto { display: none; } }
+      .eval-verloop-row { display: flex; gap: 1.5rem; align-items: stretch; }
+      .eval-verloop-foto { width: 38%; object-fit: cover; border-radius: 12px; flex-shrink: 0; display: block; }
+      @media (max-width: 767px) {
+        .eval-verloop-row { flex-direction: column-reverse; }
+        .eval-verloop-foto { width: 100%; aspect-ratio: 16/9; }
+      }
     `}</style>
     <main style={{ background: C.lichtbg, minHeight: '100vh', padding: '2.5rem 1rem', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -73,7 +81,7 @@ export default async function EvaluatiePage({ params }) {
             </p>
           </div>
           {d.foto_voor_url && (
-            <div style={{ width: '38%', flexShrink: 0, position: 'relative' }}>
+            <div className="eval-header-foto">
               <img src={d.foto_voor_url} alt="Voorblad" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,16,82,0.5) 0%, rgba(15,16,82,0) 100%)' }} />
             </div>
@@ -191,7 +199,7 @@ export default async function EvaluatiePage({ params }) {
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Verloop van de actie</h2>
               <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
-            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+            <div className="eval-verloop-row">
               <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {d.verloop.map((item, i) => (
                   <div key={i} style={{ background: C.lichtbg, borderRadius: 10, padding: '1rem', border: '0.5px solid #DDDDDD' }}>
@@ -203,7 +211,7 @@ export default async function EvaluatiePage({ params }) {
                 ))}
               </div>
               {d.foto_midden_url && (
-                <img src={d.foto_midden_url} alt="Actiefoto" style={{ width: '38%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 12, flexShrink: 0 }} />
+                <img src={d.foto_midden_url} alt="Actiefoto" className="eval-verloop-foto" />
               )}
             </div>
           </section>
