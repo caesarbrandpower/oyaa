@@ -50,6 +50,9 @@ export default function DocumentCard({
   audioUrl = null,
   messageId = null,
   onDelete = null,
+  fotoVoor = null,
+  fotoMidden = null,
+  fotoAchter = null,
 }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
@@ -59,9 +62,6 @@ export default function DocumentCard({
   const [shareLabel, setShareLabel] = useState('Deel als link');
   const [shareDone, setShareDone] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [fotoVoor, setFotoVoor] = useState(null);
-  const [fotoMidden, setFotoMidden] = useState(null);
-  const [fotoAchter, setFotoAchter] = useState(null);
 
   async function handleDelete(e) {
     e.stopPropagation();
@@ -138,21 +138,6 @@ export default function DocumentCard({
     } finally {
       setPdfLoading(false);
     }
-  }
-
-  function fileToBase64(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function handleFotoUpload(e, setter) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const data64 = await fileToBase64(file);
-    setter({ name: file.name, data64 });
   }
 
   async function handlePptx(e) {
@@ -263,39 +248,14 @@ export default function DocumentCard({
           </button>
         )}
         {outputType === 'evaluation' && (
-          <>
-            {[
-              { label: 'Voorblad foto', state: fotoVoor,   setter: setFotoVoor   },
-              { label: 'Actiefoto',     state: fotoMidden, setter: setFotoMidden  },
-              { label: 'Afsluitfoto',   state: fotoAchter, setter: setFotoAchter  },
-            ].map(({ label, state, setter }) => (
-              <label
-                key={label}
-                className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.04] border border-white/[0.06] rounded-lg text-[11px] text-white/50 hover:text-white/70 hover:bg-white/[0.07] transition-colors cursor-pointer whitespace-nowrap"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFotoUpload(e, setter)}
-                />
-                {state ? (
-                  <span className="text-white/70 truncate max-w-[100px]">{state.name}</span>
-                ) : (
-                  <span>{label}</span>
-                )}
-              </label>
-            ))}
-            <button
-              onClick={handlePptx}
-              disabled={pptxLoading}
-              className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
-            >
-              <Download className="w-3 h-3" strokeWidth={2} />
-              {pptxLoading ? 'Bezig...' : 'PowerPoint'}
-            </button>
-          </>
+          <button
+            onClick={handlePptx}
+            disabled={pptxLoading}
+            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
+          >
+            <Download className="w-3 h-3" strokeWidth={2} />
+            {pptxLoading ? 'Bezig...' : 'PowerPoint'}
+          </button>
         )}
         {audioUrl && (
           <button

@@ -89,29 +89,41 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // After a document is generated, fetch a smart title and update thread
   useEffect(() => {
     if (!pendingTitleGen) return;
-    const { threadId, content, outputType, outputTypeLabel, userMsgId, fallbackTitle } = pendingTitleGen;
+    const { threadId, content, outputType, outputTypeLabel, userMsgId, fallbackTitle, evaluationCampagne } = pendingTitleGen;
     setPendingTitleGen(null);
+
+    function applyTitle(title) {
+      if (!title) return;
+      if (activeThreadRef.current?.id === threadId) {
+        const updated = { ...activeThreadRef.current, title };
+        activeThreadRef.current = updated;
+        setActiveThread(updated);
+      }
+      setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t));
+      if (userMsgId) {
+        setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, content: title } : m));
+      }
+    }
+
+    // Evaluatie: titel direct uit campagne-veld — geen Haiku-call nodig
+    if (outputType === 'evaluation' && evaluationCampagne) {
+      const title = `Evaluatie — ${evaluationCampagne}`;
+      applyTitle(title);
+      fetch(`/api/threads/${threadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      }).catch(() => {});
+      return;
+    }
+
     fetch('/api/generate-title', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadId, content, outputType, outputTypeLabel }),
     })
       .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        const title = data?.title || fallbackTitle;
-        if (!title) return;
-        if (activeThreadRef.current?.id === threadId) {
-          const updated = { ...activeThreadRef.current, title };
-          activeThreadRef.current = updated;
-          setActiveThread(updated);
-        }
-        setThreads(prev => prev.map(t => t.id === threadId ? { ...t, title } : t));
-        if (userMsgId) {
-          setMessages(prev => prev.map(m =>
-            m.id === userMsgId ? { ...m, content: title } : m
-          ));
-        }
-      })
+      .then(data => applyTitle(data?.title || fallbackTitle))
       .catch(() => {});
   }, [pendingTitleGen]);
 
@@ -879,6 +891,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   outputTypeLabel,
                   userMsgId,
                   fallbackTitle: displayText || taskLabel,
+                  evaluationCampagne: effectiveOT === 'evaluation' ? (event.evaluationData?.campagne ?? null) : null,
                 });
               }
             } else if (event.type === 'confirm') {

@@ -57,7 +57,15 @@ function renderStreamInline(text) {
     .replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
-function ExtrasSection({ messageId, extras, onExtrasChange }) {
+function fileToBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function ExtrasSection({ messageId, extras, onExtrasChange, outputType, fotoVoor, fotoMidden, fotoAchter, onFotoChange }) {
   const { photos = [], links = [] } = extras || {};
   const [linkDraft, setLinkDraft] = useState({ label: '', url: '' });
   const [uploading, setUploading] = useState(false);
@@ -133,24 +141,59 @@ function ExtrasSection({ messageId, extras, onExtrasChange }) {
         </div>
       )}
 
-      {/* Upload knop + feedback */}
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
-      <div className="flex items-center gap-2 mb-3">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors disabled:opacity-40"
-        >
-          <Plus className="w-3 h-3" strokeWidth={2} />
-          {uploading ? 'Uploaden...' : 'Foto toevoegen'}
-        </button>
-        {uploadedFeedback && (
-          <span className="flex items-center gap-1 text-[11px] text-green-400/80">
-            <Check className="w-3 h-3" strokeWidth={2.5} />
-            Opgeslagen
-          </span>
-        )}
-      </div>
+      {/* Upload knop(pen) */}
+      {outputType === 'evaluation' ? (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[
+            { label: 'Voorblad foto', field: 'foto_voor',   state: fotoVoor   },
+            { label: 'Actiefoto',     field: 'foto_midden', state: fotoMidden  },
+            { label: 'Afsluitfoto',   field: 'foto_achter', state: fotoAchter  },
+          ].map(({ label, field, state }) => (
+            <label
+              key={field}
+              className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const data64 = await fileToBase64(file);
+                  onFotoChange?.(field, { name: file.name, data64 });
+                  e.target.value = '';
+                }}
+              />
+              {state ? (
+                <span className="text-white/70 truncate max-w-[110px]">{state.name}</span>
+              ) : (
+                <><Plus className="w-3 h-3" strokeWidth={2} />{label}</>
+              )}
+            </label>
+          ))}
+        </div>
+      ) : (
+        <>
+          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:bg-white/[0.04] transition-colors disabled:opacity-40"
+            >
+              <Plus className="w-3 h-3" strokeWidth={2} />
+              {uploading ? 'Uploaden...' : 'Foto toevoegen'}
+            </button>
+            {uploadedFeedback && (
+              <span className="flex items-center gap-1 text-[11px] text-green-400/80">
+                <Check className="w-3 h-3" strokeWidth={2.5} />
+                Opgeslagen
+              </span>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Links */}
       {links.length > 0 && (
@@ -202,6 +245,16 @@ function stripDocMarkers(text) {
 }
 
 function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel, onDelete }) {
+  const [fotoVoor, setFotoVoor] = useState(null);
+  const [fotoMidden, setFotoMidden] = useState(null);
+  const [fotoAchter, setFotoAchter] = useState(null);
+
+  function handleFotoChange(field, value) {
+    if (field === 'foto_voor') setFotoVoor(value);
+    else if (field === 'foto_midden') setFotoMidden(value);
+    else if (field === 'foto_achter') setFotoAchter(value);
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Bijlagen sectie — voor alle documenttypes, boven de DocumentCard */}
@@ -210,6 +263,11 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
           messageId={messageId}
           extras={extras}
           onExtrasChange={onExtrasChange}
+          outputType={outputType}
+          fotoVoor={fotoVoor}
+          fotoMidden={fotoMidden}
+          fotoAchter={fotoAchter}
+          onFotoChange={handleFotoChange}
         />
       )}
       <DocumentCard
@@ -223,6 +281,9 @@ function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, t
         outputTypeLabel={outputTypeLabel}
         messageId={messageId}
         onDelete={onDelete}
+        fotoVoor={fotoVoor}
+        fotoMidden={fotoMidden}
+        fotoAchter={fotoAchter}
       />
     </div>
   );
