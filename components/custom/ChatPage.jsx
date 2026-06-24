@@ -721,9 +721,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   }];
                 }
                 if (!isGenerateIntent) return updated;
-                const postContent = saveClient
-                  ? `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
-                  : `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?`;
+                const postContent = effectiveDocType === 'evaluation'
+                  ? `Hier is je evaluatie. Download de PowerPoint of bekijk en deel de online versie via de knoppen hieronder. Kan ik je nog ergens mee helpen?`
+                  : saveClient
+                    ? `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen in de map ${saveClient}. Kan ik je nog ergens mee helpen?`
+                    : `Hier is je ${docNoun}. Via 'Aanvullen' zie je waar nog informatie ontbreekt — zo maak je hem compleet voordat je hem verstuurt. Ik heb hem opgeslagen. Kan ik je nog ergens mee helpen?`;
                 return [...updated, {
                   id: 'post-doc-' + Date.now(),
                   role: 'assistant',
