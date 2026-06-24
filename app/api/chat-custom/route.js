@@ -179,7 +179,38 @@ export async function POST(request) {
         // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
         const hasUserContent = bodyHasUserContent !== false;
-        const isEvaluationType = outputType === 'evaluation' || threadOutputTypeFromDb === 'evaluation';
+
+        // effectiveOutputType: request → DB → auto-detectie → null
+        // Vroeg berekend zodat isEvaluationType en skipVaultRetrieval kloppen vóór vault-retrieval
+        let effectiveOutputType = outputType || threadOutputTypeFromDb;
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+        if (effectiveOutputType === 'recording' && hasGenerateIntent) {
+          effectiveOutputType = null;
+        }
+        if (!effectiveOutputType) {
+          const recentText = allMessages.slice(-8).map(m =>
+            m.content.split(/\n\n\[(?:Bijlage|Transcript):/)[0].slice(0, 500)
+          ).join(' ').toLowerCase();
+          if (/\b(pm[\s-]briefing|briefing\s+(naar|voor)\s+(de\s+)?pm|interne\s+briefing|account[\s-]?(naar|to)[\s-]?pm)\b/.test(recentText))
+            effectiveOutputType = 'account-to-pm';
+          else if (/\b(creatieve?\s*briefing|briefing\s+(naar|voor)\s+creatie|account[\s-]?(naar|to)[\s-]?creati)\b/.test(recentText))
+            effectiveOutputType = 'account-to-creation';
+          else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing|briefing\s+naar\s+ba|briefing\s+ba)\b/.test(recentText))
+            effectiveOutputType = 'field-briefing';
+          else if (/\b(samenvatting|samenvat|notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
+            effectiveOutputType = 'meeting-summary';
+          else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
+            effectiveOutputType = 'external-debrief';
+          else if (/\b(evaluatie\s+maken|maak\s+een?\s+evaluatie|campagne[\s-]?evaluatie|sampling[\s-]?evaluatie)\b/i.test(recentText))
+            effectiveOutputType = 'evaluation';
+          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
+            effectiveOutputType = 'meeting-summary';
+          }
+          if (effectiveOutputType) {
+            supabase.from('threads').update({ output_type: effectiveOutputType }).eq('id', activeThreadId).then(() => {});
+          }
+        }
+        const isEvaluationType = effectiveOutputType === 'evaluation';
         const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
         const vaultOn = vaultEnabled(tenant);
 
@@ -226,42 +257,7 @@ export async function POST(request) {
         // Bevat het geanonimiseerde laatste bericht inclusief ingebedde bijlagen
         const combinedUserContext = anonParts[allMessages.length - 1] ?? message.trim();
 
-        // effectiveOutputType: request → DB → auto-detectie → null
-        let effectiveOutputType = outputType || threadOutputTypeFromDb;
-
-        // Genereer-intentie — alleen op gebruikerstekst
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
-
-        // Recording-thread met generatie-intentie: reset zodat auto-detectie kan draaien
-        if (effectiveOutputType === 'recording' && hasGenerateIntent) {
-          effectiveOutputType = null;
-        }
-
-        if (!effectiveOutputType) {
-          const recentText = allMessages.slice(-8).map(m =>
-            m.content.split(/\n\n\[(?:Bijlage|Transcript):/)[0].slice(0, 500)
-          ).join(' ').toLowerCase();
-          if (/\b(pm[\s-]briefing|briefing\s+(naar|voor)\s+(de\s+)?pm|interne\s+briefing|account[\s-]?(naar|to)[\s-]?pm)\b/.test(recentText))
-            effectiveOutputType = 'account-to-pm';
-          else if (/\b(creatieve?\s*briefing|briefing\s+(naar|voor)\s+creatie|account[\s-]?(naar|to)[\s-]?creati)\b/.test(recentText))
-            effectiveOutputType = 'account-to-creation';
-          else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing|briefing\s+naar\s+ba|briefing\s+ba)\b/.test(recentText))
-            effectiveOutputType = 'field-briefing';
-          else if (/\b(samenvatting|samenvat|notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
-            effectiveOutputType = 'meeting-summary';
-          else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
-            effectiveOutputType = 'external-debrief';
-          else if (/\b(evaluatie\s+maken|maak\s+een?\s+evaluatie|campagne[\s-]?evaluatie|sampling[\s-]?evaluatie)\b/i.test(recentText))
-            effectiveOutputType = 'evaluation';
-          // Fallback voor recording-threads: als auto-detectie niets vindt, gebruik meeting-summary
-          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
-            effectiveOutputType = 'meeting-summary';
-          }
-          if (effectiveOutputType) {
-            // Fire-and-forget schrijft type naar DB; kleine vertraging acceptabel
-            supabase.from('threads').update({ output_type: effectiveOutputType }).eq('id', activeThreadId).then(() => {});
-          }
-        }
+        // effectiveOutputType, hasGenerateIntent en auto-detectie zijn al berekend boven (vóór vault-retrieval)
 
         // isDocument: bepaalt of de stream gebufferd wordt (nooit live opbouwen)
         // effectiveOutputType uit de DB (threadOutputTypeFromDb) triggert document-modus alleen als er expliciete intentie is.
