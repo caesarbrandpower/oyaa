@@ -180,6 +180,15 @@ export async function POST(request) {
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
         const hasUserContent = bodyHasUserContent !== false;
 
+        // Vroege CSV + evaluatie-detectie: sla output_type op zodat threadOutputTypeFromDb gevuld is
+        // voor de rest van de route. Wizard doet dit via request body; chat flow niet.
+        const hasCsvFile = /\[bijlage:[^\]]*\.csv/i.test(message) || txtAttachments.some(a => /\.csv$/i.test(a.filename ?? ''));
+        const hasEvalIntent = /\b(evaluatie|evaluation|rapport)\b/i.test(userOnlyMessage);
+        if (!threadOutputTypeFromDb && hasCsvFile && hasEvalIntent) {
+          await supabase.from('threads').update({ output_type: 'evaluation' }).eq('id', activeThreadId);
+          threadOutputTypeFromDb = 'evaluation';
+        }
+
         // effectiveOutputType: request → DB → auto-detectie → null
         // Vroeg berekend zodat isEvaluationType en skipVaultRetrieval kloppen vóór vault-retrieval
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
@@ -212,7 +221,6 @@ export async function POST(request) {
         }
         const isEvaluationType = effectiveOutputType === 'evaluation';
         const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
-        console.log('[EVAL-DEBUG]', { outputType, threadOutputTypeFromDb, effectiveOutputType, isEvaluationType, skipVaultRetrieval });
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
