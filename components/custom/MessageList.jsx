@@ -157,7 +157,14 @@ function ExtrasSection({ messageId, extras, onExtrasChange, outputType, fotoVoor
                     <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
                   </div>
                   <button
-                    onClick={() => onFotoChange?.(field, null)}
+                    onClick={() => {
+                      onFotoChange?.(field, null);
+                      if (extras) {
+                        const updated = { ...extras };
+                        delete updated[`${field}_url`];
+                        onExtrasChange?.(messageId, updated);
+                      }
+                    }}
                     className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-3 h-3 text-white/70" strokeWidth={2} />
@@ -173,9 +180,25 @@ function ExtrasSection({ messageId, extras, onExtrasChange, outputType, fotoVoor
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      // Direct preview met base64
                       const data64 = await fileToBase64(file);
                       onFotoChange?.(field, { name: file.name, data64 });
                       e.target.value = '';
+                      // Upload naar Storage en sla URL op in extras
+                      try {
+                        const formData = new FormData();
+                        formData.append('messageId', messageId);
+                        formData.append('files', file);
+                        const res = await fetch('/api/upload-briefing-media', { method: 'POST', body: formData });
+                        if (res.ok) {
+                          const { photos } = await res.json();
+                          const url = photos?.[0]?.url;
+                          if (url) {
+                            onFotoChange?.(field, { name: file.name, data64, url });
+                            onExtrasChange?.(messageId, { ...(extras || {}), [`${field}_url`]: url });
+                          }
+                        }
+                      } catch { /* stil falen — preview blijft staan */ }
                     }}
                   />
                   <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />

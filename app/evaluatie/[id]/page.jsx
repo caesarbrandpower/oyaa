@@ -45,31 +45,39 @@ export default async function EvaluatiePage({ params }) {
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         {/* SECTIE 1 — Header */}
-        <section style={{ background: C.navy, borderRadius: 16, padding: '2rem 2rem 2rem 2.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, background: C.geel }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-            <div>
-              <p style={{ color: C.greyblue, fontSize: 13, marginBottom: 6 }}>
-                {d.klant}{d.datum ? ` · ${d.datum}` : ''}
-              </p>
-              <h1 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.white, fontSize: 42, fontWeight: 'bold', lineHeight: 1.1, margin: 0 }}>
-                {d.campagne}
-              </h1>
-              <div style={{
-                marginTop: 16, display: 'inline-block',
-                background: C.geel, color: C.navy,
-                padding: '4px 14px', borderRadius: 6,
-                fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 14, fontWeight: 'bold', letterSpacing: 1,
-              }}>
-                Campagne evaluatie
+        <section style={{ background: C.navy, borderRadius: 16, overflow: 'hidden', position: 'relative', display: 'flex', minHeight: 180 }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, background: C.geel, zIndex: 1 }} />
+          <div style={{ flex: '1 1 0', padding: '2rem 2rem 2rem 2.5rem', zIndex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+              <div>
+                <p style={{ color: C.greyblue, fontSize: 13, marginBottom: 6 }}>
+                  {d.klant}{d.datum ? ` · ${d.datum}` : ''}
+                </p>
+                <h1 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.white, fontSize: 42, fontWeight: 'bold', lineHeight: 1.1, margin: 0 }}>
+                  {d.campagne}
+                </h1>
+                <div style={{
+                  marginTop: 16, display: 'inline-block',
+                  background: C.geel, color: C.navy,
+                  padding: '4px 14px', borderRadius: 6,
+                  fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 14, fontWeight: 'bold', letterSpacing: 1,
+                }}>
+                  Campagne evaluatie
+                </div>
               </div>
+              <img src="/chase_logo_diap.png" alt="Chase" style={{ height: 36, opacity: 0.85, flexShrink: 0, marginTop: 4 }} />
             </div>
-            <img src="/chase_logo_diap.png" alt="Chase" style={{ height: 36, opacity: 0.85, flexShrink: 0, marginTop: 4 }} />
+            <p style={{ color: C.greyblue, fontSize: 12, marginTop: 12, marginBottom: 0 }}>
+              {[d.dagen?.length && `${d.dagen.length} dagen`, d.locaties?.length && `${d.locaties.length} locaties`, d.periode]
+                .filter(Boolean).join('  ·  ')}
+            </p>
           </div>
-          <p style={{ color: C.greyblue, fontSize: 12, marginTop: 12, marginBottom: 0 }}>
-            {[d.dagen?.length && `${d.dagen.length} dagen`, d.locaties?.length && `${d.locaties.length} locaties`, d.periode]
-              .filter(Boolean).join('  ·  ')}
-          </p>
+          {d.foto_voor_url && (
+            <div style={{ width: '38%', flexShrink: 0, position: 'relative' }}>
+              <img src={d.foto_voor_url} alt="Voorblad" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,16,82,0.5) 0%, rgba(15,16,82,0) 100%)' }} />
+            </div>
+          )}
         </section>
 
         {/* SECTIE 2 — Kernresultaten */}
@@ -97,7 +105,7 @@ export default async function EvaluatiePage({ params }) {
                 <p style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: card.highlight ? C.white : C.navy, fontSize: 36, fontWeight: 'bold', margin: '0 0 4px', lineHeight: 1 }}>
                   {card.value}
                 </p>
-                <p style={{ color: C.greyblue, fontSize: 11, margin: 0 }}>{card.sub}</p>
+                <p style={{ color: C.greyblue, fontSize: 13, margin: 0 }}>{card.sub}</p>
               </div>
             ))}
           </div>
@@ -127,9 +135,9 @@ export default async function EvaluatiePage({ params }) {
                   </tr>
                 ))}
                 <tr style={{ background: C.lichtbg, fontWeight: 700 }}>
-                  <td style={{ padding: '9px 12px', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700 }}>Totaal</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'center', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700 }}>{totaalSamples.toLocaleString('nl-NL')}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'center', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700 }}>{totaalBezoekers.toLocaleString('nl-NL')}</td>
+                  <td style={{ padding: '9px 12px', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700, fontSize: 14 }}>Totaal</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700, fontSize: 14 }}>{totaalSamples.toLocaleString('nl-NL')}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center', fontFamily: 'Tungsten Book, Arial, sans-serif', fontWeight: 700, fontSize: 14 }}>{totaalBezoekers.toLocaleString('nl-NL')}</td>
                 </tr>
               </tbody>
             </table>
@@ -138,7 +146,7 @@ export default async function EvaluatiePage({ params }) {
 
         {/* SECTIE 4 — Resultaten per locatie */}
         {d.locaties?.length > 0 && (
-          <section style={{ background: C.lichtbg, borderRadius: 16, padding: '1.5rem' }}>
+          <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Resultaten per locatie</h2>
               <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
@@ -183,15 +191,20 @@ export default async function EvaluatiePage({ params }) {
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Verloop van de actie</h2>
               <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {d.verloop.map((item, i) => (
-                <div key={i} style={{ background: C.lichtbg, borderRadius: 10, padding: '1rem', border: '0.5px solid #DDDDDD' }}>
-                  <p style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.navy, fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>
-                    {item.label}
-                  </p>
-                  <p style={{ color: '#555555', fontSize: 13, margin: 0, lineHeight: 1.5 }}>{item.tekst}</p>
-                </div>
-              ))}
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {d.verloop.map((item, i) => (
+                  <div key={i} style={{ background: C.lichtbg, borderRadius: 10, padding: '1rem', border: '0.5px solid #DDDDDD' }}>
+                    <p style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.navy, fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>
+                      {item.label}
+                    </p>
+                    <p style={{ color: '#555555', fontSize: 13, margin: 0, lineHeight: 1.5 }}>{item.tekst}</p>
+                  </div>
+                ))}
+              </div>
+              {d.foto_midden_url && (
+                <img src={d.foto_midden_url} alt="Actiefoto" style={{ width: '38%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 12, flexShrink: 0 }} />
+              )}
             </div>
           </section>
         )}
@@ -200,7 +213,7 @@ export default async function EvaluatiePage({ params }) {
         {(d.goedGegaan?.length > 0 || d.verbeterpunten?.length > 0) && (
           <section style={{ borderRadius: 16, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <div style={{ background: C.navy, padding: '1.5rem' }}>
-              <h3 style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.geel, fontSize: 16, fontWeight: 600, margin: '0 0 12px' }}>
+              <h3 style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.geel, fontSize: 15, fontWeight: 600, margin: '0 0 12px' }}>
                 Wat ging goed
               </h3>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -213,7 +226,7 @@ export default async function EvaluatiePage({ params }) {
               </ul>
             </div>
             <div style={{ background: C.white, padding: '1.5rem' }}>
-              <h3 style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.navy, fontSize: 16, fontWeight: 600, margin: '0 0 12px' }}>
+              <h3 style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.navy, fontSize: 15, fontWeight: 600, margin: '0 0 12px' }}>
                 Wat kan beter
               </h3>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -252,6 +265,19 @@ export default async function EvaluatiePage({ params }) {
                   <p style={{ color: C.navy, fontSize: 13, margin: 0, paddingTop: 4, lineHeight: 1.5 }}>{actie}</p>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* EINDSLIDE — foto_achter als achtergrond */}
+        {d.foto_achter_url && (
+          <section style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', minHeight: 220 }}>
+            <img src={d.foto_achter_url} alt="Afsluitfoto" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, display: 'block' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,16,82,0.65)' }} />
+            <div style={{ position: 'relative', padding: '2.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
+              <p style={{ color: C.geel, fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', margin: '0 0 10px' }}>Chase Brand Activation</p>
+              <h2 style={{ color: C.white, fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 46, lineHeight: 1.1, margin: '0 0 20px' }}>{d.campagne}</h2>
+              <img src="/chase_logo_diap.png" alt="Chase" style={{ height: 28, opacity: 0.7 }} />
             </div>
           </section>
         )}

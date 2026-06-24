@@ -156,9 +156,9 @@ export default function DocumentCard({
           ...(extras ?? {}),
           klant:       extras?.klant ?? client ?? '',
           campagne:    extras?.campagne ?? contentTitle,
-          foto_voor:   fotoVoor?.data64   ?? null,
-          foto_midden: fotoMidden?.data64 ?? null,
-          foto_achter: fotoAchter?.data64 ?? null,
+          foto_voor:   fotoVoor?.url   ?? fotoVoor?.data64   ?? null,
+          foto_midden: fotoMidden?.url ?? fotoMidden?.data64 ?? null,
+          foto_achter: fotoAchter?.url ?? fotoAchter?.data64 ?? null,
         }),
       });
       if (!res.ok) throw new Error(`generate-pptx ${res.status}`);
