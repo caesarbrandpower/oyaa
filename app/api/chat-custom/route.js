@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
-import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, CUSTOM_SYSTEM_PROMPTS, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
+import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, CUSTOM_SYSTEM_PROMPTS, FREE_CHAT_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/lib/vault/retrieve';
@@ -192,7 +192,7 @@ export async function POST(request) {
         // effectiveOutputType: request → DB → auto-detectie → null
         // Vroeg berekend zodat isEvaluationType en skipVaultRetrieval kloppen vóór vault-retrieval
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
         if (effectiveOutputType === 'recording' && hasGenerateIntent) {
           effectiveOutputType = null;
         }
@@ -206,7 +206,7 @@ export async function POST(request) {
             effectiveOutputType = 'account-to-creation';
           else if (/\b(veldbriefing|veld[\s-]briefing|ambassadeurs[\s-]?briefing|field[\s-]?briefing|briefing\s+naar\s+ba|briefing\s+ba)\b/.test(recentText))
             effectiveOutputType = 'field-briefing';
-          else if (/\b(samenvatting|samenvat|notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting)\b/.test(recentText))
+          else if (/\b(notulen|vergadersamenvatting|gesprekssamenvatting|meeting[\s-]samenvatting|samenvatting\s+van\s+(de\s+)?(vergadering|meeting|bespreking|call))\b/.test(recentText))
             effectiveOutputType = 'meeting-summary';
           else if (/\b(externe?\s+debrief|eindevaluatie|externe\s+evaluatie)\b/.test(recentText))
             effectiveOutputType = 'external-debrief';
@@ -220,6 +220,7 @@ export async function POST(request) {
           }
         }
         const isEvaluationType = effectiveOutputType === 'evaluation';
+        const isFreeChat = !outputType && !hasGenerateIntent && !effectiveOutputType;
         const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
         const vaultOn = vaultEnabled(tenant);
 
@@ -451,11 +452,13 @@ Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
 
 Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`;
 
-        const systemPrompt = useStructuredPrompt && CUSTOM_SYSTEM_PROMPTS?.[effectiveOutputType]
-          ? CUSTOM_SYSTEM_PROMPTS[effectiveOutputType]
-          : useStructuredPrompt
-            ? structuredDocSystemPrompt
-            : CUSTOM_SYSTEM_PROMPT;
+        const systemPrompt = isFreeChat
+          ? FREE_CHAT_SYSTEM_PROMPT
+          : useStructuredPrompt && CUSTOM_SYSTEM_PROMPTS?.[effectiveOutputType]
+            ? CUSTOM_SYSTEM_PROMPTS[effectiveOutputType]
+            : useStructuredPrompt
+              ? structuredDocSystemPrompt
+              : CUSTOM_SYSTEM_PROMPT;
 
         // Kluiscontext alleen in conversatiemodus, als APART system-blok: het
         // statische promptdeel blijft dan cachebaar (cache_control), terwijl de
@@ -596,19 +599,20 @@ ${userTextOnly}`;
         }
 
         let fullText = '';
-        const claudeStream = client.messages.stream({
-          model: 'claude-sonnet-4-6',
-          max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
-          // system als array zodat cache_control werkt; het statische deel cachet,
-          // de kluiscontext wisselt per request en staat daarom in een eigen blok
-          // zonder cache_control, achter het cache-breekpunt
-          system: [
-            { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
-            ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
-          ],
-          messages: claudeMessages,
-          ...(isDocument ? { temperature: 0 } : {}),
-        });
+        const claudeStream = client.messages.stream(
+          {
+            model: 'claude-sonnet-4-6',
+            max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
+            system: [
+              { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+              ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
+            ],
+            messages: claudeMessages,
+            ...(isDocument ? { temperature: 0 } : {}),
+            ...(isFreeChat ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }] } : {}),
+          },
+          isFreeChat ? { headers: { 'anthropic-beta': 'web-search-2025-03-05' } } : {},
+        );
 
         for await (const chunk of claudeStream) {
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
