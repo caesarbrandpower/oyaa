@@ -434,7 +434,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               )
             ) : msg.isDocument ? (
               <DocumentPreview
-                content={msg.content}
+                content={msg.output_type === 'evaluation' && msg.content?.includes('```json')
+                  ? msg.content.slice(msg.content.indexOf('```json'))
+                  : msg.content}
                 onOpen={() => onOpenDocument?.(msg)}
                 messageId={msg.id}
                 extras={briefingExtras[msg.id]}

@@ -193,7 +193,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, client, project, created_at, updated_at, audio_url')
+        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, field_briefing_extras')
         .eq('id', threadParam)
         .single();
       if (!thread) return;
@@ -292,11 +292,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         .order('created_at', { ascending: true }),
       supabase
         .from('threads')
-        .select('id')
+        .select('id, field_briefing_extras')
         .eq('id', thread.id)
         .single(),
     ]);
-    setBriefingExtras({});
+    setBriefingExtras(threadData?.field_briefing_extras || {});
 
     const SEARCH_IDS = new Set(['location-search', 'supplier-search']);
     const isDocThread = thread.output_type && thread.output_type !== 'recording'
