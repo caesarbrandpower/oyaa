@@ -221,7 +221,7 @@ export async function POST(request) {
         }
         const isEvaluationType = effectiveOutputType === 'evaluation';
         const isFreeChat = !outputType && !hasGenerateIntent && !effectiveOutputType;
-        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType;
+        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType || isFreeChat;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -599,20 +599,23 @@ ${userTextOnly}`;
         }
 
         let fullText = '';
-        const claudeStream = client.messages.stream(
-          {
-            model: 'claude-sonnet-4-6',
-            max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
-            system: [
-              { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
-              ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
-            ],
-            messages: claudeMessages,
-            ...(isDocument ? { temperature: 0 } : {}),
-            ...(isFreeChat ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }] } : {}),
-          },
-          isFreeChat ? { headers: { 'anthropic-beta': 'web-search-2025-03-05' } } : {},
-        );
+        const streamParams = {
+          model: 'claude-sonnet-4-6',
+          max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
+          system: [
+            { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+            ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
+          ],
+          messages: claudeMessages,
+          ...(isDocument ? { temperature: 0 } : {}),
+          ...(isFreeChat ? {
+            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+            betas: ['web-search-2025-03-05'],
+          } : {}),
+        };
+        const claudeStream = isFreeChat
+          ? client.beta.messages.stream(streamParams)
+          : client.messages.stream(streamParams);
 
         for await (const chunk of claudeStream) {
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
