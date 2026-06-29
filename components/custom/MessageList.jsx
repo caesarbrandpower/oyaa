@@ -405,6 +405,13 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
       {messages.filter(msg => !(msg.role === 'user' && msg.content === 'Aanvullende informatie ontvangen.')).map((msg) => {
         const msgOutputTypeLabel = outputTypes.find(t => t.id === msg.output_type)?.label ?? null;
+        if (msg.role === 'assistant' && !msg.streaming) {
+          console.log('[MAILCARD-DEBUG]', {
+            content: msg.content?.substring(0, 200),
+            hasOnderwerp: /onderwerp:/i.test(msg.content),
+            isDocument: msg.isDocument,
+          });
+        }
         return (
         <div
           key={msg.id}
@@ -511,8 +518,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
                 <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
-            ) : msg.role === 'assistant' && (() => { console.log('[MAILCARD-DEBUG] isDocument:', msg.isDocument, '| hasOnderwerp:', /onderwerp:/i.test(msg.content), '| first100:', msg.content?.slice(0, 100)); return false; })() ? null
-            : msg.role === 'assistant' && parseMailContent(msg.content) ? (
+            ) : msg.role === 'assistant' && parseMailContent(msg.content) ? (
               <MailCard content={msg.content} />
             ) : (
               <div
