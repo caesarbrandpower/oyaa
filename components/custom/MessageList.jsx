@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
-import { Image as ImageIcon, FileText, Mic2, X, Copy, Check, Plus, Link, Trash2 } from 'lucide-react';
+import { Image as ImageIcon, FileText, Mic2, X, Copy, Check, Plus, Link, Trash2, Mail, ExternalLink } from 'lucide-react';
 import DocumentCard from './DocumentCard';
 
 function TranscriptModal({ filename, content, onClose }) {
@@ -279,6 +279,63 @@ function stripDocMarkers(text) {
   return text.replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '...');
 }
 
+function parseMailContent(content) {
+  const subjectMatch = content.match(/^Onderwerp:\s*(.+)$/mi);
+  if (!subjectMatch) return null;
+  const subject = subjectMatch[1].trim();
+  const afterSubject = content.slice(content.indexOf(subjectMatch[0]) + subjectMatch[0].length).trim();
+  return { subject, body: afterSubject };
+}
+
+function MailCard({ content }) {
+  const [copied, setCopied] = useState(false);
+  const parsed = parseMailContent(content);
+  if (!parsed) return null;
+  const { subject, body } = parsed;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(`Onderwerp: ${subject}\n\n${body}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    });
+  }
+
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  return (
+    <div className="mt-2 border border-white/[0.10] rounded-xl p-4 bg-white/[0.03] max-w-lg">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="shrink-0 w-8 h-8 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center mt-0.5">
+          <Mail className="w-4 h-4 text-orange" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] text-white/40 uppercase tracking-wide mb-0.5">Onderwerp</p>
+          <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug">{subject}</p>
+        </div>
+      </div>
+      <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-3 max-h-64 overflow-y-auto">
+        <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{body}</p>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
+        >
+          {copied ? <Check className="w-3 h-3" strokeWidth={2} /> : <Copy className="w-3 h-3" strokeWidth={2} />}
+          {copied ? 'Gekopieerd' : 'Kopiëren'}
+        </button>
+        <a
+          href={mailtoHref}
+          className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" strokeWidth={2} />
+          Open in Mail
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DocumentPreview({ content, onOpen, messageId, extras, onExtrasChange, tenant, client, project, outputType, outputTypeLabel, onDelete, threadId }) {
   const [fotoVoor, setFotoVoor] = useState(null);
   const [fotoMidden, setFotoMidden] = useState(null);
@@ -454,6 +511,8 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
                 <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
+            ) : msg.role === 'assistant' && parseMailContent(msg.content) ? (
+              <MailCard content={msg.content} />
             ) : (
               <div
                 className="custom-prose prose-chat text-[14px]"
