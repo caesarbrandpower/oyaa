@@ -249,7 +249,7 @@ export async function POST(request) {
           ...allMessages.map(m => m.content),
           ...vaultContext.sources.map(s => s.content),
         ].join(separator);
-        const { anonymized: anonAll, map } = anonymize(combined);
+        const { anonymized: anonAll, map } = isFreeChat ? { anonymized: combined, map: {} } : anonymize(combined);
         const anonParts = anonAll.split(separator);
         // Geanonimiseerde varianten van de kluis-chunks (zelfde map als de berichten).
         // Raakt de split misaligned, dan vervalt de chunk: liever geen context dan
