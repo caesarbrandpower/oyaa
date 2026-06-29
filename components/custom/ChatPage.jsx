@@ -215,7 +215,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       setMessages((msgs ?? []).map((m) => {
         const base = { ...m, attachments: [] };
         // isDocument per bericht bepaald door inhoud — niet door thread.output_type als override
-        if (m.role === 'assistant') return { ...base, isDocument: looksLikeDocument(m.content), streaming: false, output_type: thread.output_type };
+        if (m.role === 'assistant') return { ...base, isDocument: looksLikeDocument(m.content) || (thread.output_type === 'evaluation' && m.content?.includes('```json')), streaming: false, output_type: thread.output_type };
         if (isDocThread && !firstUserReplaced && m.role === 'user' && thread.title) {
           firstUserReplaced = true;
           return { ...base, content: thread.title };
@@ -304,7 +304,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       : false;
     let firstUserReplaced = false;
     const enriched = (data ?? []).map(msg => {
-      if (msg.role === 'assistant') return { ...msg, isDocument: looksLikeDocument(msg.content), streaming: false, output_type: thread.output_type };
+      if (msg.role === 'assistant') return { ...msg, isDocument: looksLikeDocument(msg.content) || (thread.output_type === 'evaluation' && msg.content?.includes('```json')), streaming: false, output_type: thread.output_type };
       if (isDocThread && !firstUserReplaced && msg.role === 'user' && thread.title) {
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
