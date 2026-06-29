@@ -280,11 +280,14 @@ function stripDocMarkers(text) {
 }
 
 function parseMailContent(content) {
-  const subjectMatch = content.match(/^Onderwerp:\s*(.+)$/mi);
+  if (!content) return null;
+  // Matcht zowel "Onderwerp: ..." als "**Onderwerp:** ..." (markdown bold)
+  const subjectMatch = content.match(/^\*{0,2}Onderwerp:\*{0,2}\s*(.+)$/mi);
   if (!subjectMatch) return null;
-  const subject = subjectMatch[1].trim();
-  const afterSubject = content.slice(content.indexOf(subjectMatch[0]) + subjectMatch[0].length).trim();
-  return { subject, body: afterSubject };
+  const subject = subjectMatch[1].replace(/\*{1,2}$/, '').trim();
+  const matchEnd = content.indexOf(subjectMatch[0]) + subjectMatch[0].length;
+  const body = content.slice(matchEnd).trim();
+  return { subject, body };
 }
 
 function MailCard({ content }) {
@@ -405,13 +408,6 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
       {messages.filter(msg => !(msg.role === 'user' && msg.content === 'Aanvullende informatie ontvangen.')).map((msg) => {
         const msgOutputTypeLabel = outputTypes.find(t => t.id === msg.output_type)?.label ?? null;
-        if (msg.role === 'assistant' && !msg.streaming) {
-          console.log('[MAILCARD-DEBUG]', {
-            content: msg.content?.substring(0, 200),
-            hasOnderwerp: /onderwerp:/i.test(msg.content),
-            isDocument: msg.isDocument,
-          });
-        }
         return (
         <div
           key={msg.id}
@@ -523,7 +519,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
             ) : (
               <div
                 className="custom-prose prose-chat text-[14px]"
-                dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }}
+                dangerouslySetInnerHTML={{ __html: marked.parse(msg.content || '') }}
               />
             )}
             {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (
