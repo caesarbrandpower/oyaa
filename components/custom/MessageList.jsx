@@ -511,7 +511,8 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
                 <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
-            ) : msg.role === 'assistant' && parseMailContent(msg.content) ? (
+            ) : msg.role === 'assistant' && (() => { console.log('[MAILCARD-DEBUG] isDocument:', msg.isDocument, '| hasOnderwerp:', /onderwerp:/i.test(msg.content), '| first100:', msg.content?.slice(0, 100)); return false; })() ? null
+            : msg.role === 'assistant' && parseMailContent(msg.content) ? (
               <MailCard content={msg.content} />
             ) : (
               <div
