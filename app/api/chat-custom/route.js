@@ -626,11 +626,32 @@ ${userTextOnly}`;
           ? client.beta.messages.stream(streamParams)
           : client.messages.stream(streamParams);
 
+        const webSearchLog = { used: false, queries: [], resultCounts: [] };
         for await (const chunk of claudeStream) {
+          if (chunk.type === 'content_block_start') {
+            if (chunk.content_block?.type === 'server_tool_use') {
+              webSearchLog.used = true;
+              if (chunk.content_block.name === 'web_search') {
+                webSearchLog.queries.push(chunk.content_block.input?.query ?? '(geen query)');
+              }
+            }
+            if (chunk.content_block?.type === 'web_search_tool_result') {
+              const count = Array.isArray(chunk.content_block.content) ? chunk.content_block.content.length : 0;
+              webSearchLog.resultCounts.push(count);
+            }
+          }
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             fullText += chunk.delta.text;
             writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
           }
+        }
+        if (isFreeChat) {
+          console.log('[WEBSEARCH]', {
+            used: webSearchLog.used,
+            queries: webSearchLog.queries,
+            resultCounts: webSearchLog.resultCounts,
+            threadId: activeThreadId,
+          });
         }
 
         const finalMsg = await claudeStream.finalMessage();
