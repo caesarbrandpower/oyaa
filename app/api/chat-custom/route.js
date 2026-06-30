@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { insertTokenUsage } from '@/lib/token-usage';
 import { getTenant } from '@/lib/get-tenant';
 import { anonymize, deanonymize } from '@/lib/anonymize';
-import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, CUSTOM_SYSTEM_PROMPTS, FREE_CHAT_SYSTEM_PROMPT, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
+import { CUSTOM_PROMPTS, CUSTOM_SYSTEM_PROMPT, CUSTOM_SYSTEM_PROMPTS, buildFreeChatSystemPrompt, DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
 import { normalizeClientName } from '@/lib/utils';
 import { fuzzyMatchClient } from '@/lib/client-utils';
 import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/lib/vault/retrieve';
@@ -37,6 +37,12 @@ export async function POST(request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+
+  const firstName =
+    user.user_metadata?.full_name?.split(' ')[0] ||
+    user.user_metadata?.name?.split(' ')[0] ||
+    user.email?.split('@')[0] ||
+    null;
 
   let body;
   try {
@@ -453,7 +459,7 @@ Gebruik [CIJFERS TOEVOEGEN] voor ontbrekende kwantitatieve gegevens:
 Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere markeringen op één regel. Nooit een markering voor een veld dat wél is ingevuld.`;
 
         const systemPrompt = isFreeChat
-          ? FREE_CHAT_SYSTEM_PROMPT
+          ? buildFreeChatSystemPrompt(firstName)
           : useStructuredPrompt && CUSTOM_SYSTEM_PROMPTS?.[effectiveOutputType]
             ? CUSTOM_SYSTEM_PROMPTS[effectiveOutputType]
             : useStructuredPrompt

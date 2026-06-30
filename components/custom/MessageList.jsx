@@ -286,24 +286,42 @@ function parseMailContent(content) {
   if (!subjectMatch) return null;
   const subject = subjectMatch[1].replace(/\*{1,2}$/, '').trim();
   const matchEnd = content.indexOf(subjectMatch[0]) + subjectMatch[0].length;
-  const body = content.slice(matchEnd).trim();
+  let body = content.slice(matchEnd).trim();
+  // Strip afsluitende --- en alles daarna (vervolgvraag van Waybetter)
+  const hrIndex = body.search(/\n---+\s*(\n|$)/);
+  if (hrIndex !== -1) body = body.slice(0, hrIndex).trim();
   return { subject, body };
 }
 
+function stripHtml(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
 function MailCard({ content }) {
-  const [copied, setCopied] = useState(false);
   const parsed = parseMailContent(content);
+  const [copied, setCopied] = useState(false);
+  const [editableSubject, setEditableSubject] = useState(parsed?.subject ?? '');
   if (!parsed) return null;
-  const { subject, body } = parsed;
+
+  const bodyHtml = marked.parse(parsed.body);
 
   function handleCopy() {
-    navigator.clipboard.writeText(`Onderwerp: ${subject}\n\n${body}`).then(() => {
+    const plainBody = stripHtml(bodyHtml);
+    navigator.clipboard.writeText(`Onderwerp: ${editableSubject}\n\n${plainBody}`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     });
   }
 
-  const mailtoHref = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(editableSubject)}&body=${encodeURIComponent(stripHtml(bodyHtml))}`;
 
   return (
     <div className="mt-2 border border-white/[0.10] rounded-xl p-4 bg-white/[0.03] max-w-lg">
@@ -313,11 +331,18 @@ function MailCard({ content }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] text-white/40 uppercase tracking-wide mb-0.5">Onderwerp</p>
-          <p className="font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug">{subject}</p>
+          <input
+            value={editableSubject}
+            onChange={e => setEditableSubject(e.target.value)}
+            className="w-full font-[family-name:var(--font-lexend)] text-[13px] font-semibold text-white leading-snug bg-transparent border-b border-transparent hover:border-white/[0.15] focus:border-orange/50 outline-none pb-0.5 transition-colors"
+          />
         </div>
       </div>
       <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-3 max-h-64 overflow-y-auto">
-        <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{body}</p>
+        <div
+          className="custom-prose prose-chat text-[13px] text-white/75 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+        />
       </div>
       <div className="flex items-center gap-1.5">
         <button
