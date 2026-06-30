@@ -338,7 +338,10 @@ function MailCard({ content }) {
           />
         </div>
       </div>
-      <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-3 max-h-64 overflow-y-auto">
+      <div
+        className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-3 overflow-y-auto"
+        style={{ resize: 'vertical', minHeight: '6rem', maxHeight: '24rem' }}
+      >
         <div
           className="custom-prose prose-chat text-[13px] text-white/75 leading-relaxed"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
@@ -505,6 +508,10 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
                   {msg.isDocument ? `Waybetter maakt je ${{ 'meeting-summary': 'samenvatting', 'project-briefing': 'projectbriefing', 'evaluation': 'evaluatie', 'external-debrief': 'evaluatie', 'account-to-pm': 'briefing', 'field-briefing': 'ambassadorsbriefing', 'account-to-creation': 'briefing naar creatie' }[msg.output_type] ?? 'document'}...` : 'Aan het lezen...'}
                 </p>
+              ) : msg.streamContent && /onderwerp:/i.test(msg.streamContent) ? (
+                <p className="text-[13px] text-white/35 leading-relaxed animate-pulse">
+                  Waybetter stelt je mail op...
+                </p>
               ) : msg.streamContent ? (
                 <p
                   className="text-[14px] text-white/80 leading-relaxed whitespace-pre-wrap"
@@ -539,8 +546,13 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
                 <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
-            ) : msg.role === 'assistant' && parseMailContent(msg.content) ? (
-              <MailCard content={msg.content} />
+            ) : msg.role === 'assistant' && msg.content && parseMailContent(msg.content) ? (
+              <>
+                <MailCard content={msg.content} />
+                <p className="text-[13px] text-white/55 leading-relaxed mt-3">
+                  Wil je nog iets aanpassen of aanvullen aan deze mail?
+                </p>
+              </>
             ) : (
               <div
                 className="custom-prose prose-chat text-[14px]"

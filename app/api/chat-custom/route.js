@@ -38,11 +38,14 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
 
-  const firstName =
+  const rawName =
     user.user_metadata?.full_name?.split(' ')[0] ||
     user.user_metadata?.name?.split(' ')[0] ||
     user.email?.split('@')[0] ||
     null;
+  const firstName = rawName
+    ? rawName.charAt(0).toUpperCase() + rawName.slice(1)
+    : null;
 
   let body;
   try {
