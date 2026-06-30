@@ -243,6 +243,7 @@ export async function POST(request) {
         let vaultContext = { found: false, sources: [] };
         if (tenant?.id && vaultOn && !skipVaultRetrieval) {
           try {
+            console.log('[VAULT-CALL] retrieveVaultContext aangeroepen voor query:', userOnlyMessage?.slice(0, 80));
             vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage, matchCount: 4, maxPerDocument: 2, maxDocuments: 2 });
             if (wantsFullSummary && vaultContext.found) {
               const topDocId = vaultContext.sources[0].documentId;
