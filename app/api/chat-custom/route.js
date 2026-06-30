@@ -243,7 +243,7 @@ export async function POST(request) {
         let vaultContext = { found: false, sources: [] };
         if (tenant?.id && vaultOn && !skipVaultRetrieval) {
           try {
-            vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage });
+            vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage, matchCount: 4, maxPerDocument: 2, maxDocuments: 2 });
             if (wantsFullSummary && vaultContext.found) {
               const topDocId = vaultContext.sources[0].documentId;
               const fullDocContext = await retrieveFullDocument({ tenantId: tenant.id, documentId: topDocId });
@@ -482,7 +482,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             const proactiveInstruction = !wantsFullSummary
               ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
               : '';
-            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze daadwerkelijk relevant zijn voor de vraag. CITEERREGELS: citeer een bron direct na de zin waarvoor je die bron gebruikt, exact zo: (bron 1). Citeer een bron ALLEEN als je informatie uit die specifieke bron hebt gebruikt in je antwoord. Citeer nooit een bron die werd aangeleverd maar waarvan je de inhoud niet hebt gebruikt. Als je niets uit de kluis gebruikt, schrijf je geen enkele bronverwijzing. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
           } else if (vaultOn && !skipVaultRetrieval) {
             vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
@@ -642,10 +642,7 @@ ${userTextOnly}`;
 
         const finalContent = deanonymize(fullText, map);
 
-        // Extraheer citaties vóór het strippen; strip daarna zodat ze niet zichtbaar zijn.
-        const _vaultCitedNrs = new Set(
-          [...finalContent.matchAll(/\(bron\s+(\d+)\)/gi)].map(m => parseInt(m[1], 10))
-        );
+        // Strip eventuele (bron N) markers uit de zichtbare tekst — we tonen chips via retrieval, niet via citaties.
         const displayContent = finalContent.replace(/\(bron\s+\d+\)/gi, '').replace(/[ \t]{2,}/g, ' ').trimEnd();
 
         // Evaluatie: extraheer JSON-blok uit de response voor de PowerPoint-flow
@@ -823,8 +820,7 @@ ${userTextOnly}`;
           ]);
         }
 
-        // Toon alleen bronnen die Claude daadwerkelijk heeft geciteerd als (bron N).
-        // De retrieval geeft alles boven threshold terug; niet alles wordt gebruikt.
+        // Toon alle bronnen die de (nu strenger begrensde) retrieval teruggaf.
         if (vaultContext.found) {
           const seenDocIds = new Set();
           const dedupedSources = vaultContext.sources.filter(s => {
@@ -832,14 +828,10 @@ ${userTextOnly}`;
             seenDocIds.add(s.documentId);
             return true;
           });
-          const citedNrs = _vaultCitedNrs;
-          const usedSources = citedNrs.size > 0
-            ? dedupedSources.filter((_, i) => citedNrs.has(i + 1))
-            : [];
-          if (usedSources.length > 0) {
+          if (dedupedSources.length > 0) {
             writeEvent(controller, {
               type: 'sources',
-              sources: usedSources.map((s, i) => ({
+              sources: dedupedSources.map((s, i) => ({
                 n: i + 1,
                 title: s.title,
                 client: s.client,
