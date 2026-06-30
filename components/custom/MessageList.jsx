@@ -279,18 +279,33 @@ function stripDocMarkers(text) {
   return text.replace(/\[[A-Z][A-Z\s]*(:[^\]]*)?]/g, '...');
 }
 
-function parseMailContent(content) {
+function parseMailContent(content, fallbackSubject = null) {
   if (!content) return null;
-  // Matcht zowel "Onderwerp: ..." als "**Onderwerp:** ..." (markdown bold)
+
+  // Geval 1: expliciete Onderwerp:-regel (ook **Onderwerp:** markdown bold)
   const subjectMatch = content.match(/^\*{0,2}Onderwerp:\*{0,2}\s*(.+)$/mi);
-  if (!subjectMatch) return null;
-  const subject = subjectMatch[1].replace(/\*{1,2}$/, '').trim();
-  const matchEnd = content.indexOf(subjectMatch[0]) + subjectMatch[0].length;
-  let body = content.slice(matchEnd).trim();
-  // Strip afsluitende --- en alles daarna (vervolgvraag van Waybetter)
-  const hrIndex = body.search(/\n---+\s*(\n|$)/);
-  if (hrIndex !== -1) body = body.slice(0, hrIndex).trim();
-  return { subject, body };
+  if (subjectMatch) {
+    const subject = subjectMatch[1].replace(/\*{1,2}$/, '').trim();
+    const matchEnd = content.indexOf(subjectMatch[0]) + subjectMatch[0].length;
+    let body = content.slice(matchEnd).trim();
+    const hrIndex = body.search(/\n---+\s*(\n|$)/);
+    if (hrIndex !== -1) body = body.slice(0, hrIndex).trim();
+    return { subject, body };
+  }
+
+  // Geval 2: aanhef op eerste regel + mail-afsluiting ergens in de tekst
+  const firstLine = content.trimStart().split('\n')[0].trim();
+  const hasMailGreeting = /^(hoi|beste|hallo|geachte|dear|hi)\s+\w/i.test(firstLine);
+  const hasMailClosing = /\b(groetjes|groeten?|met\s+vriendelijke\s+groet|hartelijke\s+groeten?|mvg)\b/i.test(content);
+
+  if (hasMailGreeting && hasMailClosing) {
+    let body = content.trim();
+    const hrIndex = body.search(/\n---+\s*(\n|$)/);
+    if (hrIndex !== -1) body = body.slice(0, hrIndex).trim();
+    return { subject: fallbackSubject || '', body };
+  }
+
+  return null;
 }
 
 function stripHtml(html) {
@@ -305,8 +320,8 @@ function stripHtml(html) {
     .trim();
 }
 
-function MailCard({ content }) {
-  const parsed = parseMailContent(content);
+function MailCard({ content, fallbackSubject }) {
+  const parsed = parseMailContent(content, fallbackSubject);
   const [copied, setCopied] = useState(false);
   const [editableSubject, setEditableSubject] = useState(parsed?.subject ?? '');
   if (!parsed) return null;
@@ -424,6 +439,21 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
   const lastMsg = messages[messages.length - 1];
   const isStreaming = lastMsg?.streaming === true;
 
+  // Bijhouden welk onderwerp het meest recent aanwezig was vóór elk bericht,
+  // zodat mail-antwoorden zonder Onderwerp:-regel toch een onderwerp krijgen.
+  const lastSubjectBeforeMsg = (() => {
+    const result = new Map();
+    let last = null;
+    for (const msg of messages) {
+      result.set(msg.id, last);
+      if (msg.role === 'assistant' && msg.content) {
+        const m = msg.content.match(/^\*{0,2}Onderwerp:\*{0,2}\s*(.+)$/mi);
+        if (m) last = m[1].replace(/\*{1,2}$/, '').trim();
+      }
+    }
+    return result;
+  })();
+
   return (
     <>
     {openTranscript && (
@@ -436,6 +466,7 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
     <div className="flex flex-col gap-6 py-8 px-4 md:px-8 max-w-3xl mx-auto w-full">
       {messages.filter(msg => !(msg.role === 'user' && msg.content === 'Aanvullende informatie ontvangen.')).map((msg) => {
         const msgOutputTypeLabel = outputTypes.find(t => t.id === msg.output_type)?.label ?? null;
+        const fallbackSubject = lastSubjectBeforeMsg.get(msg.id) ?? null;
         return (
         <div
           key={msg.id}
@@ -546,9 +577,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
               <div className="mt-1 rounded-xl border border-orange/[0.15] bg-orange/[0.04] px-4 py-3">
                 <p className="text-[13px] text-white/70 leading-relaxed">{msg.content}</p>
               </div>
-            ) : msg.role === 'assistant' && msg.content && parseMailContent(msg.content) ? (
+            ) : msg.role === 'assistant' && msg.content && parseMailContent(msg.content, fallbackSubject) ? (
               <>
-                <MailCard content={msg.content} />
+                <MailCard content={msg.content} fallbackSubject={fallbackSubject} />
                 <p className="text-[13px] text-white/55 leading-relaxed mt-3">
                   Wil je nog iets aanpassen of aanvullen aan deze mail?
                 </p>
