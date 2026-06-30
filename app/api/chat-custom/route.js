@@ -240,11 +240,22 @@ export async function POST(request) {
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
         const wantsFullSummary = FULL_SUMMARY_KEYWORDS.some(kw => userOnlyMessage.toLowerCase().includes(kw));
 
+        // Brede meervoudsvraag: "onze evaluaties", "alle acties" etc. → meer chunks, lagere drempel
+        const isBroadVaultQuery = /\b(onze|alle|meerdere|verschillende|elk|iedere)\b/i.test(userOnlyMessage) &&
+          /\b(evaluaties|acties|resultaten|projecten|documenten|rapporten|campagnes|klanten|briefs|briefings)\b/i.test(userOnlyMessage);
+
         let vaultContext = { found: false, sources: [] };
         if (tenant?.id && vaultOn && !skipVaultRetrieval) {
           try {
-            console.log('[VAULT-CALL] retrieveVaultContext aangeroepen voor query:', userOnlyMessage?.slice(0, 80));
-            vaultContext = await retrieveVaultContext({ tenantId: tenant.id, query: userOnlyMessage, matchCount: 6, maxPerDocument: 2 });
+            console.log('[VAULT-CALL] retrieveVaultContext aangeroepen voor query:', userOnlyMessage?.slice(0, 80), '| breed:', isBroadVaultQuery);
+            vaultContext = await retrieveVaultContext({
+              tenantId: tenant.id,
+              query: userOnlyMessage,
+              matchCount: isBroadVaultQuery ? 12 : 6,
+              matchThreshold: isBroadVaultQuery ? 0.40 : 0.45,
+              maxPerDocument: isBroadVaultQuery ? 3 : 2,
+              broadQuery: isBroadVaultQuery,
+            });
             if (wantsFullSummary && vaultContext.found) {
               const topDocId = vaultContext.sources[0].documentId;
               const fullDocContext = await retrieveFullDocument({ tenantId: tenant.id, documentId: topDocId });
@@ -483,7 +494,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             const proactiveInstruction = !wantsFullSummary
               ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
               : '';
-            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. Bij een concrete vraag (resultaten, aantallen, advies over een specifiek project): geef direct een kort, inhoudelijk antwoord op basis van wat je vindt — vraag niet eerst toestemming om een samenvatting te maken. Bied pas aan dieper in te gaan als het antwoord beknopt moest blijven door de hoeveelheid informatie. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
           } else if (vaultOn && !skipVaultRetrieval) {
             vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
