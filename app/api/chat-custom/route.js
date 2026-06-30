@@ -482,7 +482,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             const proactiveInstruction = !wantsFullSummary
               ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
               : '';
-            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek en verwijs dan naar het bronnummer, bijvoorbeeld (bron 2). Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. VERPLICHT: als je informatie uit een of meer bronnen gebruikt, vermeld dan aan het einde van je antwoord welke je hebt gebruikt, exact zo: (bron 1) of (bron 1)(bron 2). Gebruik je niets uit de kluis, vermeld dan geen bronverwijzing. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
           } else if (vaultOn && !skipVaultRetrieval) {
             vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
@@ -591,25 +591,7 @@ ${userTextOnly}`;
           }
         }
 
-        if (vaultContext.found) {
-          const seenDocIds = new Set();
-          const dedupedSources = vaultContext.sources.filter(s => {
-            if (seenDocIds.has(s.documentId)) return false;
-            seenDocIds.add(s.documentId);
-            return true;
-          });
-          writeEvent(controller, {
-            type: 'sources',
-            sources: dedupedSources.map((s, i) => ({
-              n: i + 1,
-              title: s.title,
-              client: s.client,
-              project: s.project,
-              createdAt: s.createdAt,
-              sourceType: s.sourceType,
-            })),
-          });
-        }
+
 
         let fullText = '';
         const streamParams = {
@@ -833,6 +815,36 @@ ${userTextOnly}`;
             })(),
             new Promise(resolve => setTimeout(resolve, 15000)),
           ]);
+        }
+
+        // Toon alleen bronnen die Claude daadwerkelijk heeft geciteerd als (bron N).
+        // De retrieval geeft alles boven threshold terug; niet alles wordt gebruikt.
+        if (vaultContext.found) {
+          const seenDocIds = new Set();
+          const dedupedSources = vaultContext.sources.filter(s => {
+            if (seenDocIds.has(s.documentId)) return false;
+            seenDocIds.add(s.documentId);
+            return true;
+          });
+          const citedNrs = new Set(
+            [...finalContent.matchAll(/\(bron\s+(\d+)\)/gi)].map(m => parseInt(m[1], 10))
+          );
+          const usedSources = citedNrs.size > 0
+            ? dedupedSources.filter((_, i) => citedNrs.has(i + 1))
+            : [];
+          if (usedSources.length > 0) {
+            writeEvent(controller, {
+              type: 'sources',
+              sources: usedSources.map((s, i) => ({
+                n: i + 1,
+                title: s.title,
+                client: s.client,
+                project: s.project,
+                createdAt: s.createdAt,
+                sourceType: s.sourceType,
+              })),
+            });
+          }
         }
 
         writeEvent(controller, {
