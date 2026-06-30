@@ -616,7 +616,7 @@ ${userTextOnly}`;
             ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
           ],
           messages: claudeMessages,
-          ...(isDocument ? { temperature: 0 } : {}),
+          ...(isDocument ? { temperature: 0 } : isFreeChat ? { temperature: 0.7 } : {}),
           ...(isFreeChat ? {
             tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
             betas: ['web-search-2025-03-05'],
