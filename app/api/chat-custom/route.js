@@ -754,6 +754,49 @@ ${userTextOnly}`;
           new Promise(resolve => setTimeout(resolve, 2000)),
         ]);
 
+        // ── Kluis-ingest van gegenereerd document ─────────────────────────────
+        // Alleen voor voltooide generaties, niet bij verbetering (apart document zou
+        // de originele kluis-versie niet vervangen; dedup op content_hash vangt dit
+        // grotendeels op maar skip is explicieter en goedkoper).
+        if (tenant?.id && vaultOn && isDocument && savedMsg?.id && !improveDocument) {
+          const cp = [detectedClient, detectedProject].filter(Boolean).join(' ');
+          const generatedTitleMap = {
+            'field-briefing':      cp ? `AMBASSADORSBRIEFING — ${cp}` : 'AMBASSADORSBRIEFING',
+            'account-to-pm':       cp ? `BRIEFING NAAR PM — ${cp}` : 'BRIEFING NAAR PM',
+            'account-to-creation': cp ? `BRIEFING NAAR CREATIE — ${cp}` : 'BRIEFING NAAR CREATIE',
+            'meeting-summary':     cp ? `SAMENVATTING — ${cp}` : 'SAMENVATTING',
+            'evaluation':          cp ? `Evaluatie — ${cp}` : 'Evaluatie',
+            'external-debrief':    cp ? `EVALUATIE — ${cp}` : 'EVALUATIE',
+            'project-briefing':    cp ? `PROJECTBRIEFING — ${cp}` : 'PROJECTBRIEFING',
+          };
+          const generatedTitle = generatedTitleMap[effectiveOutputType] ?? (cp ? `Document — ${cp}` : 'Gegenereerd document');
+          await Promise.race([
+            (async () => {
+              try {
+                const result = await ingestDocument({
+                  tenantId: tenant.id,
+                  userId: user.id,
+                  threadId: activeThreadId,
+                  title: generatedTitle,
+                  sourceType: 'generated',
+                  outputType: effectiveOutputType ?? null,
+                  client: detectedClient ?? null,
+                  project: detectedProject ?? null,
+                  rawContent: finalContent,
+                });
+                if (!result.skipped) {
+                  console.log('[VAULT] Document geingest:', generatedTitle, result.chunkCount, 'chunks');
+                } else {
+                  console.log('[VAULT] Document overgeslagen (dedup):', generatedTitle, result.reason);
+                }
+              } catch (err) {
+                console.error('[VAULT] Document-ingest mislukt:', err?.message ?? err);
+              }
+            })(),
+            new Promise(resolve => setTimeout(resolve, 15000)),
+          ]);
+        }
+
         // ── Kluis-ingest van PDF-bijlagen ─────────────────────────────────────
         // Na de generatie zodat de stream er niet op wacht. Await is verplicht:
         // fire-and-forget sterft in Vercel serverless. Dedup via content_hash.
