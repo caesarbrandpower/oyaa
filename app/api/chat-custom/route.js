@@ -500,6 +500,34 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
+        // ── Database-context (locaties + leveranciers) ─────────────────────────
+        let databaseContextSuffix = '';
+        const locationsOn = tenant?.tenant_config?.features?.locations === true;
+        const suppliersOn = tenant?.tenant_config?.features?.suppliers === true;
+
+        if (locationsOn || suppliersOn) {
+          const [locResult, supResult] = await Promise.all([
+            locationsOn
+              ? supabase.from('locations').select('naam, omschrijving, stad, channel, doelgroep, parkeren, laden_lossen, vergunning_status, bijzonderheden').eq('tenant_id', tenant.id).order('naam')
+              : Promise.resolve({ data: null }),
+            suppliersOn
+              ? supabase.from('suppliers').select('naam, omschrijving, categorie, regio, levertijd, prijsindicatie, contactpersoon, telefoon, email, website, bijzonderheden').eq('tenant_id', tenant.id).order('naam')
+              : Promise.resolve({ data: null }),
+          ]);
+
+          const tenantLabel = tenant?.name ?? 'dit bureau';
+          const dbSections = [];
+          if (locationsOn && locResult.data?.length > 0) {
+            dbSections.push(`## Locatiedatabase\nDe volgende locaties zijn beschikbaar voor ${tenantLabel}:\n${JSON.stringify(locResult.data, null, 2)}`);
+          }
+          if (suppliersOn && supResult.data?.length > 0) {
+            dbSections.push(`## Leveranciersdatabase\nDe volgende leveranciers zijn beschikbaar voor ${tenantLabel}:\n${JSON.stringify(supResult.data, null, 2)}`);
+          }
+          if (dbSections.length > 0) {
+            databaseContextSuffix = dbSections.join('\n\n');
+          }
+        }
+
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
         const existingDocMsgIdx = improveDocument
@@ -612,6 +640,7 @@ ${userTextOnly}`;
           system: [
             { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
             ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
+            ...(databaseContextSuffix ? [{ type: 'text', text: databaseContextSuffix }] : []),
           ],
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : isFreeChat ? { temperature: 0.7 } : {}),
