@@ -4,8 +4,12 @@ import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Package, Utensils, Truck, Printer, Monitor, Warehouse,
-  Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2,
+  Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2, Plus, X,
+  Pencil, Check,
 } from 'lucide-react';
+
+const CATEGORIES = ['materiaal', 'catering', 'transport', 'drukwerk', 'techniek', 'opslag'];
+const BEOORDELINGEN = ['goed', 'neutraal', 'niet meer gebruiken'];
 
 const CATEGORY_ICONS = {
   materiaal: Package,
@@ -16,13 +20,16 @@ const CATEGORY_ICONS = {
   opslag:    Warehouse,
 };
 
+const BEOORDELING_CONFIG = {
+  goed:                 { cls: 'bg-green-500/15 text-green-400',  label: 'Goed' },
+  neutraal:             { cls: 'bg-orange/15 text-orange',         label: 'Neutraal' },
+  'niet meer gebruiken':{ cls: 'bg-red-500/15 text-red-400',      label: 'Niet meer gebruiken' },
+};
+
 function BeoordelingBadge({ beoordeling }) {
-  const config = {
-    goed:               { cls: 'bg-green-500/15 text-green-400',  label: 'Goed' },
-    neutraal:           { cls: 'bg-orange/15 text-orange',         label: 'Neutraal' },
-    'niet meer gebruiken': { cls: 'bg-red-500/15 text-red-400',   label: 'Niet meer gebruiken' },
-  };
-  const c = config[beoordeling] ?? config.neutraal;
+  if (!beoordeling) return null;
+  const c = BEOORDELING_CONFIG[beoordeling];
+  if (!c) return null;
   return (
     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${c.cls}`}>
       {c.label}
@@ -30,14 +37,28 @@ function BeoordelingBadge({ beoordeling }) {
   );
 }
 
-function Detail({ label, value, wide }) {
+function DetailLabel({ children }) {
+  return <p className="text-[11px] text-white/35 mb-0.5 uppercase tracking-wide">{children}</p>;
+}
+
+function DetailItem({ label, children, wide }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <p className="text-[11px] text-white/35 mb-0.5 uppercase tracking-wide">{label}</p>
-      <p className="text-[13px] text-white/80 leading-snug">{value}</p>
+      <DetailLabel>{label}</DetailLabel>
+      <div className="text-[13px] text-white/80 leading-snug">{children}</div>
     </div>
   );
 }
+
+const INPUT_CLS = 'w-full h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20';
+const SELECT_CLS = 'w-full h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20';
+const LABEL_CLS = 'block text-[11px] text-white/40 uppercase tracking-wide mb-1';
+
+const EMPTY_SUPPLIER = {
+  naam: '', omschrijving: '', categorie: '', contactpersoon: '',
+  telefoon: '', email: '', website: '', regio: '',
+  levertijd: '', prijsindicatie: '', beoordeling: '', bijzonderheden: '',
+};
 
 export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
   const [suppliers, setSuppliers] = useState(initialSuppliers);
@@ -47,6 +68,12 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingForId, setUploadingForId] = useState(null);
   const [uploadError, setUploadError] = useState({});
+  const [editingBijz, setEditingBijz] = useState(null); // { id, value }
+  const [savingBijz, setSavingBijz] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSupplier, setNewSupplier] = useState(EMPTY_SUPPLIER);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const fileInputRef = useRef(null);
 
   const categories = useMemo(
@@ -64,7 +91,8 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
       const matchSearch = !q
         || s.naam?.toLowerCase().includes(q)
         || s.contactpersoon?.toLowerCase().includes(q)
-        || s.regio?.toLowerCase().includes(q);
+        || s.regio?.toLowerCase().includes(q)
+        || s.omschrijving?.toLowerCase().includes(q);
       const matchCategorie = !filterCategorie || s.categorie === filterCategorie;
       const matchRegio = !filterRegio || s.regio === filterRegio;
       return matchSearch && matchCategorie && matchRegio;
@@ -82,15 +110,12 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
     e.target.value = '';
     if (!file || !uploadingForId) return;
     const id = uploadingForId;
-
     const form = new FormData();
     form.append('file', file);
     form.append('supplier_id', id);
-
     const res = await fetch('/api/suppliers/upload-bijlage', { method: 'POST', body: form });
     const json = await res.json();
     setUploadingForId(null);
-
     if (res.ok) {
       setSuppliers(prev => prev.map(s =>
         s.id === id
@@ -102,9 +127,45 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
     }
   }
 
+  async function saveBijzonderheden(id) {
+    setSavingBijz(id);
+    const res = await fetch('/api/suppliers/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier_id: id, bijzonderheden: editingBijz.value }),
+    });
+    const json = await res.json();
+    setSavingBijz(null);
+    if (res.ok) {
+      setSuppliers(prev => prev.map(s => s.id === id ? { ...s, bijzonderheden: json.supplier.bijzonderheden } : s));
+      setEditingBijz(null);
+    }
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!newSupplier.naam.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    const res = await fetch('/api/suppliers/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newSupplier),
+    });
+    const json = await res.json();
+    setCreating(false);
+    if (res.ok) {
+      setSuppliers(prev => [json.supplier, ...prev]);
+      setNewSupplier(EMPTY_SUPPLIER);
+      setShowAddForm(false);
+    } else {
+      setCreateError(json.error ?? 'Opslaan mislukt');
+    }
+  }
+
   function exportCSV() {
-    const cols = ['naam', 'categorie', 'contactpersoon', 'telefoon', 'email', 'website',
-      'regio', 'levertijd', 'prijsindicatie', 'beoordeling', 'bijzonderheden'];
+    const cols = ['naam', 'omschrijving', 'categorie', 'contactpersoon', 'telefoon', 'email',
+      'website', 'regio', 'levertijd', 'prijsindicatie', 'beoordeling', 'bijzonderheden'];
     const escape = v => `"${(v ?? '').toString().replace(/"/g, '""')}"`;
     const rows = filtered.map(s => cols.map(c => escape(s[c])).join(','));
     const csv = [cols.join(','), ...rows].join('\n');
@@ -115,6 +176,15 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
     a.download = `leveranciers-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function normalizeUrl(url) {
+    if (!url) return null;
+    return url.startsWith('http') ? url : `https://${url}`;
+  }
+
+  function displayUrl(url) {
+    return url?.replace(/^https?:\/\//, '') ?? '';
   }
 
   return (
@@ -130,13 +200,22 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
             <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
             Terug naar chat
           </Link>
-          <button
-            onClick={exportCSV}
-            className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.05] border border-white/[0.08] rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" strokeWidth={1.75} />
-            Exporteren
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={exportCSV}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.05] border border-white/[0.08] rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Exporteren
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.08] border border-white/[0.12] rounded-lg text-white/80 hover:text-white hover:bg-white/[0.12] transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Voeg toe
+            </button>
+          </div>
         </div>
 
         <h1 className="text-xl font-semibold mb-1">Leveranciersdatabase</h1>
@@ -162,7 +241,9 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
             className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20"
           >
             <option value="">Alle categorieën</option>
-            {categories.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+            {categories.map(c => (
+              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+            ))}
           </select>
           <select
             value={filterRegio}
@@ -183,11 +264,13 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
           {filtered.map(sup => {
             const Icon = CATEGORY_ICONS[sup.categorie] ?? Package;
             const isExpanded = expandedId === sup.id;
+            const isEditingBijz = editingBijz?.id === sup.id;
             return (
               <div
                 key={sup.id}
                 className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden"
               >
+                {/* Dichte kaart */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : sup.id)}
                   className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
@@ -201,7 +284,7 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                       )}
                       <BeoordelingBadge beoordeling={sup.beoordeling} />
                     </div>
-                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    <div className="flex gap-1.5 mt-1 flex-wrap">
                       {sup.categorie && (
                         <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/50 capitalize">
                           {sup.categorie}
@@ -213,6 +296,11 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                         </span>
                       )}
                     </div>
+                    {sup.omschrijving && (
+                      <p className="mt-1.5 text-[12px] text-white/45 leading-snug line-clamp-2">
+                        {sup.omschrijving}
+                      </p>
+                    )}
                   </div>
                   {isExpanded
                     ? <ChevronUp className="w-3.5 h-3.5 shrink-0 mt-1 text-white/30" strokeWidth={1.75} />
@@ -220,38 +308,102 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                   }
                 </button>
 
+                {/* Uitgevouwen detail */}
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-white/[0.05]">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-3">
                       {sup.contactpersoon && (
-                        <Detail label="Contactpersoon" value={sup.contactpersoon} />
+                        <DetailItem label="Contactpersoon">{sup.contactpersoon}</DetailItem>
                       )}
                       {sup.telefoon && (
-                        <Detail label="Telefoon" value={sup.telefoon} />
+                        <DetailItem label="Telefoon">
+                          <a href={`tel:${sup.telefoon}`} className="text-orange underline-offset-2 hover:underline">
+                            {sup.telefoon}
+                          </a>
+                        </DetailItem>
                       )}
                       {sup.email && (
-                        <Detail label="E-mail" value={sup.email} />
+                        <DetailItem label="E-mail">
+                          <a href={`mailto:${sup.email}`} className="text-orange underline-offset-2 hover:underline">
+                            {sup.email}
+                          </a>
+                        </DetailItem>
                       )}
                       {sup.website && (
-                        <Detail label="Website" value={sup.website} />
+                        <DetailItem label="Website">
+                          <a
+                            href={normalizeUrl(sup.website)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange underline-offset-2 hover:underline"
+                          >
+                            {displayUrl(sup.website)}
+                          </a>
+                        </DetailItem>
                       )}
                       {sup.levertijd && (
-                        <Detail label="Levertijd" value={sup.levertijd} />
+                        <DetailItem label="Levertijd">{sup.levertijd}</DetailItem>
                       )}
                       {sup.prijsindicatie && (
-                        <Detail label="Prijsindicatie" value={sup.prijsindicatie} />
+                        <DetailItem label="Prijsindicatie">{sup.prijsindicatie}</DetailItem>
                       )}
-                      {sup.bijzonderheden && (
-                        <Detail label="Bijzonderheden" value={sup.bijzonderheden} wide />
-                      )}
+
+                      {/* Bijzonderheden — inline bewerkbaar */}
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <DetailLabel>Bijzonderheden</DetailLabel>
+                          {!isEditingBijz && (
+                            <button
+                              onClick={() => setEditingBijz({ id: sup.id, value: sup.bijzonderheden ?? '' })}
+                              className="text-white/25 hover:text-white/60 transition-colors"
+                            >
+                              <Pencil className="w-2.5 h-2.5" strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                        {isEditingBijz ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingBijz.value}
+                              onChange={e => setEditingBijz(prev => ({ ...prev, value: e.target.value }))}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.12] rounded-lg text-[13px] text-white/80 leading-snug resize-none focus:outline-none focus:border-white/25"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => saveBijzonderheden(sup.id)}
+                                disabled={savingBijz === sup.id}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] bg-white/[0.08] border border-white/[0.12] rounded-md text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+                              >
+                                {savingBijz === sup.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                                  : <Check className="w-3 h-3" strokeWidth={1.75} />
+                                }
+                                Opslaan
+                              </button>
+                              <button
+                                onClick={() => setEditingBijz(null)}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                              >
+                                Annuleren
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[13px] text-white/80 leading-snug">
+                            {sup.bijzonderheden || (
+                              <span className="text-white/25 italic">Geen bijzonderheden</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
+                    {/* Bijlagen */}
                     <div className="mt-4">
                       {Array.isArray(sup.bijlagen) && sup.bijlagen.length > 0 && (
                         <>
-                          <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">
-                            Bijlagen
-                          </p>
+                          <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">Bijlagen</p>
                           <div className="flex gap-3 flex-wrap mb-3">
                             {sup.bijlagen.map((b, i) => (
                               <a
@@ -296,14 +448,134 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
         </div>
       </div>
 
-      {/* Hidden file input — gedeeld door alle leverancierskaarten */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+
+      {/* Toevoegen modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/[0.08] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <h2 className="text-[15px] font-semibold">Nieuwe leverancier</h2>
+              <button onClick={() => setShowAddForm(false)} className="text-white/40 hover:text-white/80 transition-colors">
+                <X className="w-4 h-4" strokeWidth={1.75} />
+              </button>
+            </div>
+            <form onSubmit={handleCreate} className="px-6 py-5 space-y-4">
+              <div>
+                <label className={LABEL_CLS}>Naam *</label>
+                <input
+                  type="text"
+                  required
+                  value={newSupplier.naam}
+                  onChange={e => setNewSupplier(p => ({ ...p, naam: e.target.value }))}
+                  className={INPUT_CLS}
+                  placeholder="Naam van de leverancier"
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Omschrijving</label>
+                <textarea
+                  rows={2}
+                  value={newSupplier.omschrijving}
+                  onChange={e => setNewSupplier(p => ({ ...p, omschrijving: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
+                  placeholder="Korte beschrijving..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Categorie</label>
+                  <select
+                    value={newSupplier.categorie}
+                    onChange={e => setNewSupplier(p => ({ ...p, categorie: e.target.value }))}
+                    className={SELECT_CLS}
+                  >
+                    <option value="">Kies categorie</option>
+                    {CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Beoordeling</label>
+                  <select
+                    value={newSupplier.beoordeling}
+                    onChange={e => setNewSupplier(p => ({ ...p, beoordeling: e.target.value }))}
+                    className={SELECT_CLS}
+                  >
+                    <option value="">Geen beoordeling</option>
+                    {BEOORDELINGEN.map(b => (
+                      <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Contactpersoon</label>
+                  <input type="text" value={newSupplier.contactpersoon} onChange={e => setNewSupplier(p => ({ ...p, contactpersoon: e.target.value }))} className={INPUT_CLS} placeholder="Naam" />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Regio</label>
+                  <input type="text" value={newSupplier.regio} onChange={e => setNewSupplier(p => ({ ...p, regio: e.target.value }))} className={INPUT_CLS} placeholder="bijv. Nationaal" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Telefoon</label>
+                  <input type="tel" value={newSupplier.telefoon} onChange={e => setNewSupplier(p => ({ ...p, telefoon: e.target.value }))} className={INPUT_CLS} placeholder="020-000 0000" />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>E-mail</label>
+                  <input type="email" value={newSupplier.email} onChange={e => setNewSupplier(p => ({ ...p, email: e.target.value }))} className={INPUT_CLS} placeholder="naam@bedrijf.nl" />
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Website</label>
+                <input type="text" value={newSupplier.website} onChange={e => setNewSupplier(p => ({ ...p, website: e.target.value }))} className={INPUT_CLS} placeholder="bedrijf.nl" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Levertijd</label>
+                  <input type="text" value={newSupplier.levertijd} onChange={e => setNewSupplier(p => ({ ...p, levertijd: e.target.value }))} className={INPUT_CLS} placeholder="bijv. 5 werkdagen" />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Prijsindicatie</label>
+                  <input type="text" value={newSupplier.prijsindicatie} onChange={e => setNewSupplier(p => ({ ...p, prijsindicatie: e.target.value }))} className={INPUT_CLS} placeholder="bijv. €5 - €25 p.st." />
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Bijzonderheden</label>
+                <textarea
+                  rows={3}
+                  value={newSupplier.bijzonderheden}
+                  onChange={e => setNewSupplier(p => ({ ...p, bijzonderheden: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
+                  placeholder="Tips, afspraken, aandachtspunten..."
+                />
+              </div>
+              {createError && <p className="text-[12px] text-red-400">{createError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={creating || !newSupplier.naam.trim()}
+                  className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors"
+                >
+                  {creating ? 'Opslaan...' : 'Leverancier toevoegen'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors"
+                >
+                  Annuleren
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
