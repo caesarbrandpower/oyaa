@@ -30,7 +30,7 @@ const ROW2_ITEMS = [
   { id: 'leveranciers', label: 'Leveranciers', icon: 'building-2' },
 ];
 
-export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled }) {
+export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled, suppliersEnabled }) {
   const byId = Object.fromEntries(outputTypes.map((t) => [t.id, t]));
   const row1 = ROW1_ORDER.map((id) => byId[id]).filter(Boolean);
 
@@ -55,10 +55,23 @@ export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled
         {ROW2_ITEMS.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
 
-          // Locaties navigeert naar /app/locaties als de feature aan staat
           if (task.id === 'locaties') {
             return locationsEnabled ? (
               <Link key={task.id} href="/app/locaties" className={ACTIVE_CLS}>
+                <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
+                {task.label}
+              </Link>
+            ) : (
+              <button key={task.id} disabled className={INACTIVE_CLS}>
+                <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
+                {task.label}
+              </button>
+            );
+          }
+
+          if (task.id === 'leveranciers') {
+            return suppliersEnabled ? (
+              <Link key={task.id} href="/app/leveranciers" className={ACTIVE_CLS}>
                 <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
                 {task.label}
               </Link>

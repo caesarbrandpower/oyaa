@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid, KeyRound, ChevronLeft, Archive, MapPin } from 'lucide-react';
+import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid, KeyRound, ChevronLeft, Archive, MapPin, Package } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -269,6 +269,15 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           >
             <MapPin className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
             Locaties
+          </Link>
+        )}
+        {tenant?.tenant_config?.features?.suppliers === true && (
+          <Link
+            href="/app/leveranciers"
+            className="flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]"
+          >
+            <Package className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+            Leveranciers
           </Link>
         )}
       </div>
