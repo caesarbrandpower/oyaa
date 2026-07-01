@@ -5,24 +5,29 @@ import Link from 'next/link';
 import {
   ArrowLeft, MapPin, Train, ShoppingBag, Tent, Music, Store,
   Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2,
+  Plus, X, Pencil, Check,
 } from 'lucide-react';
 
+const CHANNELS = ['Centrumlocatie', 'Treinstation', 'Winkelcentrum', 'Outdoor', 'Event', 'Markt'];
+const VERGUNNING_STATUSSEN = ['aanwezig', 'verlopen', 'geen'];
+
 const CHANNEL_ICONS = {
-  'Centrumlocatie': MapPin,
-  'Treinstation': Train,
-  'Winkelcentrum': ShoppingBag,
-  'Outdoor': Tent,
-  'Event': Music,
-  'Markt': Store,
+  Centrumlocatie: MapPin,
+  Treinstation:   Train,
+  Winkelcentrum:  ShoppingBag,
+  Outdoor:        Tent,
+  Event:          Music,
+  Markt:          Store,
+};
+
+const VERGUNNING_CONFIG = {
+  aanwezig: { cls: 'bg-green-500/15 text-green-400', label: 'Vergunning aanwezig' },
+  verlopen: { cls: 'bg-orange/15 text-orange',        label: 'Vergunning verlopen' },
+  geen:     { cls: 'bg-white/10 text-white/35',       label: 'Geen vergunning' },
 };
 
 function VergunningBadge({ status }) {
-  const config = {
-    aanwezig: { cls: 'bg-green-500/15 text-green-400', label: 'Vergunning aanwezig' },
-    verlopen:  { cls: 'bg-orange/15 text-orange',       label: 'Vergunning verlopen' },
-    geen:      { cls: 'bg-white/10 text-white/35',      label: 'Geen vergunning' },
-  };
-  const c = config[status] ?? config.geen;
+  const c = VERGUNNING_CONFIG[status] ?? VERGUNNING_CONFIG.geen;
   return (
     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${c.cls}`}>
       {c.label}
@@ -30,14 +35,29 @@ function VergunningBadge({ status }) {
   );
 }
 
-function Detail({ label, value, wide }) {
+function DetailLabel({ children }) {
+  return <p className="text-[11px] text-white/35 mb-0.5 uppercase tracking-wide">{children}</p>;
+}
+
+function DetailItem({ label, children, wide }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <p className="text-[11px] text-white/35 mb-0.5 uppercase tracking-wide">{label}</p>
-      <p className="text-[13px] text-white/80 leading-snug">{value}</p>
+      <DetailLabel>{label}</DetailLabel>
+      <div className="text-[13px] text-white/80 leading-snug">{children}</div>
     </div>
   );
 }
+
+const INPUT_CLS = 'w-full h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20';
+const SELECT_CLS = 'w-full h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20';
+const LABEL_CLS = 'block text-[11px] text-white/40 uppercase tracking-wide mb-1';
+
+const EMPTY_LOCATION = {
+  naam: '', omschrijving: '', stad: '', channel: '', doelgroep: '',
+  telefoon: '', email: '', website: '',
+  parkeren: '', laden_lossen: '', vergunning_status: 'geen',
+  vergunning_vervaldatum: '', bijzonderheden: '',
+};
 
 export default function LocationsPage({ tenant, locations: initialLocations }) {
   const [locations, setLocations] = useState(initialLocations);
@@ -47,6 +67,12 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingForId, setUploadingForId] = useState(null);
   const [uploadError, setUploadError] = useState({});
+  const [editingBijz, setEditingBijz] = useState(null); // { id, value }
+  const [savingBijz, setSavingBijz] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const fileInputRef = useRef(null);
 
   const channels = useMemo(
@@ -63,7 +89,8 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     return locations.filter(l => {
       const matchSearch = !q
         || l.naam?.toLowerCase().includes(q)
-        || l.stad?.toLowerCase().includes(q);
+        || l.stad?.toLowerCase().includes(q)
+        || l.omschrijving?.toLowerCase().includes(q);
       const matchChannel = !filterChannel || l.channel === filterChannel;
       const matchDoelgroep = !filterDoelgroep || l.doelgroep === filterDoelgroep;
       return matchSearch && matchChannel && matchDoelgroep;
@@ -81,15 +108,12 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     e.target.value = '';
     if (!file || !uploadingForId) return;
     const id = uploadingForId;
-
     const form = new FormData();
     form.append('file', file);
     form.append('location_id', id);
-
     const res = await fetch('/api/locations/upload-bijlage', { method: 'POST', body: form });
     const json = await res.json();
     setUploadingForId(null);
-
     if (res.ok) {
       setLocations(prev => prev.map(l =>
         l.id === id
@@ -101,9 +125,45 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     }
   }
 
+  async function saveBijzonderheden(id) {
+    setSavingBijz(id);
+    const res = await fetch('/api/locations/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: id, bijzonderheden: editingBijz.value }),
+    });
+    const json = await res.json();
+    setSavingBijz(null);
+    if (res.ok) {
+      setLocations(prev => prev.map(l => l.id === id ? { ...l, bijzonderheden: json.location.bijzonderheden } : l));
+      setEditingBijz(null);
+    }
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!newLocation.naam.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    const res = await fetch('/api/locations/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newLocation),
+    });
+    const json = await res.json();
+    setCreating(false);
+    if (res.ok) {
+      setLocations(prev => [json.location, ...prev]);
+      setNewLocation(EMPTY_LOCATION);
+      setShowAddForm(false);
+    } else {
+      setCreateError(json.error ?? 'Opslaan mislukt');
+    }
+  }
+
   function exportCSV() {
-    const cols = ['naam', 'stad', 'channel', 'doelgroep', 'parkeren', 'laden_lossen',
-      'vergunning_status', 'vergunning_vervaldatum', 'bijzonderheden'];
+    const cols = ['naam', 'omschrijving', 'stad', 'channel', 'doelgroep', 'telefoon', 'email',
+      'website', 'parkeren', 'laden_lossen', 'vergunning_status', 'vergunning_vervaldatum', 'bijzonderheden'];
     const escape = v => `"${(v ?? '').toString().replace(/"/g, '""')}"`;
     const rows = filtered.map(l => cols.map(c => escape(l[c])).join(','));
     const csv = [cols.join(','), ...rows].join('\n');
@@ -114,6 +174,15 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     a.download = `locaties-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function normalizeUrl(url) {
+    if (!url) return null;
+    return url.startsWith('http') ? url : `https://${url}`;
+  }
+
+  function displayUrl(url) {
+    return url?.replace(/^https?:\/\//, '') ?? '';
   }
 
   return (
@@ -129,13 +198,22 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
             <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
             Terug naar chat
           </Link>
-          <button
-            onClick={exportCSV}
-            className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.05] border border-white/[0.08] rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" strokeWidth={1.75} />
-            Exporteren
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={exportCSV}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.05] border border-white/[0.08] rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Exporteren
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] bg-white/[0.08] border border-white/[0.12] rounded-lg text-white/80 hover:text-white hover:bg-white/[0.12] transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Voeg toe
+            </button>
+          </div>
         </div>
 
         <h1 className="text-xl font-semibold mb-1">Locatiedatabase</h1>
@@ -182,11 +260,13 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
           {filtered.map(loc => {
             const Icon = CHANNEL_ICONS[loc.channel] ?? MapPin;
             const isExpanded = expandedId === loc.id;
+            const isEditingBijz = editingBijz?.id === loc.id;
             return (
               <div
                 key={loc.id}
                 className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden"
               >
+                {/* Dichte kaart */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : loc.id)}
                   className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
@@ -200,7 +280,7 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                       )}
                       <VergunningBadge status={loc.vergunning_status} />
                     </div>
-                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    <div className="flex gap-1.5 mt-1 flex-wrap">
                       {loc.channel && (
                         <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/50">
                           {loc.channel}
@@ -212,6 +292,11 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                         </span>
                       )}
                     </div>
+                    {loc.omschrijving && (
+                      <p className="mt-1.5 text-[12px] text-white/45 leading-snug line-clamp-2">
+                        {loc.omschrijving}
+                      </p>
+                    )}
                   </div>
                   {isExpanded
                     ? <ChevronUp className="w-3.5 h-3.5 shrink-0 mt-1 text-white/30" strokeWidth={1.75} />
@@ -219,32 +304,104 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                   }
                 </button>
 
+                {/* Uitgevouwen detail */}
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-white/[0.05]">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-3">
+                      {loc.telefoon && (
+                        <DetailItem label="Telefoon">
+                          <a href={`tel:${loc.telefoon}`} className="text-orange underline-offset-2 hover:underline">
+                            {loc.telefoon}
+                          </a>
+                        </DetailItem>
+                      )}
+                      {loc.email && (
+                        <DetailItem label="E-mail">
+                          <a href={`mailto:${loc.email}`} className="text-orange underline-offset-2 hover:underline">
+                            {loc.email}
+                          </a>
+                        </DetailItem>
+                      )}
+                      {loc.website && (
+                        <DetailItem label="Website">
+                          <a
+                            href={normalizeUrl(loc.website)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange underline-offset-2 hover:underline"
+                          >
+                            {displayUrl(loc.website)}
+                          </a>
+                        </DetailItem>
+                      )}
                       {loc.parkeren && (
-                        <Detail label="Parkeren" value={loc.parkeren} />
+                        <DetailItem label="Parkeren">{loc.parkeren}</DetailItem>
                       )}
                       {loc.laden_lossen && (
-                        <Detail label="Laden & lossen" value={loc.laden_lossen} />
+                        <DetailItem label="Laden en lossen">{loc.laden_lossen}</DetailItem>
                       )}
                       {loc.vergunning_vervaldatum && (
-                        <Detail
-                          label="Vergunning vervalt"
-                          value={new Date(loc.vergunning_vervaldatum).toLocaleDateString('nl-NL')}
-                        />
+                        <DetailItem label="Vergunning vervalt">
+                          {new Date(loc.vergunning_vervaldatum).toLocaleDateString('nl-NL')}
+                        </DetailItem>
                       )}
-                      {loc.bijzonderheden && (
-                        <Detail label="Bijzonderheden" value={loc.bijzonderheden} wide />
-                      )}
+
+                      {/* Bijzonderheden — inline bewerkbaar */}
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <DetailLabel>Bijzonderheden</DetailLabel>
+                          {!isEditingBijz && (
+                            <button
+                              onClick={() => setEditingBijz({ id: loc.id, value: loc.bijzonderheden ?? '' })}
+                              className="text-white/25 hover:text-white/60 transition-colors"
+                            >
+                              <Pencil className="w-2.5 h-2.5" strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                        {isEditingBijz ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingBijz.value}
+                              onChange={e => setEditingBijz(prev => ({ ...prev, value: e.target.value }))}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.12] rounded-lg text-[13px] text-white/80 leading-snug resize-none focus:outline-none focus:border-white/25"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => saveBijzonderheden(loc.id)}
+                                disabled={savingBijz === loc.id}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] bg-white/[0.08] border border-white/[0.12] rounded-md text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+                              >
+                                {savingBijz === loc.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                                  : <Check className="w-3 h-3" strokeWidth={1.75} />
+                                }
+                                Opslaan
+                              </button>
+                              <button
+                                onClick={() => setEditingBijz(null)}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                              >
+                                Annuleren
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[13px] text-white/80 leading-snug">
+                            {loc.bijzonderheden || (
+                              <span className="text-white/25 italic">Geen bijzonderheden</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
+                    {/* Bijlagen */}
                     <div className="mt-4">
                       {Array.isArray(loc.bijlagen) && loc.bijlagen.length > 0 && (
                         <>
-                          <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">
-                            Bijlagen
-                          </p>
+                          <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">Bijlagen</p>
                           <div className="flex gap-3 flex-wrap mb-3">
                             {loc.bijlagen.map((b, i) => (
                               <a
@@ -289,14 +446,125 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
         </div>
       </div>
 
-      {/* Hidden file input — gedeeld door alle locatiekaarten */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+
+      {/* Toevoegen modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/[0.08] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+              <h2 className="text-[15px] font-semibold">Nieuwe locatie</h2>
+              <button onClick={() => setShowAddForm(false)} className="text-white/40 hover:text-white/80 transition-colors">
+                <X className="w-4 h-4" strokeWidth={1.75} />
+              </button>
+            </div>
+            <form onSubmit={handleCreate} className="px-6 py-5 space-y-4">
+              <div>
+                <label className={LABEL_CLS}>Naam *</label>
+                <input
+                  type="text"
+                  required
+                  value={newLocation.naam}
+                  onChange={e => setNewLocation(p => ({ ...p, naam: e.target.value }))}
+                  className={INPUT_CLS}
+                  placeholder="Naam van de locatie"
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Omschrijving</label>
+                <textarea
+                  rows={2}
+                  value={newLocation.omschrijving}
+                  onChange={e => setNewLocation(p => ({ ...p, omschrijving: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
+                  placeholder="Korte beschrijving van de locatie..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Stad</label>
+                  <input type="text" value={newLocation.stad} onChange={e => setNewLocation(p => ({ ...p, stad: e.target.value }))} className={INPUT_CLS} placeholder="Amsterdam" />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Channel</label>
+                  <select value={newLocation.channel} onChange={e => setNewLocation(p => ({ ...p, channel: e.target.value }))} className={SELECT_CLS}>
+                    <option value="">Kies channel</option>
+                    {CHANNELS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Doelgroep</label>
+                <input type="text" value={newLocation.doelgroep} onChange={e => setNewLocation(p => ({ ...p, doelgroep: e.target.value }))} className={INPUT_CLS} placeholder="bijv. 18-35, Gezinnen" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Telefoon</label>
+                  <input type="tel" value={newLocation.telefoon} onChange={e => setNewLocation(p => ({ ...p, telefoon: e.target.value }))} className={INPUT_CLS} placeholder="010-000 0000" />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>E-mail</label>
+                  <input type="email" value={newLocation.email} onChange={e => setNewLocation(p => ({ ...p, email: e.target.value }))} className={INPUT_CLS} placeholder="naam@locatie.nl" />
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Website</label>
+                <input type="text" value={newLocation.website} onChange={e => setNewLocation(p => ({ ...p, website: e.target.value }))} className={INPUT_CLS} placeholder="locatie.nl" />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Parkeren</label>
+                <input type="text" value={newLocation.parkeren} onChange={e => setNewLocation(p => ({ ...p, parkeren: e.target.value }))} className={INPUT_CLS} placeholder="Beschrijving parkeeropties" />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Laden en lossen</label>
+                <input type="text" value={newLocation.laden_lossen} onChange={e => setNewLocation(p => ({ ...p, laden_lossen: e.target.value }))} className={INPUT_CLS} placeholder="Instructies voor opbouw" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Vergunning status</label>
+                  <select value={newLocation.vergunning_status} onChange={e => setNewLocation(p => ({ ...p, vergunning_status: e.target.value }))} className={SELECT_CLS}>
+                    {VERGUNNING_STATUSSEN.map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Vergunning vervaldatum</label>
+                  <input type="date" value={newLocation.vergunning_vervaldatum} onChange={e => setNewLocation(p => ({ ...p, vergunning_vervaldatum: e.target.value }))} className={INPUT_CLS} />
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Bijzonderheden</label>
+                <textarea
+                  rows={3}
+                  value={newLocation.bijzonderheden}
+                  onChange={e => setNewLocation(p => ({ ...p, bijzonderheden: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
+                  placeholder="Aandachtspunten, afspraken, tijdsloten..."
+                />
+              </div>
+              {createError && <p className="text-[12px] text-red-400">{createError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={creating || !newLocation.naam.trim()}
+                  className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors"
+                >
+                  {creating ? 'Opslaan...' : 'Locatie toevoegen'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors"
+                >
+                  Annuleren
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
