@@ -147,9 +147,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     return () => clearInterval(iv);
   }, [sending]);
 
-  const outputTypes = Array.isArray(tenant?.enabled_output_types)
-    ? tenant.enabled_output_types.filter((t) => typeof t === 'object' && t.id)
-    : [];
+  const outputTypes = (tenant?.tenant_config?.features?.output_types ?? [])
+    .map(id => {
+      const meta = OUTPUT_TYPE_INFO[id];
+      return meta ? { id, ...meta } : null;
+    })
+    .filter(Boolean);
 
   function setSendingState(value) {
     sendingRef.current = value;
@@ -768,9 +771,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 const driveClient = saveClient;
                 const driveOutputType = effectiveDocType;
                 const driveFolderId = driveConfig.folder_id;
-                const tenantTypes = Array.isArray(tenant?.enabled_output_types) ? tenant.enabled_output_types : [];
-                const tenantTypeEntry = tenantTypes.find(t => typeof t === 'object' && t?.id === driveOutputType);
-                const driveTypeLabel = tenantTypeEntry?.label ?? OUTPUT_TYPE_INFO[driveOutputType]?.label ?? driveOutputType;
+                const driveTypeLabel = OUTPUT_TYPE_INFO[driveOutputType]?.label ?? driveOutputType;
                 const nowDrive = new Date();
                 const ts = `${nowDrive.toISOString().slice(0, 10)}_${nowDrive.toISOString().slice(11, 16).replace(':', '-')}`;
                 const driveFileName = [driveTypeLabel, driveClient, ts].filter(Boolean).join(' - ') + '.docx';
