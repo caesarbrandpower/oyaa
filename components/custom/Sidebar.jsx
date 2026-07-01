@@ -236,7 +236,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         )}
       </div>
 
-      {/* Klantmappen — vast onderaan, buiten scrollbaar gebied */}
+      {/* Navigatielinks — vast onderaan, buiten scrollbaar gebied */}
       <div className="px-3 pb-2 shrink-0">
         <Link
           href="/app/docs"
@@ -249,19 +249,6 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
           Mijn klanten
         </Link>
-        {(tenant?.tenant_config?.features?.vault === true || tenant?.tenant_config?.vault_enabled === true) && (
-          <Link
-            href="/app/kluis"
-            className={`flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors ${
-              isKluisActive
-                ? 'bg-white/[0.08] text-white border-white/[0.12]'
-                : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
-            }`}
-          >
-            <Archive className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
-            Kluis
-          </Link>
-        )}
         {tenant?.tenant_config?.features?.locations === true && (
           <Link
             href="/app/locaties"
@@ -278,6 +265,20 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           >
             <Package className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
             Leveranciers
+          </Link>
+        )}
+        {(tenant?.tenant_config?.features?.vault === true || tenant?.tenant_config?.vault_enabled === true) &&
+          tenant?.tenant_config?.admins?.includes(user.email) && (
+          <Link
+            href="/app/kluis"
+            className={`flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors ${
+              isKluisActive
+                ? 'bg-white/[0.08] text-white border-white/[0.12]'
+                : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+            Kluis
           </Link>
         )}
       </div>
