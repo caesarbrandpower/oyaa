@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, MapPin, Train, ShoppingBag, Tent, Music, Store,
-  Download, Search, ChevronDown, ChevronUp,
+  Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2,
 } from 'lucide-react';
 
 const CHANNEL_ICONS = {
@@ -40,23 +40,27 @@ function Detail({ label, value, wide }) {
 }
 
 export default function LocationsPage({ tenant, locations: initialLocations }) {
+  const [locations, setLocations] = useState(initialLocations);
   const [search, setSearch] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
   const [filterDoelgroep, setFilterDoelgroep] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [uploadingForId, setUploadingForId] = useState(null);
+  const [uploadError, setUploadError] = useState({});
+  const fileInputRef = useRef(null);
 
   const channels = useMemo(
-    () => [...new Set(initialLocations.map(l => l.channel).filter(Boolean))].sort(),
-    [initialLocations]
+    () => [...new Set(locations.map(l => l.channel).filter(Boolean))].sort(),
+    [locations]
   );
   const doelgroepen = useMemo(
-    () => [...new Set(initialLocations.map(l => l.doelgroep).filter(Boolean))].sort(),
-    [initialLocations]
+    () => [...new Set(locations.map(l => l.doelgroep).filter(Boolean))].sort(),
+    [locations]
   );
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return initialLocations.filter(l => {
+    return locations.filter(l => {
       const matchSearch = !q
         || l.naam?.toLowerCase().includes(q)
         || l.stad?.toLowerCase().includes(q);
@@ -64,7 +68,38 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
       const matchDoelgroep = !filterDoelgroep || l.doelgroep === filterDoelgroep;
       return matchSearch && matchChannel && matchDoelgroep;
     });
-  }, [initialLocations, search, filterChannel, filterDoelgroep]);
+  }, [locations, search, filterChannel, filterDoelgroep]);
+
+  function startUpload(locationId) {
+    setUploadError(prev => ({ ...prev, [locationId]: null }));
+    setUploadingForId(locationId);
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !uploadingForId) return;
+    const id = uploadingForId;
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('location_id', id);
+
+    const res = await fetch('/api/locations/upload-bijlage', { method: 'POST', body: form });
+    const json = await res.json();
+    setUploadingForId(null);
+
+    if (res.ok) {
+      setLocations(prev => prev.map(l =>
+        l.id === id
+          ? { ...l, bijlagen: [...(Array.isArray(l.bijlagen) ? l.bijlagen : []), json.bijlage] }
+          : l
+      ));
+    } else {
+      setUploadError(prev => ({ ...prev, [id]: json.error ?? 'Upload mislukt' }));
+    }
+  }
 
   function exportCSV() {
     const cols = ['naam', 'stad', 'channel', 'doelgroep', 'parkeren', 'laden_lossen',
@@ -204,26 +239,44 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                       )}
                     </div>
 
-                    {Array.isArray(loc.bijlagen) && loc.bijlagen.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">
-                          Bijlagen
-                        </p>
-                        <div className="flex gap-3 flex-wrap">
-                          {loc.bijlagen.map((b, i) => (
-                            <a
-                              key={i}
-                              href={b.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[12px] text-orange underline-offset-2 hover:underline"
-                            >
-                              {b.naam ?? `Bijlage ${i + 1}`}
-                            </a>
-                          ))}
-                        </div>
+                    <div className="mt-4">
+                      {Array.isArray(loc.bijlagen) && loc.bijlagen.length > 0 && (
+                        <>
+                          <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">
+                            Bijlagen
+                          </p>
+                          <div className="flex gap-3 flex-wrap mb-3">
+                            {loc.bijlagen.map((b, i) => (
+                              <a
+                                key={i}
+                                href={b.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[12px] text-orange underline-offset-2 hover:underline"
+                              >
+                                {b.naam ?? `Bijlage ${i + 1}`}
+                              </a>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => startUpload(loc.id)}
+                          disabled={uploadingForId === loc.id}
+                          className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] bg-white/[0.04] border border-white/[0.07] rounded-md text-white/50 hover:text-white/80 hover:bg-white/[0.07] transition-colors disabled:opacity-40"
+                        >
+                          {uploadingForId === loc.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                            : <Paperclip className="w-3 h-3" strokeWidth={1.75} />
+                          }
+                          {uploadingForId === loc.id ? 'Uploaden...' : 'Bijlage uploaden'}
+                        </button>
+                        {uploadError[loc.id] && (
+                          <span className="text-[11px] text-red-400">{uploadError[loc.id]}</span>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -235,6 +288,15 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
           )}
         </div>
       </div>
+
+      {/* Hidden file input — gedeeld door alle locatiekaarten */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   );
 }
