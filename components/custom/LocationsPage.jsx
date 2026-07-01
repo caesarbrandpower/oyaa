@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, MapPin, Train, ShoppingBag, Tent, Music, Store,
   Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2,
-  Plus, X, Pencil, Check, Copy,
+  Plus, X, Pencil, Check, Copy, Star,
 } from 'lucide-react';
 
 const CHANNELS = ['Centrumlocatie', 'Treinstation', 'Winkelcentrum', 'Outdoor', 'Event', 'Markt'];
@@ -60,19 +60,38 @@ const EMPTY_LOCATION = {
 };
 
 function buildCopyText(loc) {
-  const lines = [
-    [loc.naam, loc.stad, loc.channel].filter(Boolean).join(' — '),
-    loc.omschrijving,
+  const sections = [];
+
+  sections.push([loc.naam, [loc.channel, loc.stad].filter(Boolean).join(' · ')].filter(Boolean).join('\n'));
+
+  if (loc.omschrijving) sections.push(loc.omschrijving);
+
+  const contact = [
+    loc.telefoon && `📞 ${loc.telefoon}`,
+    loc.email && `✉️ ${loc.email}`,
+    loc.website && `🌐 ${loc.website}`,
+  ].filter(Boolean);
+  if (contact.length) sections.push(contact.join('\n'));
+
+  const logistiek = [
     loc.parkeren && `Parkeren: ${loc.parkeren}`,
     loc.laden_lossen && `Laden & lossen: ${loc.laden_lossen}`,
-    loc.vergunning_status && `Vergunning: ${loc.vergunning_status}`,
-    loc.bijzonderheden && `Bijzonderheden: ${loc.bijzonderheden}`,
+    loc.vergunning_status && (
+      loc.vergunning_vervaldatum
+        ? `Vergunning: ${loc.vergunning_status} (geldig t/m ${new Date(loc.vergunning_vervaldatum).toLocaleDateString('nl-NL')})`
+        : `Vergunning: ${loc.vergunning_status}`
+    ),
   ].filter(Boolean);
-  return lines.join('\n');
+  if (logistiek.length) sections.push(logistiek.join('\n'));
+
+  if (loc.bijzonderheden) sections.push(`Bijzonderheden:\n${loc.bijzonderheden}`);
+
+  return sections.join('\n\n');
 }
 
-export default function LocationsPage({ tenant, locations: initialLocations }) {
+export default function LocationsPage({ tenant, locations: initialLocations, initialFavorietIds = [] }) {
   const [locations, setLocations] = useState(initialLocations);
+  const [favorietIds, setFavorietIds] = useState(() => new Set(initialFavorietIds));
   const [search, setSearch] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
   const [filterDoelgroep, setFilterDoelgroep] = useState('');
@@ -102,7 +121,7 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return locations.filter(l => {
+    const matches = locations.filter(l => {
       const matchSearch = !q
         || l.naam?.toLowerCase().includes(q)
         || l.stad?.toLowerCase().includes(q)
@@ -111,7 +130,14 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
       const matchDoelgroep = !filterDoelgroep || l.doelgroep === filterDoelgroep;
       return matchSearch && matchChannel && matchDoelgroep;
     });
-  }, [locations, search, filterChannel, filterDoelgroep]);
+    return [...matches].sort((a, b) => {
+      const aFav = favorietIds.has(a.id);
+      const bFav = favorietIds.has(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return a.naam.localeCompare(b.naam, 'nl');
+    });
+  }, [locations, search, filterChannel, filterDoelgroep, favorietIds]);
 
   function startUpload(locationId) {
     setUploadError(prev => ({ ...prev, [locationId]: null }));
@@ -153,6 +179,27 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     if (res.ok) {
       setLocations(prev => prev.map(l => l.id === id ? { ...l, bijzonderheden: json.location.bijzonderheden } : l));
       setEditingBijz(null);
+    }
+  }
+
+  async function toggleFavoriet(id) {
+    const wasFavoriet = favorietIds.has(id);
+    setFavorietIds(prev => {
+      const next = new Set(prev);
+      wasFavoriet ? next.delete(id) : next.add(id);
+      return next;
+    });
+    const res = await fetch('/api/locations/favoriet', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: id }),
+    });
+    if (!res.ok) {
+      setFavorietIds(prev => {
+        const next = new Set(prev);
+        wasFavoriet ? next.add(id) : next.delete(id);
+        return next;
+      });
     }
   }
 
@@ -335,7 +382,7 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                     )}
                   </div>
 
-                  {/* Kopieer-knop */}
+                  {/* Actieknoppen */}
                   <div className="flex items-center gap-1 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => copyCard(loc)}
@@ -346,6 +393,17 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                         ? <Check className="w-3.5 h-3.5 text-green-400" strokeWidth={1.75} />
                         : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
                       }
+                    </button>
+                    <button
+                      onClick={() => toggleFavoriet(loc.id)}
+                      title={favorietIds.has(loc.id) ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                      className="p-1 transition-colors"
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${favorietIds.has(loc.id) ? 'text-yellow-400' : 'text-white/20 hover:text-yellow-400/60'}`}
+                        fill={favorietIds.has(loc.id) ? 'currentColor' : 'none'}
+                        strokeWidth={1.75}
+                      />
                     </button>
                   </div>
 
