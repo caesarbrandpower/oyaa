@@ -4,8 +4,8 @@ import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Package, Utensils, Truck, Printer, Monitor, Warehouse,
-  Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2, Plus, X,
-  Pencil, Check,
+  Download, Search, ChevronDown, ChevronUp, Paperclip, Loader2,
+  Plus, X, Pencil, Check, Star, Copy,
 } from 'lucide-react';
 
 const CATEGORIES = ['materiaal', 'catering', 'transport', 'drukwerk', 'techniek', 'opslag'];
@@ -19,23 +19,6 @@ const CATEGORY_ICONS = {
   techniek:  Monitor,
   opslag:    Warehouse,
 };
-
-const BEOORDELING_CONFIG = {
-  goed:                 { cls: 'bg-green-500/15 text-green-400',  label: 'Goed' },
-  neutraal:             { cls: 'bg-orange/15 text-orange',         label: 'Neutraal' },
-  'niet meer gebruiken':{ cls: 'bg-red-500/15 text-red-400',      label: 'Niet meer gebruiken' },
-};
-
-function BeoordelingBadge({ beoordeling }) {
-  if (!beoordeling) return null;
-  const c = BEOORDELING_CONFIG[beoordeling];
-  if (!c) return null;
-  return (
-    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${c.cls}`}>
-      {c.label}
-    </span>
-  );
-}
 
 function DetailLabel({ children }) {
   return <p className="text-[11px] text-white/35 mb-0.5 uppercase tracking-wide">{children}</p>;
@@ -60,6 +43,25 @@ const EMPTY_SUPPLIER = {
   levertijd: '', prijsindicatie: '', beoordeling: '', bijzonderheden: '',
 };
 
+function buildCopyText(sup) {
+  const lines = [
+    [sup.naam, sup.categorie, sup.regio].filter(Boolean).join(' — '),
+    sup.omschrijving,
+    [
+      sup.contactpersoon && `Contact: ${sup.contactpersoon}`,
+      sup.telefoon,
+      sup.email,
+    ].filter(Boolean).join(' | ') || null,
+    sup.website && `Website: ${sup.website}`,
+    [
+      sup.levertijd && `Levertijd: ${sup.levertijd}`,
+      sup.prijsindicatie && `Prijs: ${sup.prijsindicatie}`,
+    ].filter(Boolean).join(' | ') || null,
+    sup.bijzonderheden && `Bijzonderheden: ${sup.bijzonderheden}`,
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
 export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [search, setSearch] = useState('');
@@ -68,12 +70,13 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingForId, setUploadingForId] = useState(null);
   const [uploadError, setUploadError] = useState({});
-  const [editingBijz, setEditingBijz] = useState(null); // { id, value }
+  const [editingBijz, setEditingBijz] = useState(null);
   const [savingBijz, setSavingBijz] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSupplier, setNewSupplier] = useState(EMPTY_SUPPLIER);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   const fileInputRef = useRef(null);
 
   const categories = useMemo(
@@ -87,7 +90,7 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return suppliers.filter(s => {
+    const matches = suppliers.filter(s => {
       const matchSearch = !q
         || s.naam?.toLowerCase().includes(q)
         || s.contactpersoon?.toLowerCase().includes(q)
@@ -96,6 +99,12 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
       const matchCategorie = !filterCategorie || s.categorie === filterCategorie;
       const matchRegio = !filterRegio || s.regio === filterRegio;
       return matchSearch && matchCategorie && matchRegio;
+    });
+    // Favorieten bovenaan
+    return [...matches].sort((a, b) => {
+      if (a.favoriet && !b.favoriet) return -1;
+      if (!a.favoriet && b.favoriet) return 1;
+      return a.naam.localeCompare(b.naam, 'nl');
     });
   }, [suppliers, search, filterCategorie, filterRegio]);
 
@@ -137,9 +146,31 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
     const json = await res.json();
     setSavingBijz(null);
     if (res.ok) {
-      setSuppliers(prev => prev.map(s => s.id === id ? { ...s, bijzonderheden: json.supplier.bijzonderheden } : s));
+      setSuppliers(prev => prev.map(s =>
+        s.id === id ? { ...s, bijzonderheden: json.supplier.bijzonderheden } : s
+      ));
       setEditingBijz(null);
     }
+  }
+
+  async function toggleFavoriet(id, current) {
+    // Optimistische update
+    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, favoriet: !current } : s));
+    const res = await fetch('/api/suppliers/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier_id: id, favoriet: !current }),
+    });
+    if (!res.ok) {
+      // Terugdraaien bij fout
+      setSuppliers(prev => prev.map(s => s.id === id ? { ...s, favoriet: current } : s));
+    }
+  }
+
+  function copyCard(sup) {
+    navigator.clipboard.writeText(buildCopyText(sup));
+    setCopiedId(sup.id);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   async function handleCreate(e) {
@@ -165,7 +196,7 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
 
   function exportCSV() {
     const cols = ['naam', 'omschrijving', 'categorie', 'contactpersoon', 'telefoon', 'email',
-      'website', 'regio', 'levertijd', 'prijsindicatie', 'beoordeling', 'bijzonderheden'];
+      'website', 'regio', 'levertijd', 'prijsindicatie', 'bijzonderheden'];
     const escape = v => `"${(v ?? '').toString().replace(/"/g, '""')}"`;
     const rows = filtered.map(s => cols.map(c => escape(s[c])).join(','));
     const csv = [cols.join(','), ...rows].join('\n');
@@ -182,13 +213,13 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
     if (!url) return null;
     return url.startsWith('http') ? url : `https://${url}`;
   }
-
   function displayUrl(url) {
     return url?.replace(/^https?:\/\//, '') ?? '';
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white">
+    // h-full overflow-y-auto: scrollt binnen de h-screen overflow-hidden layout
+    <div className="h-full overflow-y-auto bg-[#0d0d0d] text-white">
       <div className="max-w-3xl mx-auto px-6 py-10">
 
         {/* Header */}
@@ -270,10 +301,10 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                 key={sup.id}
                 className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden"
               >
-                {/* Dichte kaart */}
-                <button
+                {/* Dichte kaart — div i.p.v. button zodat we knoppen kunnen nesten */}
+                <div
                   onClick={() => setExpandedId(isExpanded ? null : sup.id)}
-                  className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
+                  className="w-full flex items-start gap-3 px-4 py-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
                 >
                   <Icon className="w-4 h-4 shrink-0 mt-0.5 text-orange/70" strokeWidth={1.75} />
                   <div className="flex-1 min-w-0">
@@ -282,7 +313,6 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                       {sup.regio && (
                         <span className="text-[12px] text-white/40">{sup.regio}</span>
                       )}
-                      <BeoordelingBadge beoordeling={sup.beoordeling} />
                     </div>
                     <div className="flex gap-1.5 mt-1 flex-wrap">
                       {sup.categorie && (
@@ -302,11 +332,37 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                       </p>
                     )}
                   </div>
+
+                  {/* Actieknoppen — stoppen propagatie zodat kaart niet in-/uitklapt */}
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => copyCard(sup)}
+                      title="Kopieer naar klembord"
+                      className="p-1 text-white/20 hover:text-white/60 transition-colors"
+                    >
+                      {copiedId === sup.id
+                        ? <Check className="w-3.5 h-3.5 text-green-400" strokeWidth={1.75} />
+                        : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      }
+                    </button>
+                    <button
+                      onClick={() => toggleFavoriet(sup.id, sup.favoriet)}
+                      title={sup.favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                      className="p-1 transition-colors"
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${sup.favoriet ? 'text-yellow-400' : 'text-white/20 hover:text-yellow-400/60'}`}
+                        fill={sup.favoriet ? 'currentColor' : 'none'}
+                        strokeWidth={1.75}
+                      />
+                    </button>
+                  </div>
+
                   {isExpanded
                     ? <ChevronUp className="w-3.5 h-3.5 shrink-0 mt-1 text-white/30" strokeWidth={1.75} />
                     : <ChevronDown className="w-3.5 h-3.5 shrink-0 mt-1 text-white/30" strokeWidth={1.75} />
                   }
-                </button>
+                </div>
 
                 {/* Uitgevouwen detail */}
                 {isExpanded && (
@@ -331,12 +387,7 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                       )}
                       {sup.website && (
                         <DetailItem label="Website">
-                          <a
-                            href={normalizeUrl(sup.website)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-orange underline-offset-2 hover:underline"
-                          >
+                          <a href={normalizeUrl(sup.website)} target="_blank" rel="noopener noreferrer" className="text-orange underline-offset-2 hover:underline">
                             {displayUrl(sup.website)}
                           </a>
                         </DetailItem>
@@ -406,13 +457,7 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
                           <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1.5">Bijlagen</p>
                           <div className="flex gap-3 flex-wrap mb-3">
                             {sup.bijlagen.map((b, i) => (
-                              <a
-                                key={i}
-                                href={b.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[12px] text-orange underline-offset-2 hover:underline"
-                              >
+                              <a key={i} href={b.url} target="_blank" rel="noopener noreferrer" className="text-[12px] text-orange underline-offset-2 hover:underline">
                                 {b.naam ?? `Bijlage ${i + 1}`}
                               </a>
                             ))}
@@ -464,57 +509,19 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
             <form onSubmit={handleCreate} className="px-6 py-5 space-y-4">
               <div>
                 <label className={LABEL_CLS}>Naam *</label>
-                <input
-                  type="text"
-                  required
-                  value={newSupplier.naam}
-                  onChange={e => setNewSupplier(p => ({ ...p, naam: e.target.value }))}
-                  className={INPUT_CLS}
-                  placeholder="Naam van de leverancier"
-                />
+                <input type="text" required value={newSupplier.naam} onChange={e => setNewSupplier(p => ({ ...p, naam: e.target.value }))} className={INPUT_CLS} placeholder="Naam van de leverancier" />
               </div>
               <div>
                 <label className={LABEL_CLS}>Omschrijving</label>
-                <textarea
-                  rows={2}
-                  value={newSupplier.omschrijving}
-                  onChange={e => setNewSupplier(p => ({ ...p, omschrijving: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
-                  placeholder="Korte beschrijving..."
-                />
+                <textarea rows={2} value={newSupplier.omschrijving} onChange={e => setNewSupplier(p => ({ ...p, omschrijving: e.target.value }))} className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none" placeholder="Korte beschrijving..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={LABEL_CLS}>Categorie</label>
-                  <select
-                    value={newSupplier.categorie}
-                    onChange={e => setNewSupplier(p => ({ ...p, categorie: e.target.value }))}
-                    className={SELECT_CLS}
-                  >
+                  <select value={newSupplier.categorie} onChange={e => setNewSupplier(p => ({ ...p, categorie: e.target.value }))} className={SELECT_CLS}>
                     <option value="">Kies categorie</option>
-                    {CATEGORIES.map(c => (
-                      <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                    ))}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className={LABEL_CLS}>Beoordeling</label>
-                  <select
-                    value={newSupplier.beoordeling}
-                    onChange={e => setNewSupplier(p => ({ ...p, beoordeling: e.target.value }))}
-                    className={SELECT_CLS}
-                  >
-                    <option value="">Geen beoordeling</option>
-                    {BEOORDELINGEN.map(b => (
-                      <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={LABEL_CLS}>Contactpersoon</label>
-                  <input type="text" value={newSupplier.contactpersoon} onChange={e => setNewSupplier(p => ({ ...p, contactpersoon: e.target.value }))} className={INPUT_CLS} placeholder="Naam" />
                 </div>
                 <div>
                   <label className={LABEL_CLS}>Regio</label>
@@ -523,17 +530,23 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className={LABEL_CLS}>Contactpersoon</label>
+                  <input type="text" value={newSupplier.contactpersoon} onChange={e => setNewSupplier(p => ({ ...p, contactpersoon: e.target.value }))} className={INPUT_CLS} placeholder="Naam" />
+                </div>
+                <div>
                   <label className={LABEL_CLS}>Telefoon</label>
                   <input type="tel" value={newSupplier.telefoon} onChange={e => setNewSupplier(p => ({ ...p, telefoon: e.target.value }))} className={INPUT_CLS} placeholder="020-000 0000" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={LABEL_CLS}>E-mail</label>
                   <input type="email" value={newSupplier.email} onChange={e => setNewSupplier(p => ({ ...p, email: e.target.value }))} className={INPUT_CLS} placeholder="naam@bedrijf.nl" />
                 </div>
-              </div>
-              <div>
-                <label className={LABEL_CLS}>Website</label>
-                <input type="text" value={newSupplier.website} onChange={e => setNewSupplier(p => ({ ...p, website: e.target.value }))} className={INPUT_CLS} placeholder="bedrijf.nl" />
+                <div>
+                  <label className={LABEL_CLS}>Website</label>
+                  <input type="text" value={newSupplier.website} onChange={e => setNewSupplier(p => ({ ...p, website: e.target.value }))} className={INPUT_CLS} placeholder="bedrijf.nl" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -547,28 +560,14 @@ export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
               </div>
               <div>
                 <label className={LABEL_CLS}>Bijzonderheden</label>
-                <textarea
-                  rows={3}
-                  value={newSupplier.bijzonderheden}
-                  onChange={e => setNewSupplier(p => ({ ...p, bijzonderheden: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
-                  placeholder="Tips, afspraken, aandachtspunten..."
-                />
+                <textarea rows={3} value={newSupplier.bijzonderheden} onChange={e => setNewSupplier(p => ({ ...p, bijzonderheden: e.target.value }))} className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none" placeholder="Tips, afspraken, aandachtspunten..." />
               </div>
               {createError && <p className="text-[12px] text-red-400">{createError}</p>}
               <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={creating || !newSupplier.naam.trim()}
-                  className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors"
-                >
+                <button type="submit" disabled={creating || !newSupplier.naam.trim()} className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors">
                   {creating ? 'Opslaan...' : 'Leverancier toevoegen'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors"
-                >
+                <button type="button" onClick={() => setShowAddForm(false)} className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors">
                   Annuleren
                 </button>
               </div>

@@ -2,7 +2,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 
-const ALLOWED_FIELDS = ['bijzonderheden'];
+const ALLOWED_FIELDS = ['bijzonderheden', 'favoriet'];
 
 export async function PATCH(request) {
   const supabase = await createClient();
