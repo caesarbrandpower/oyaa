@@ -110,8 +110,8 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
 
         {/* Zoeken + filters */}
         <div className="flex gap-2 mb-5 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" strokeWidth={1.75} />
+          <div className="relative flex-1 min-w-[180px] flex items-center">
+            <Search className="absolute left-3 w-3.5 h-3.5 text-white/30 pointer-events-none" strokeWidth={1.75} />
             <input
               type="text"
               value={search}
