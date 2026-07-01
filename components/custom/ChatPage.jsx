@@ -1299,7 +1299,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
-                  <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} />
+                  <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} locationsEnabled={tenant?.tenant_config?.features?.locations === true} />
                 </div>
               )}
             </div>
