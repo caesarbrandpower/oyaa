@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid, KeyRound, ChevronLeft, Archive } from 'lucide-react';
+import { Plus, ClipboardList, FileText, PenLine, BarChart2, Mic, MessageSquare, LogOut, Clipboard, Send, Paintbrush, LayoutGrid, KeyRound, ChevronLeft, Archive, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -249,7 +249,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
           Mijn klanten
         </Link>
-        {tenant?.tenant_config?.vault_enabled === true && (
+        {(tenant?.tenant_config?.features?.vault === true || tenant?.tenant_config?.vault_enabled === true) && (
           <Link
             href="/app/kluis"
             className={`flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors ${
@@ -260,6 +260,15 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           >
             <Archive className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
             Kluis
+          </Link>
+        )}
+        {tenant?.tenant_config?.features?.locations === true && (
+          <Link
+            href="/app/locaties"
+            className="flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]"
+          >
+            <MapPin className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+            Locaties
           </Link>
         )}
       </div>
