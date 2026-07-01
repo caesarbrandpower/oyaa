@@ -18,11 +18,25 @@ export default async function LocatiesPage() {
   const tenant = await getTenant();
   if (!tenant?.tenant_config?.features?.locations) redirect('/app');
 
-  const { data: locations } = await supabase
-    .from('locations')
-    .select('*')
-    .eq('tenant_id', tenant.id)
-    .order('naam', { ascending: true });
+  const [{ data: locations }, { data: favorieten }] = await Promise.all([
+    supabase
+      .from('locations')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .order('naam', { ascending: true }),
+    supabase
+      .from('location_favorites')
+      .select('location_id')
+      .eq('user_id', user.id),
+  ]);
 
-  return <LocationsPage tenant={tenant} locations={locations ?? []} />;
+  const favorietIds = (favorieten ?? []).map(f => f.location_id);
+
+  return (
+    <LocationsPage
+      tenant={tenant}
+      locations={locations ?? []}
+      initialFavorietIds={favorietIds}
+    />
+  );
 }
