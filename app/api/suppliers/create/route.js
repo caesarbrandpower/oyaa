@@ -35,7 +35,7 @@ export async function POST(request) {
       prijsindicatie: body.prijsindicatie?.trim() || null,
       beoordeling: body.beoordeling || null,
       bijzonderheden: body.bijzonderheden?.trim() || null,
-      bijlagen: [],
+      bijlagen: Array.isArray(body.bijlagen) ? body.bijlagen : [],
     })
     .select()
     .single();

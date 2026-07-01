@@ -86,7 +86,10 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [formBijlagen, setFormBijlagen] = useState([]);
+  const [uploadingForm, setUploadingForm] = useState(false);
   const fileInputRef = useRef(null);
+  const formFileRef = useRef(null);
 
   const channels = useMemo(
     () => [...new Set(locations.map(l => l.channel).filter(Boolean))].sort(),
@@ -159,6 +162,19 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  async function handleFormFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingForm(true);
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload-bijlage-temp', { method: 'POST', body: form });
+    const json = await res.json();
+    setUploadingForm(false);
+    if (res.ok) setFormBijlagen(prev => [...prev, json.bijlage]);
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     if (!newLocation.naam.trim()) return;
@@ -167,13 +183,14 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
     const res = await fetch('/api/locations/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newLocation),
+      body: JSON.stringify({ ...newLocation, bijlagen: formBijlagen }),
     });
     const json = await res.json();
     setCreating(false);
     if (res.ok) {
       setLocations(prev => [json.location, ...prev]);
       setNewLocation(EMPTY_LOCATION);
+      setFormBijlagen([]);
       setShowAddForm(false);
     } else {
       setCreateError(json.error ?? 'Opslaan mislukt');
@@ -478,7 +495,7 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
           <div className="bg-[#111] border border-white/[0.08] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
               <h2 className="text-[15px] font-semibold">Nieuwe locatie</h2>
-              <button onClick={() => setShowAddForm(false)} className="text-white/40 hover:text-white/80 transition-colors">
+              <button onClick={() => { setShowAddForm(false); setFormBijlagen([]); }} className="text-white/40 hover:text-white/80 transition-colors">
                 <X className="w-4 h-4" strokeWidth={1.75} />
               </button>
             </div>
@@ -546,12 +563,43 @@ export default function LocationsPage({ tenant, locations: initialLocations }) {
                 <label className={LABEL_CLS}>Bijzonderheden</label>
                 <textarea rows={3} value={newLocation.bijzonderheden} onChange={e => setNewLocation(p => ({ ...p, bijzonderheden: e.target.value }))} className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none" placeholder="Aandachtspunten, afspraken, tijdsloten..." />
               </div>
+              {/* Bijlagen */}
+              <div>
+                <label className={LABEL_CLS}>Bijlagen</label>
+                {formBijlagen.length > 0 && (
+                  <div className="space-y-1 mb-2">
+                    {formBijlagen.map((b, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Paperclip className="w-3 h-3 text-orange shrink-0" strokeWidth={1.75} />
+                        <span className="text-[12px] text-white/70 flex-1 truncate">{b.naam}</span>
+                        <button type="button" onClick={() => setFormBijlagen(prev => prev.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400 transition-colors">
+                          <X className="w-3 h-3" strokeWidth={1.75} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => formFileRef.current?.click()}
+                  disabled={uploadingForm}
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] bg-white/[0.04] border border-white/[0.07] rounded-md text-white/50 hover:text-white/80 hover:bg-white/[0.07] transition-colors disabled:opacity-40"
+                >
+                  {uploadingForm
+                    ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                    : <Paperclip className="w-3 h-3" strokeWidth={1.75} />
+                  }
+                  {uploadingForm ? 'Uploaden...' : 'Bijlage toevoegen (PDF)'}
+                </button>
+                <input ref={formFileRef} type="file" accept=".pdf" className="hidden" onChange={handleFormFileChange} />
+              </div>
+
               {createError && <p className="text-[12px] text-red-400">{createError}</p>}
               <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={creating || !newLocation.naam.trim()} className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors">
+                <button type="submit" disabled={creating || !newLocation.naam.trim() || uploadingForm} className="flex-1 h-9 bg-white/[0.08] border border-white/[0.12] rounded-lg text-[13px] text-white hover:bg-white/[0.12] disabled:opacity-40 transition-colors">
                   {creating ? 'Opslaan...' : 'Locatie toevoegen'}
                 </button>
-                <button type="button" onClick={() => setShowAddForm(false)} className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors">
+                <button type="button" onClick={() => { setShowAddForm(false); setFormBijlagen([]); }} className="h-9 px-4 text-[13px] text-white/40 hover:text-white/70 transition-colors">
                   Annuleren
                 </button>
               </div>

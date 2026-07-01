@@ -36,7 +36,7 @@ export async function POST(request) {
       vergunning_status: body.vergunning_status || 'geen',
       vergunning_vervaldatum: body.vergunning_vervaldatum || null,
       bijzonderheden: body.bijzonderheden?.trim() || null,
-      bijlagen: [],
+      bijlagen: Array.isArray(body.bijlagen) ? body.bijlagen : [],
     })
     .select()
     .single();
