@@ -44,22 +44,29 @@ const EMPTY_SUPPLIER = {
 };
 
 function buildCopyText(sup) {
-  const lines = [
-    [sup.naam, sup.categorie, sup.regio].filter(Boolean).join(' — '),
-    sup.omschrijving,
-    [
-      sup.contactpersoon && `Contact: ${sup.contactpersoon}`,
-      sup.telefoon,
-      sup.email,
-    ].filter(Boolean).join(' | ') || null,
-    sup.website && `Website: ${sup.website}`,
-    [
-      sup.levertijd && `Levertijd: ${sup.levertijd}`,
-      sup.prijsindicatie && `Prijs: ${sup.prijsindicatie}`,
-    ].filter(Boolean).join(' | ') || null,
-    sup.bijzonderheden && `Bijzonderheden: ${sup.bijzonderheden}`,
+  const sections = [];
+
+  sections.push([sup.naam, [sup.categorie, sup.regio].filter(Boolean).join(' · ')].filter(Boolean).join('\n'));
+
+  if (sup.omschrijving) sections.push(sup.omschrijving);
+
+  const contact = [
+    sup.contactpersoon && `Contact: ${sup.contactpersoon}`,
+    sup.telefoon && `📞 ${sup.telefoon}`,
+    sup.email && `✉️ ${sup.email}`,
+    sup.website && `🌐 ${sup.website}`,
   ].filter(Boolean);
-  return lines.join('\n');
+  if (contact.length) sections.push(contact.join('\n'));
+
+  const logistiek = [
+    sup.levertijd && `Levertijd: ${sup.levertijd}`,
+    sup.prijsindicatie && `Prijs: ${sup.prijsindicatie}`,
+  ].filter(Boolean);
+  if (logistiek.length) sections.push(logistiek.join('\n'));
+
+  if (sup.bijzonderheden) sections.push(`Bijzonderheden:\n${sup.bijzonderheden}`);
+
+  return sections.join('\n\n');
 }
 
 export default function SuppliersPage({ tenant, suppliers: initialSuppliers }) {
