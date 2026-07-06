@@ -579,7 +579,7 @@ AANVULLENDE INFORMATIE:
 ${userTextOnly}`;
           } else {
             promptText = CUSTOM_PROMPTS[effectiveOutputType](userTextOnly);
-            if (vaultContext.found) {
+            if (vaultContext.found && documentAttachments.length === 0) {
               const proactiveInstruction = !wantsFullSummary
                 ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
                 : '';
