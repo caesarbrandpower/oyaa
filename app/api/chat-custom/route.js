@@ -234,9 +234,10 @@ export async function POST(request) {
         // Bij twijfel NIET skippen — vault raadplegen en niets vinden is beter dan een
         // kluisvraag missen. isFreeChat triggert vault NIET meer automatisch.
         const isExternalQuery = /\b(stel\s+een?\s+e?-?mail\s+op|schrijf\s+een?\s+e?-?mail|maak\s+een?\s+e?-?mail|vertaal\b|translate\b)/i.test(userOnlyMessage);
-        // analysisConfirmed=true betekent: gebruiker heeft eigen content aangeleverd (wizard of
-        // chat-bevestiging). Vault hoeft in dat geval nooit mee — ook niet voor de source-chips.
-        const skipVaultRetrieval = analysisConfirmed || documentAttachments.length > 0 || !hasUserContent || isEvaluationType || isExternalQuery;
+        // Vault overslaan als de gebruiker eigen content heeft aangeleverd:
+        // analysisConfirmed (wizard/bevestiging) of eigen bestanden (PDF of Word/txt).
+        const hasOwnContent = documentAttachments.length > 0 || txtAttachments.length > 0;
+        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -876,15 +877,25 @@ ${userTextOnly}`;
         // Fallback voor naam-queries zonder citaties: alle opgehaalde bronnen tonen.
         // Brede queries zonder citaties: niets tonen (retrieval was al minder streng).
         if (vaultContext.found) {
-          const seenDocIds = new Set();
-          const dedupedSources = vaultContext.sources.filter(s => {
-            if (seenDocIds.has(s.documentId)) return false;
-            seenDocIds.add(s.documentId);
+          // Stap 1: filter op ORIGINELE bronnummers (voor dedup) zodat de indices kloppen
+          // met wat Claude in de prompt heeft gezien.
+          const citedRaw = _citedNrs.size > 0
+            ? vaultContext.sources.filter((_, i) => _citedNrs.has(i + 1))
+            : isBroadVaultQuery ? [] : vaultContext.sources;
+
+          // Stap 2: dedup op documentId én titel — zelfde document kan meerdere keren
+          // in de vault staan (origineel + verbeterde versie → verschillende IDs, zelfde titel).
+          const seenKeys = new Set();
+          const usedSources = citedRaw.filter(s => {
+            const idKey = s.documentId;
+            const titleKey = s.title?.toLowerCase().trim();
+            if (idKey && seenKeys.has(idKey)) return false;
+            if (titleKey && seenKeys.has(titleKey)) return false;
+            if (idKey) seenKeys.add(idKey);
+            if (titleKey) seenKeys.add(titleKey);
             return true;
           });
-          const usedSources = _citedNrs.size > 0
-            ? dedupedSources.filter((_, i) => _citedNrs.has(i + 1))
-            : isBroadVaultQuery ? [] : dedupedSources;
+
           if (usedSources.length > 0) {
             writeEvent(controller, {
               type: 'sources',
