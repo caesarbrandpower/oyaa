@@ -234,7 +234,9 @@ export async function POST(request) {
         // Bij twijfel NIET skippen — vault raadplegen en niets vinden is beter dan een
         // kluisvraag missen. isFreeChat triggert vault NIET meer automatisch.
         const isExternalQuery = /\b(stel\s+een?\s+e?-?mail\s+op|schrijf\s+een?\s+e?-?mail|maak\s+een?\s+e?-?mail|vertaal\b|translate\b)/i.test(userOnlyMessage);
-        const skipVaultRetrieval = (documentAttachments.length > 0 && !analysisConfirmed) || !hasUserContent || isEvaluationType || isExternalQuery;
+        // analysisConfirmed=true betekent: gebruiker heeft eigen content aangeleverd (wizard of
+        // chat-bevestiging). Vault hoeft in dat geval nooit mee — ook niet voor de source-chips.
+        const skipVaultRetrieval = analysisConfirmed || documentAttachments.length > 0 || !hasUserContent || isEvaluationType || isExternalQuery;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
