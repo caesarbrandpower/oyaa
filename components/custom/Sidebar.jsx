@@ -25,7 +25,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
-  const isKluisActive = pathname === '/app/kluis';
+  /* const isKluisActive = pathname === '/app/kluis'; */
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [accountOpen, setAccountOpen] = useState(false);
@@ -267,6 +267,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             Leveranciers
           </Link>
         )}
+        {/* Kluis-link tijdelijk verborgen — functionaliteit intact
         {(tenant?.tenant_config?.features?.vault === true || tenant?.tenant_config?.vault_enabled === true) &&
           tenant?.tenant_config?.admins?.includes(user.email) && (
           <Link
@@ -281,6 +282,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
             Kluis
           </Link>
         )}
+        */}
       </div>
 
       {/* Rechtermuisklik contextmenu */}
