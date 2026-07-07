@@ -23,7 +23,7 @@ const ICON_MAP = {
 const ACTIVE_CLS = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap';
 const INACTIVE_CLS = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[12px] text-white/25 cursor-not-allowed whitespace-nowrap';
 
-const ROW1_ORDER = ['meeting-summary', 'account-to-pm', 'field-briefing', 'account-to-creation'];
+const ROW1_ORDER = ['meeting-summary', 'account-to-pm', 'field-briefing', 'account-to-creation', 'allday-gespreksverslag', 'allday-debrief'];
 const ROW2_ITEMS = [
   { id: 'evaluation',   label: 'Evaluatie',    icon: 'bar-chart-2' },
   { id: 'locaties',     label: 'Locaties',     icon: 'map-pin' },

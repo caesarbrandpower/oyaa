@@ -16,8 +16,10 @@ function getThreadIcon(thread) {
     case 'account-to-pm':       return PenLine;
     case 'field-briefing':      return Clipboard;
     case 'external-debrief':    return Send;
-    case 'account-to-creation': return Paintbrush;
-    default:                    return MessageSquare;
+    case 'account-to-creation':    return Paintbrush;
+    case 'allday-gespreksverslag': return ClipboardList;
+    case 'allday-debrief':         return FileText;
+    default:                       return MessageSquare;
   }
 }
 
