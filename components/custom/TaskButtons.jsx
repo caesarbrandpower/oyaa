@@ -61,8 +61,8 @@ export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled
   }
 
   return (
-    <div className="space-y-2 mb-4">
-      <div className="flex gap-1.5">
+    <div className="mb-4">
+      <div className="flex flex-wrap gap-1.5">
         {row1.map((task) => {
           const Icon = ICON_MAP[task.icon] ?? FileText;
           return (
@@ -76,12 +76,8 @@ export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled
             </button>
           );
         })}
+        {row2}
       </div>
-      {row2.length > 0 && (
-        <div className="flex gap-1.5">
-          {row2}
-        </div>
-      )}
     </div>
   );
 }
