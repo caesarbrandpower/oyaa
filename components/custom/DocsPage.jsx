@@ -180,11 +180,9 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       const [{ data: msgs }, { data: threadData }] = await Promise.all([
         supabase
           .from('messages')
-          .select('id, content')
+          .select('id, role, content')
           .eq('thread_id', thread.id)
-          .eq('role', 'assistant')
-          .order('created_at', { ascending: false })
-          .limit(1),
+          .order('created_at', { ascending: false }),
         supabase
           .from('threads')
           .select('field_briefing_extras')
@@ -192,10 +190,11 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
           .single(),
       ]);
 
-      if (msgs?.[0]?.content) {
-        const messageId = msgs[0].id;
+      const assistantMsg = (msgs ?? []).find(m => m.role === 'assistant');
+      if (assistantMsg?.content) {
+        const messageId = assistantMsg.id;
         const extras = threadData?.field_briefing_extras?.[messageId] ?? null;
-        const rawContent = msgs[0].content;
+        const rawContent = assistantMsg.content;
         const strippedContent = rawContent
           .split('\n\n[Bijlage:')[0]
           .split('\n\n[Transcript:')[0]
