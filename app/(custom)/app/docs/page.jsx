@@ -17,13 +17,15 @@ export default async function DocsArchivePage() {
 
   const tenant = await getTenant();
 
+  const tenantOutputTypes = tenant?.tenant_config?.features?.output_types ?? [];
+
   // Alle document-type threads (gesorteerd nieuwste eerst)
   const { data: docThreads } = await supabase
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
     .eq('tenant_id', tenant.id)
-    .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation', 'account-to-pm', 'field-briefing', 'external-debrief', 'account-to-creation'])
+    .in('output_type', tenantOutputTypes.length ? tenantOutputTypes : ['__none__'])
     .order('updated_at', { ascending: false });
 
   // Opname-threads (audio_url aanwezig, nog geen gegenereerd document)
