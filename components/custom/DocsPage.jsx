@@ -195,7 +195,14 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       if (msgs?.[0]?.content) {
         const messageId = msgs[0].id;
         const extras = threadData?.field_briefing_extras?.[messageId] ?? null;
-        setActiveDocument({ content: msgs[0].content, outputType: thread.output_type, client: thread.client ?? null, extras, threadId: thread.id, messageId });
+        const rawContent = msgs[0].content;
+        const strippedContent = rawContent
+          .split('\n\n[Bijlage:')[0]
+          .split('\n\n[Transcript:')[0]
+          .split('\n\nContext:\n')[0]
+          .split('\n\nInput:\n')[0]
+          .trim();
+        setActiveDocument({ content: strippedContent, outputType: thread.output_type, client: thread.client ?? null, extras, threadId: thread.id, messageId });
       }
     } finally {
       setLoadingThreadId(null);
