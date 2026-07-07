@@ -224,6 +224,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           firstUserReplaced = true;
           return { ...base, content: thread.title };
         }
+        if (m.role === 'user') {
+          const stripped = m.content
+            .split('\n\n[Bijlage:')[0]
+            .split('\n\n[Transcript:')[0]
+            .split('\n\nContext:\n')[0]
+            .split('\n\nInput:\n')[0]
+            .trim();
+          return { ...base, content: stripped || m.content };
+        }
         return base;
       }));
     }
@@ -313,9 +322,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         firstUserReplaced = true;
         return { ...msg, content: thread.title };
       }
-      // Strip [Bijlage:/Transcript:] inhoud — sla alleen de gebruikerstekst op in de bubble
+      // Strip [Bijlage:/Transcript:] en wizard-invoerblokken (Context:/Input:) uit de bubble
       if (msg.role === 'user') {
-        const stripped = msg.content.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
+        const stripped = msg.content
+          .split('\n\n[Bijlage:')[0]
+          .split('\n\n[Transcript:')[0]
+          .split('\n\nContext:\n')[0]
+          .split('\n\nInput:\n')[0]
+          .trim();
         return { ...msg, content: stripped || msg.content };
       }
       return msg;
@@ -423,8 +437,13 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       }
       const userMsgId = 'user-' + Date.now();
       const isPastedTranscript = !displayText && !taskLabel && textAttachments.length === 0 && transcriptAttachments.length === 0 && pdfAttachments.length === 0 && looksLikePastedTranscript(messageText);
-      // Strip bestandsinhoud ([Bijlage: ...] en [Transcript: ...]) uit het zichtbare bericht
-      const visibleContent = displayText || taskLabel || messageText.split('\n\n[Bijlage:')[0].split('\n\n[Transcript:')[0].trim();
+      // Strip bestandsinhoud en wizard-invoerblokken uit het zichtbare bericht
+      const visibleContent = displayText || taskLabel || messageText
+        .split('\n\n[Bijlage:')[0]
+        .split('\n\n[Transcript:')[0]
+        .split('\n\nContext:\n')[0]
+        .split('\n\nInput:\n')[0]
+        .trim();
       // Bij verbetermodus: lange aanvullende tekst vervangen door korte neutrale aanduiding
       const isImproveBeforeSend = improveDocRef.current;
       const userMsg = {
@@ -963,7 +982,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     pendingWizardPhotosRef.current = imageAttachments;
     handleNewThread(); // sets activeThreadRef.current = null synchronously, resets threadTxtAttachmentsRef
     threadTxtAttachmentsRef.current = txtAttachments; // na handleNewThread zetten — anders overschreven
-    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], false, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */, hasUserContent);
+    handleSend(prompt, outputType, taskLabel, displayText, client, imageAttachments, [], true /* clientConfirmed — wizard bevestigt klantnaam al zelf */, wizardProject, txtAttachments, pdfAttachments, true /* analysisConfirmed — wizard heeft geen chat-interface voor bevestiging */, hasUserContent);
   }
 
   function handleTaskPanelClose(prefillText) {
