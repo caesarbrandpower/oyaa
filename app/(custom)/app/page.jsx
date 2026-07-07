@@ -35,6 +35,7 @@ export default async function AppPage({ searchParams }) {
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .order('updated_at', { ascending: false })
     .limit(20);
 
@@ -42,6 +43,7 @@ export default async function AppPage({ searchParams }) {
     .from('threads')
     .select('client')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .not('output_type', 'is', null)
     .not('client', 'is', null);
 

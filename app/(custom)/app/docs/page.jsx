@@ -22,6 +22,7 @@ export default async function DocsArchivePage() {
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .in('output_type', ['meeting-summary', 'project-briefing', 'account-pm-briefing', 'evaluation', 'account-to-pm', 'field-briefing', 'external-debrief', 'account-to-creation'])
     .order('updated_at', { ascending: false });
 
@@ -30,6 +31,7 @@ export default async function DocsArchivePage() {
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .not('audio_url', 'is', null)
     .order('updated_at', { ascending: false });
 
@@ -45,6 +47,7 @@ export default async function DocsArchivePage() {
     .from('threads')
     .select('id, title, output_type, created_at, updated_at, client, audio_url')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .order('updated_at', { ascending: false })
     .limit(20);
 
@@ -52,6 +55,7 @@ export default async function DocsArchivePage() {
     .from('threads')
     .select('client')
     .eq('user_id', user.id)
+    .eq('tenant_id', tenant.id)
     .not('output_type', 'is', null)
     .not('client', 'is', null);
 
