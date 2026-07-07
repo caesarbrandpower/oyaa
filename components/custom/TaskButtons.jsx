@@ -21,7 +21,6 @@ const ICON_MAP = {
 };
 
 const ACTIVE_CLS = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.05] border border-white/[0.08] rounded-lg text-[12px] text-white/70 hover:bg-white/[0.09] hover:text-white hover:border-white/[0.15] transition-colors whitespace-nowrap';
-const INACTIVE_CLS = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[12px] text-white/25 cursor-not-allowed whitespace-nowrap';
 
 const ROW1_ORDER = ['meeting-summary', 'account-to-pm', 'field-briefing', 'account-to-creation', 'allday-gespreksverslag', 'allday-debrief'];
 const ROW2_ITEMS = [
@@ -33,6 +32,33 @@ const ROW2_ITEMS = [
 export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled, suppliersEnabled }) {
   const byId = Object.fromEntries(outputTypes.map((t) => [t.id, t]));
   const row1 = ROW1_ORDER.map((id) => byId[id]).filter(Boolean);
+
+  const row2 = [];
+  for (const task of ROW2_ITEMS) {
+    const Icon = ICON_MAP[task.icon] ?? FileText;
+    if (task.id === 'locaties') {
+      if (locationsEnabled) row2.push(
+        <Link key={task.id} href="/app/locaties" className={ACTIVE_CLS}>
+          <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
+          {task.label}
+        </Link>
+      );
+    } else if (task.id === 'leveranciers') {
+      if (suppliersEnabled) row2.push(
+        <Link key={task.id} href="/app/leveranciers" className={ACTIVE_CLS}>
+          <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
+          {task.label}
+        </Link>
+      );
+    } else if (byId[task.id]) {
+      row2.push(
+        <button key={task.id} onClick={() => onTaskClick(byId[task.id])} className={ACTIVE_CLS}>
+          <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
+          {task.label}
+        </button>
+      );
+    }
+  }
 
   return (
     <div className="space-y-2 mb-4">
@@ -51,52 +77,11 @@ export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled
           );
         })}
       </div>
-      <div className="flex gap-1.5">
-        {ROW2_ITEMS.map((task) => {
-          const Icon = ICON_MAP[task.icon] ?? FileText;
-
-          if (task.id === 'locaties') {
-            return locationsEnabled ? (
-              <Link key={task.id} href="/app/locaties" className={ACTIVE_CLS}>
-                <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
-                {task.label}
-              </Link>
-            ) : (
-              <button key={task.id} disabled className={INACTIVE_CLS}>
-                <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
-                {task.label}
-              </button>
-            );
-          }
-
-          if (task.id === 'leveranciers') {
-            return suppliersEnabled ? (
-              <Link key={task.id} href="/app/leveranciers" className={ACTIVE_CLS}>
-                <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
-                {task.label}
-              </Link>
-            ) : (
-              <button key={task.id} disabled className={INACTIVE_CLS}>
-                <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
-                {task.label}
-              </button>
-            );
-          }
-
-          const active = !!byId[task.id];
-          return active ? (
-            <button key={task.id} onClick={() => onTaskClick(byId[task.id])} className={ACTIVE_CLS}>
-              <Icon className="w-3 h-3 shrink-0 text-orange" strokeWidth={1.75} />
-              {task.label}
-            </button>
-          ) : (
-            <button key={task.id} disabled className={INACTIVE_CLS}>
-              <Icon className="w-3 h-3 shrink-0 text-white/20" strokeWidth={1.75} />
-              {task.label}
-            </button>
-          );
-        })}
-      </div>
+      {row2.length > 0 && (
+        <div className="flex gap-1.5">
+          {row2}
+        </div>
+      )}
     </div>
   );
 }
