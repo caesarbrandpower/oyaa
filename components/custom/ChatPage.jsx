@@ -8,7 +8,7 @@ import Sidebar from './Sidebar';
 import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
-import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO } from '@/lib/custom-prompts';
+import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO, WIZARD_CONFIG } from '@/lib/custom-prompts';
 import { buildWordBlob, fetchImageAsBuffer, fetchLogoBuffer } from '@/lib/doc-export';
 
 function looksLikePastedTranscript(text) {
@@ -1109,6 +1109,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         task={activeTask}
         onClose={handleTaskPanelClose}
         onGenerate={handleTaskGenerate}
+        wizardConfig={WIZARD_CONFIG[activeTask?.id] ?? null}
       />
     )}
     {activeDocument && (

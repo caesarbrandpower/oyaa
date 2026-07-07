@@ -37,13 +37,15 @@ function ProgressBar({ step, total }) {
   );
 }
 
-export default function TaskSidePanel({ task, onClose, onGenerate }) {
+export default function TaskSidePanel({ task, onClose, onGenerate, wizardConfig = null }) {
   const isSearch = SEARCH_TASK_IDS.has(task.id);
+  const hasPhaseStep = !isSearch && !!wizardConfig?.phaseOptions;
   const totalSteps = isSearch ? 2 : 3;
 
   const [step, setStep] = useState(1);
   const [clientInput, setClientInput] = useState('');
   const [projectInput, setProjectInput] = useState('');
+  const [selectedPhase, setSelectedPhase] = useState(null);
   const [description, setDescription] = useState('');
   const [transcript, setTranscript] = useState('');
   const [transcriptStatus, setTranscriptStatus] = useState('');
@@ -87,8 +89,12 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     onError: handleError,
   });
 
+  const projectLabel = wizardConfig?.projectLabel ?? 'Project';
+
   const STEP_LABELS = isSearch
     ? ['Omschrijving', 'Bevestigen']
+    : hasPhaseStep
+    ? ['Klant & Projectcode', 'Projectfase', 'Input']
     : ['Omschrijving & Klant', 'Bronnen', 'Bevestigen'];
 
   function handleFileChange(e) {
@@ -117,9 +123,10 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
     } else {
       const parts = [`Maak een ${task.label}`];
       if (clientInput.trim()) parts.push(`Klant: ${clientInput.trim()}`);
-      if (projectInput.trim()) parts.push(`Project: ${projectInput.trim()}`);
+      if (projectInput.trim()) parts.push(`${hasPhaseStep ? 'Projectcode' : 'Project'}: ${projectInput.trim()}`);
+      if (hasPhaseStep && selectedPhase) parts.push(`Projectfase: ${selectedPhase}`);
       if (description.trim()) parts.push(`Context:\n${description.trim()}`);
-      if (transcript.trim()) parts.push(`Aanvullende bronnen/transcriptie:\n${transcript.trim()}`);
+      if (transcript.trim()) parts.push(`${hasPhaseStep ? 'Input' : 'Aanvullende bronnen/transcriptie'}:\n${transcript.trim()}`);
       prompt = parts.join('\n\n');
       displayText = clientInput.trim()
         ? `${task.label} voor ${clientInput.trim()}`
@@ -188,6 +195,9 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
   const isLastStep = step === totalSteps;
 
   function handleNext() {
+    // Fase-stap: stap 2 vereist een geselecteerde fase
+    if (step === 2 && hasPhaseStep && !selectedPhase) return;
+
     // Fuzzy check op klantnaam bij stap 1 → stap 2
     if (step === 1 && !isSearch && clientInput.trim()) {
       const input = clientInput.trim();
@@ -343,16 +353,17 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                      Project <span className="text-white/30 font-normal">— optioneel</span>
+                      {projectLabel} <span className="text-white/30 font-normal">— optioneel</span>
                     </label>
                     <input
                       type="text"
                       value={projectInput}
                       onChange={(e) => setProjectInput(e.target.value)}
-                      placeholder='Bijv. "Zomeractie 26"'
+                      placeholder={hasPhaseStep ? 'Bijv. "TW-1234"' : 'Bijv. "Zomeractie 26"'}
                       className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
                     />
                   </div>
+                  {!hasPhaseStep && (
                   <div>
                     <label className="block text-[12px] font-semibold text-white/60 mb-2">
                       Omschrijving of achtergrond <span className="text-white/30 font-normal">— optioneel</span>
@@ -365,19 +376,56 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
                       className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
                     />
                   </div>
+                  )}
                 </>
               )}
             </div>
           )}
 
-          {step === 2 && !isSearch && (
+          {step === 2 && hasPhaseStep && (
+            <div className="space-y-2">
+              <label className="block text-[12px] font-semibold text-white/60 mb-3">
+                In welke fase zit dit project?
+              </label>
+              {wizardConfig.phaseOptions.map((phase) => (
+                <button
+                  key={phase}
+                  onClick={() => setSelectedPhase(phase)}
+                  className={`w-full px-4 py-3 rounded-xl text-left text-[13px] border transition-colors ${
+                    selectedPhase === phase
+                      ? 'bg-orange/10 border-orange/40 text-white font-medium'
+                      : 'bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.05] hover:border-white/[0.15]'
+                  }`}
+                >
+                  {phase}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {step === (hasPhaseStep ? 3 : 2) && !isSearch && (
             <div>
               <label className="block text-[12px] font-semibold text-white/60 mb-2">
-                Bronnen toevoegen
+                {hasPhaseStep ? 'Input toevoegen' : 'Bronnen toevoegen'}
               </label>
               <p className="text-[12px] text-white/35 mb-4 leading-relaxed">
-                Upload een audio-opname, gebruik de microfoon, of voeg foto's en bestanden toe als extra context.
+                {hasPhaseStep
+                  ? 'Voeg een transcript, aantekeningen of opname toe.'
+                  : 'Upload een audio-opname, gebruik de microfoon, of voeg foto\'s en bestanden toe als extra context.'}
               </p>
+
+              {hasPhaseStep && (
+                <div className="mb-4">
+                  <textarea
+                    autoFocus
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Typ aantekeningen of plak een transcript..."
+                    rows={5}
+                    className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 resize-none outline-none leading-relaxed focus:border-white/[0.20] transition-colors"
+                  />
+                </div>
+              )}
 
               {/* Foto-upload */}
               <input
@@ -538,7 +586,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             </div>
           )}
 
-          {(step === 3 || (isSearch && step === 2)) && (
+          {!hasPhaseStep && (step === 3 || (isSearch && step === 2)) && (
             <div>
               <label className="block text-[12px] font-semibold text-white/60 mb-3">
                 Overzicht
@@ -592,7 +640,10 @@ export default function TaskSidePanel({ task, onClose, onGenerate }) {
             {!isLastStep ? (
               <button
                 onClick={handleNext}
-                disabled={step === 1 && (isSearch ? !description.trim() : !clientInput.trim())}
+                disabled={
+                  (step === 1 && (isSearch ? !description.trim() : !clientInput.trim())) ||
+                  (step === 2 && hasPhaseStep && !selectedPhase)
+                }
                 className="flex-1 h-10 rounded-xl bg-orange text-white text-[13px] font-semibold hover:bg-[#e03d00] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Volgende
