@@ -734,34 +734,15 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     if (enContent) { setActiveLang('en'); return; }
     setTranslatingLang(true);
     try {
-      const prompt = `Vertaal dit document volledig naar het Engels. Behoud exact de markdown-opmaak, structuur en secties. Vertaal ook de label-namen (bijv. **Datum:** → **Date:**, **Aanwezig:** → **Present:**, **Type gesprek:** → **Type of meeting:**, **Klant/opdrachtgever:** → **Client:**, **Projectfase** → **Project phase**, etc.). Genereer ALLEEN het vertaalde document, zonder inleiding of uitleg.\n\nDocument:\n\n${localContent}`;
-      const res = await fetch('/api/chat-custom', {
+      const res = await fetch('/api/translate-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          threadId: null, message: prompt, outputType: null, taskLabel: null,
-          client: null, clientConfirmed: false, imageAttachments: [],
-          documentAttachments: [], txtAttachments: [], prevHasDoc: false,
-        }),
+        body: JSON.stringify({ content: localContent }),
       });
       if (!res.ok) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let full = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'text' && data.text) full += data.text;
-          } catch {}
-        }
-      }
-      if (full.trim()) {
-        setEnContent(full.trim());
+      const data = await res.json();
+      if (data.content) {
+        setEnContent(data.content);
         setActiveLang('en');
       }
     } catch (err) {
