@@ -29,9 +29,18 @@ const ROW2_ITEMS = [
   { id: 'leveranciers', label: 'Leveranciers', icon: 'building-2' },
 ];
 
+const PLACEHOLDER_CLS = 'flex items-center gap-1.5 h-8 px-4 bg-white/[0.02] border border-white/[0.05] rounded-lg text-[12px] text-white/25 whitespace-nowrap cursor-default select-none';
+
+const ALLDAY_PLACEHOLDERS = [
+  { label: 'Callsheet' },
+  { label: 'Draaiboek' },
+  { label: 'Preproductie' },
+];
+
 export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled, suppliersEnabled }) {
   const byId = Object.fromEntries(outputTypes.map((t) => [t.id, t]));
   const row1 = ROW1_ORDER.map((id) => byId[id]).filter(Boolean);
+  const isAlldayTenant = outputTypes.some(t => t.id === 'allday-gespreksverslag');
 
   const row2 = [];
   for (const task of ROW2_ITEMS) {
@@ -58,6 +67,12 @@ export default function TaskButtons({ outputTypes, onTaskClick, locationsEnabled
         </button>
       );
     }
+  }
+
+  if (isAlldayTenant) {
+    ALLDAY_PLACEHOLDERS.forEach(p => row2.push(
+      <span key={p.label} className={PLACEHOLDER_CLS}>{p.label}</span>
+    ));
   }
 
   return (

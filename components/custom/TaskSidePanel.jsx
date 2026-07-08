@@ -195,8 +195,8 @@ export default function TaskSidePanel({ task, onClose, onGenerate, wizardConfig 
   const isLastStep = step === totalSteps;
 
   function handleNext() {
-    // Fase-stap: stap 2 vereist een geselecteerde fase
-    if (step === 2 && hasPhaseStep && !selectedPhase) return;
+    // Fase-stap: stap 2 vereist een geselecteerde fase (tenzij overgeslagen via Sla over)
+    if (step === 2 && hasPhaseStep && selectedPhase === null) return;
 
     // Fuzzy check op klantnaam bij stap 1 → stap 2
     if (step === 1 && !isSearch && clientInput.trim()) {
@@ -400,6 +400,12 @@ export default function TaskSidePanel({ task, onClose, onGenerate, wizardConfig 
                   {phase}
                 </button>
               ))}
+              <button
+                onClick={() => { setSelectedPhase(''); setStep(s => s + 1); }}
+                className="w-full pt-2 text-[12px] text-white/30 hover:text-white/55 transition-colors text-center"
+              >
+                Sla over
+              </button>
             </div>
           )}
 

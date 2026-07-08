@@ -119,26 +119,56 @@ function htmlBlockToMarkdown(block, markerMap) {
   return result.replace(/\n\n+/g, '\n').trim();
 }
 
-const PHASE_SHORT_NAMES = ['Klantcontact', 'Beschikbaarheid', 'Briefing', 'Debrief', 'Team', 'PM taken', 'Facturatie', 'Preproductie', 'Uitvoering', 'Afronding'];
+const PHASE_FULL_NAMES = [
+  'Klantcontact', 'Beschikbaarheid checken', 'Briefing ontvangen',
+  'Debrief maken', 'Team samenstellen', 'PM taken opstarten',
+  'Facturatie', 'Preproductie', 'Uitvoering', 'Afronding',
+];
+
+const PHASE_DESCS = [
+  'De eerste contactmomenten met de klant zijn gelegd.',
+  'De beschikbaarheid van het team is gecheckt.',
+  'De briefing van de klant is ontvangen.',
+  'De visie op de opdracht is vastgelegd voor de klant.',
+  'Het uitvoerende team is samengesteld.',
+  'De PM taken zijn opgestart en de planning staat.',
+  'De factuur is opgesteld en verstuurd.',
+  'De productie is volledig voorbereid.',
+  'Het project is in uitvoering.',
+  'Het project is afgerond.',
+];
+
+const PHASE_NEXT_DESCS = [
+  'De beschikbaarheid van het team checken.',
+  'De briefing van de klant ontvangen.',
+  'Je visie op de opdracht vastleggen voor de klant.',
+  'Het uitvoerende team samenstellen.',
+  'De PM taken opstarten en de planning bepalen.',
+  'De factuur opmaken en versturen.',
+  'De productie volledig voorbereiden.',
+  'Het project uitvoeren.',
+  'Het project afronden en evalueren.',
+  null,
+];
 
 function renderPhaseGrid(content) {
-  const m = content.match(/\*\*Projectfase\*\*\n\nFase (\d+) van 10[^\n]*\n\n((?:\d+\.[^\n]+\n?){1,10})/);
+  const m = content.match(/\*\*Projectfase\*\*\n\nFase (\d+) van 10[^\n]*/);
   if (!m) return content;
-  const phases = m[2].trim().split('\n').map(line => {
-    const lm = line.match(/^(\d+)\.\s+(.+?)(?:\s+\(([^)]+)\))?$/);
-    return lm ? { num: parseInt(lm[1]), status: lm[3] || '' } : null;
-  }).filter(Boolean);
-  const sep = '<span style="color:rgba(255,255,255,0.12);margin:0 3px">·</span>';
-  function pill(p) {
-    const name = PHASE_SHORT_NAMES[p.num - 1] || `Fase ${p.num}`;
-    if (p.status.includes('afgerond')) return `<span style="color:rgba(255,255,255,0.30);font-size:13px;white-space:nowrap">${p.num}. ${name} ✓</span>`;
-    if (p.status.includes('huidige fase')) return `<span style="color:#e85d04;font-weight:700;font-size:13px;white-space:nowrap">► ${p.num}. ${name}</span>`;
-    return `<span style="color:rgba(255,255,255,0.20);font-size:13px;white-space:nowrap">${p.num}. ${name}</span>`;
-  }
-  const row1 = phases.slice(0, 5).map(pill).join(sep);
-  const row2 = phases.slice(5).map(pill).join(sep);
-  const grid = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;line-height:2.4">${row1}<br/>${row2}</div>\n\n`;
-  return content.replace(m[0], `**Projectfase**${grid}`);
+  const phaseNum = parseInt(m[1]);
+  const name = PHASE_FULL_NAMES[phaseNum - 1] || `Fase ${phaseNum}`;
+  const desc = PHASE_DESCS[phaseNum - 1] || '';
+  const nextNum = phaseNum < 10 ? phaseNum + 1 : null;
+  const nextName = nextNum ? (PHASE_FULL_NAMES[nextNum - 1] || `Fase ${nextNum}`) : null;
+  const nextDesc = nextNum ? (PHASE_NEXT_DESCS[phaseNum - 1] || '') : null;
+
+  const currentHtml = `<div style="font-size:15px;font-weight:700;color:#e85d04;margin-bottom:4px">► Fase ${phaseNum} van 10 — ${name}</div><div style="font-size:12px;color:rgba(255,255,255,0.50)">${desc}</div>`;
+  const nextHtml = nextName ? `<div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:10px">→ Volgende stap: Fase ${nextNum} — ${nextName}</div><div style="font-size:11px;color:rgba(255,255,255,0.25)">${nextDesc}</div>` : '';
+  const block = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 16px">${currentHtml}${nextHtml}</div>\n\n`;
+
+  // Replace the full Projectfase block including numbered list
+  const fullBlock = content.match(/\*\*Projectfase\*\*\n\nFase \d+ van 10[^\n]*\n\n((?:\d+\.[^\n]+\n?){1,10})/);
+  if (fullBlock) return content.replace(fullBlock[0], `**Projectfase**${block}`);
+  return content.replace(m[0], `**Projectfase**${block}`);
 }
 
 function stripInternalSections(content) {
