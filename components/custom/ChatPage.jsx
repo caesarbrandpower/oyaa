@@ -75,6 +75,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // activeTask: null | task object from enabled_output_types
   const [alldayNextStep, setAlldayNextStep] = useState(null);
   // alldayNextStep: null | { phase: number, client: string|null, project: string|null }
+  const [chatflowPhaseState, setChatflowPhaseState] = useState(null);
+  // chatflowPhaseState: null | saved handleSend args waiting for phase selection
   const [pendingTitleGen, setPendingTitleGen] = useState(null);
   // pendingTitleGen: null | { threadId, content, outputType }
   const pendingWizardPhotosRef = useRef([]);
@@ -490,6 +492,18 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           local: true,
           created_at: new Date().toISOString(),
         }]);
+        setSendingState(false);
+        return;
+      }
+
+      // Chatflow allday-gespreksverslag interceptor: vraag fase vóór generatie
+      const hasAlldayGesprek = (tenant?.tenant_config?.features?.output_types ?? []).includes('allday-gespreksverslag');
+      const currentThreadOutputType = outputType ?? activeThreadRef.current?.output_type ?? null;
+      const isAlldayChatflow = hasAlldayGesprek && !taskLabel && !outputType &&
+        (currentThreadOutputType === 'allday-gespreksverslag' || /gespreksverslag/i.test(messageText)) &&
+        !/Projectfase:/i.test(messageText);
+      if (!isConfirmationResponse && isAlldayChatflow && !chatflowPhaseState) {
+        setChatflowPhaseState({ messageText, client, imageAttachments, transcriptAttachments, textAttachments, pdfAttachments, wizardProject, clientConfirmed });
         setSendingState(false);
         return;
       }
@@ -1445,6 +1459,38 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               </div>
             )}
+            {/* Chatflow: fase-picker voor allday gespreksverslag */}
+            {chatflowPhaseState && (
+              <div className="px-4 md:px-8 pb-6">
+                <div className="max-w-3xl mx-auto">
+                  <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <p className="text-[13px] font-semibold text-white">In welke fase zit dit project?</p>
+                      <button onClick={() => setChatflowPhaseState(null)} className="text-white/20 hover:text-white/50 transition-colors shrink-0">
+                        <X className="w-3.5 h-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(WIZARD_CONFIG['allday-gespreksverslag']?.phaseOptions ?? []).map((phase, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            const pending = chatflowPhaseState;
+                            setChatflowPhaseState(null);
+                            const augmented = pending.messageText + `\n\nProjectfase: ${phase}`;
+                            handleSend(augmented, 'allday-gespreksverslag', null, null, pending.client, pending.imageAttachments, pending.transcriptAttachments, pending.clientConfirmed, pending.wizardProject, pending.textAttachments, pending.pdfAttachments);
+                          }}
+                          className="h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white/70 text-[12px] font-medium hover:bg-white/[0.09] hover:text-white transition-colors"
+                        >
+                          {phase}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Proactieve volgende stap na allday gespreksverslag */}
             {alldayNextStep && (() => {
               const step = ALLDAY_NEXT_STEPS[alldayNextStep.phase];

@@ -68,6 +68,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
   const [activeDocument, setActiveDocument] = useState(null);
   // clientLogos: { [clientName]: string (publicUrl) | null }
   const [clientLogos, setClientLogos] = useState({});
+  const [recentlyUploadedLogos, setRecentlyUploadedLogos] = useState(new Set());
   const logoInputRefs = useRef({});
   const [loadingThreadId, setLoadingThreadId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -169,7 +170,13 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
       return;
     }
     const { url } = await res.json();
-    if (url) setClientLogos(prev => ({ ...prev, [clientName]: url + `?t=${Date.now()}` }));
+    if (url) {
+      setClientLogos(prev => ({ ...prev, [clientName]: url + `?t=${Date.now()}` }));
+      setRecentlyUploadedLogos(prev => new Set([...prev, clientName]));
+      setTimeout(() => {
+        setRecentlyUploadedLogos(prev => { const next = new Set(prev); next.delete(clientName); return next; });
+      }, 1500);
+    }
   }
 
   async function handleOpenDoc(thread) {
@@ -725,7 +732,7 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                               className={`w-6 h-6 flex items-center justify-center rounded hover:bg-white/[0.06] transition-all relative ${clientLogos[clientName] ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover/folder:opacity-100'}`}
                             >
                               <Camera className={`w-3.5 h-3.5 ${clientLogos[clientName] ? 'text-green-400' : 'text-white/25'}`} strokeWidth={1.5} />
-                              {clientLogos[clientName] && (
+                              {clientLogos[clientName] && recentlyUploadedLogos.has(clientName) && (
                                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full flex items-center justify-center">
                                   <Check className="w-1 h-1 text-white" strokeWidth={3} />
                                 </span>

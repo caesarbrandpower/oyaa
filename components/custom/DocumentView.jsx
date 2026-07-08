@@ -131,13 +131,13 @@ function renderPhaseGrid(content) {
   const sep = '<span style="color:rgba(255,255,255,0.12);margin:0 3px">·</span>';
   function pill(p) {
     const name = PHASE_SHORT_NAMES[p.num - 1] || `Fase ${p.num}`;
-    if (p.status.includes('afgerond')) return `<span style="color:rgba(255,255,255,0.30);font-size:11px;white-space:nowrap">${p.num}. ${name} ✓</span>`;
-    if (p.status.includes('huidige fase')) return `<span style="color:#e85d04;font-weight:700;font-size:11px;white-space:nowrap">► ${p.num}. ${name}</span>`;
-    return `<span style="color:rgba(255,255,255,0.20);font-size:11px;white-space:nowrap">${p.num}. ${name}</span>`;
+    if (p.status.includes('afgerond')) return `<span style="color:rgba(255,255,255,0.30);font-size:13px;white-space:nowrap">${p.num}. ${name} ✓</span>`;
+    if (p.status.includes('huidige fase')) return `<span style="color:#e85d04;font-weight:700;font-size:13px;white-space:nowrap">► ${p.num}. ${name}</span>`;
+    return `<span style="color:rgba(255,255,255,0.20);font-size:13px;white-space:nowrap">${p.num}. ${name}</span>`;
   }
   const row1 = phases.slice(0, 5).map(pill).join(sep);
   const row2 = phases.slice(5).map(pill).join(sep);
-  const grid = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;line-height:2.2">${row1}<br/>${row2}</div>\n\n`;
+  const grid = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;line-height:2.4">${row1}<br/>${row2}</div>\n\n`;
   return content.replace(m[0], `**Projectfase**${grid}`);
 }
 
@@ -637,6 +637,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
   const [applying, setApplying] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [initialMarkerCount] = useState(() => parseMarkeringen(content).length);
+  const [internExternPending, setInternExternPending] = useState(null); // null | 'word' | 'share'
   const chatInputRef = useRef(null);
   const docBodyRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -695,8 +696,9 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     });
   }
 
-  async function handleDownloadWord() {
-    console.log('[DEBUG DOWNLOAD] Word DocumentView', { client, project, outputType, title });
+  const hasInternalSections = /\*\*Projectfase\*\*|\*\*Procesreminder\*\*/.test(localContent);
+
+  async function _doDownloadWord(contentToExport) {
     setDownloading(true);
     try {
       const [chaseBuffer, clientBuffer] = await Promise.all([
@@ -704,9 +706,29 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
         fetchLogoBuffer(clientLogoUrl),
       ]);
       const filename = buildFilename(outputType, client, project, 'docx');
-      await downloadWordDoc(stripInternalSections(localContent), title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
+      await downloadWordDoc(contentToExport, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleDownloadWord() {
+    console.log('[DEBUG DOWNLOAD] Word DocumentView', { client, project, outputType, title });
+    if (hasInternalSections) {
+      setInternExternPending('word');
+      return;
+    }
+    await _doDownloadWord(localContent);
+  }
+
+  async function handleInternExternConfirm(includeInternal) {
+    const action = internExternPending;
+    setInternExternPending(null);
+    const contentToUse = includeInternal ? localContent : stripInternalSections(localContent);
+    if (action === 'word') {
+      await _doDownloadWord(contentToUse);
+    } else if (action === 'share') {
+      await _doShare(contentToUse);
     }
   }
 
@@ -754,8 +776,8 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     }
   }
 
-  function buildShareContent() {
-    let c = stripInternalSections(localContent);
+  function buildShareContent(baseContent) {
+    let c = baseContent;
     if (extras?.photos?.length > 0 || extras?.links?.length > 0) {
       c += '\n\n---\n\n## Bijlagen\n\n';
       if (extras.photos?.length > 0) {
@@ -772,10 +794,10 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     return c;
   }
 
-  async function handleShare() {
+  async function _doShare(baseContent) {
     setSharing(true);
     try {
-      const shareContent = buildShareContent();
+      const shareContent = buildShareContent(baseContent);
       const res = await fetch('/api/share-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -790,6 +812,14 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     } finally {
       setSharing(false);
     }
+  }
+
+  async function handleShare() {
+    if (hasInternalSections) {
+      setInternExternPending('share');
+      return;
+    }
+    await _doShare(localContent);
   }
 
   function pushHistory(current) {
@@ -1481,6 +1511,40 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
             <div className="pb-2 shrink-0" />
           </aside>
       </div>
+
+      {/* Intern / Extern modal */}
+      {internExternPending && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/[0.10] rounded-xl p-6 w-[340px] flex flex-col gap-4">
+            <p className="font-[family-name:var(--font-lexend)] text-[14px] font-semibold text-white">
+              Voor intern of extern gebruik?
+            </p>
+            <p className="text-[12px] text-white/50 leading-relaxed">
+              Intern bevat ook Projectfase en Procesreminder. Extern is het publieksklare document zonder interne secties.
+            </p>
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={() => handleInternExternConfirm(true)}
+                className="flex-1 h-9 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-white text-[13px] font-medium transition-colors"
+              >
+                Intern
+              </button>
+              <button
+                onClick={() => handleInternExternConfirm(false)}
+                className="flex-1 h-9 rounded-lg bg-orange hover:bg-orange/80 text-white text-[13px] font-medium transition-colors"
+              >
+                Extern
+              </button>
+            </div>
+            <button
+              onClick={() => setInternExternPending(null)}
+              className="text-[11px] text-white/30 hover:text-white/60 text-center transition-colors"
+            >
+              Annuleer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
