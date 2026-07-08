@@ -106,7 +106,7 @@ export async function POST(request) {
 
         if (!activeThreadId) {
           let normalizedClient = null;
-          if (clientName) {
+          if (clientName && clientName.length < 100) {
             const existing = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             normalizedClient = normalizeClientName(clientName, existing);
           } else if (recordingClient) {
