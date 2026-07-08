@@ -1391,18 +1391,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                     return updated;
                   });
                 }}
-                onTranslated={(translatedContent) => {
-                  setMessages(prev => [...prev, {
-                    id: 'translated-' + Date.now(),
-                    role: 'assistant',
-                    content: translatedContent,
-                    isDocument: true,
-                    output_type: activeThread?.output_type ?? null,
-                    created_at: new Date().toISOString(),
-                    streaming: false,
-                    local: true,
-                  }]);
-                }}
               />
             </div>
             {/* DocumentCard voor opname-transcript — onder het transcript bericht */}

@@ -385,7 +385,7 @@ export default function TaskSidePanel({ task, onClose, onGenerate, wizardConfig 
           {step === 2 && hasPhaseStep && (
             <div className="space-y-2">
               <label className="block text-[12px] font-semibold text-white/60 mb-3">
-                In welke fase zit dit project?
+                In welke fase zit dit project? (optioneel)
               </label>
               {wizardConfig.phaseOptions.map((phase) => (
                 <button

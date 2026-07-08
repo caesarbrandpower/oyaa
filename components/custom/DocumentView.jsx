@@ -156,16 +156,10 @@ function renderPhaseGrid(content) {
   if (!m) return content;
   const phaseNum = parseInt(m[1]);
   const name = PHASE_FULL_NAMES[phaseNum - 1] || `Fase ${phaseNum}`;
-  const desc = PHASE_DESCS[phaseNum - 1] || '';
   const nextNum = phaseNum < 10 ? phaseNum + 1 : null;
   const nextName = nextNum ? (PHASE_FULL_NAMES[nextNum - 1] || `Fase ${nextNum}`) : null;
-  const nextDesc = nextNum ? (PHASE_NEXT_DESCS[phaseNum - 1] || '') : null;
-
-  const currentHtml = `<div style="font-size:15px;font-weight:700;color:#e85d04;margin-bottom:4px">► Fase ${phaseNum} van 10 — ${name}</div><div style="font-size:12px;color:rgba(255,255,255,0.50)">${desc}</div>`;
-  const nextHtml = nextName ? `<div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:10px">→ Volgende stap: Fase ${nextNum} — ${nextName}</div><div style="font-size:11px;color:rgba(255,255,255,0.25)">${nextDesc}</div>` : '';
-  const block = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 16px">${currentHtml}${nextHtml}</div>\n\n`;
-
-  // Replace the full Projectfase block including numbered list
+  const line = `Fase ${phaseNum} — ${name}${nextName ? ` → Fase ${nextNum} — ${nextName}` : ''}`;
+  const block = `\n\n<span style="font-size:12px;color:rgba(255,255,255,0.35)">${line}</span>\n\n`;
   const fullBlock = content.match(/\*\*Projectfase\*\*\n\nFase \d+ van 10[^\n]*\n\n((?:\d+\.[^\n]+\n?){1,10})/);
   if (fullBlock) return content.replace(fullBlock[0], `**Projectfase**${block}`);
   return content.replace(m[0], `**Projectfase**${block}`);
@@ -652,6 +646,9 @@ async function _unusedWordDoc(content, title, logos = {}, extras = null) {
 
 export default function DocumentView({ content, onClose, onImprove, onContentSaved = null, client = null, project = null, tenant = null, extras = null, outputType = null, outputTypeLabel = null, savedToken = null, messageId = null }) {
   const [localContent, setLocalContent] = useState(content);
+  const [activeLang, setActiveLang] = useState('nl');
+  const [enContent, setEnContent] = useState(null);
+  const [translatingLang, setTranslatingLang] = useState(false);
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [downloading, setDownloading] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -683,9 +680,12 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     onError: () => {},
   });
 
+  const isAlldayType = outputType === 'allday-gespreksverslag' || outputType === 'allday-debrief';
+  const activeContent = activeLang === 'en' && enContent ? enContent : localContent;
+
   const title = extractTitle(localContent);
   const markeringen = parseMarkeringen(localContent);
-  const bodyHtml = annotateParaIdx(injectLabelHtml(md.parse(renderPhaseGrid(localContent))));
+  const bodyHtml = annotateParaIdx(injectLabelHtml(md.parse(renderPhaseGrid(activeContent))));
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
 
@@ -728,6 +728,49 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
 
   const hasInternalSections = /\*\*Projectfase\*\*|\*\*Procesreminder\*\*/.test(localContent);
 
+  async function handleSwitchLang(lang) {
+    if (lang === activeLang) return;
+    if (lang === 'nl') { setActiveLang('nl'); return; }
+    if (enContent) { setActiveLang('en'); return; }
+    setTranslatingLang(true);
+    try {
+      const prompt = `Vertaal dit document volledig naar het Engels. Behoud exact de markdown-opmaak, structuur en secties. Vertaal ook de label-namen (bijv. **Datum:** → **Date:**, **Aanwezig:** → **Present:**, **Type gesprek:** → **Type of meeting:**, **Klant/opdrachtgever:** → **Client:**, **Projectfase** → **Project phase**, etc.). Genereer ALLEEN het vertaalde document, zonder inleiding of uitleg.\n\nDocument:\n\n${localContent}`;
+      const res = await fetch('/api/chat-custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          threadId: null, message: prompt, outputType: null, taskLabel: null,
+          client: null, clientConfirmed: false, imageAttachments: [],
+          documentAttachments: [], txtAttachments: [], prevHasDoc: false,
+        }),
+      });
+      if (!res.ok) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        for (const line of text.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'text' && data.text) full += data.text;
+          } catch {}
+        }
+      }
+      if (full.trim()) {
+        setEnContent(full.trim());
+        setActiveLang('en');
+      }
+    } catch (err) {
+      console.error('Translation error:', err);
+    } finally {
+      setTranslatingLang(false);
+    }
+  }
+
   async function _doDownloadWord(contentToExport) {
     setDownloading(true);
     try {
@@ -744,6 +787,10 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
 
   async function handleDownloadWord() {
     console.log('[DEBUG DOWNLOAD] Word DocumentView', { client, project, outputType, title });
+    if (activeLang === 'en' && enContent) {
+      await _doDownloadWord(enContent);
+      return;
+    }
     if (hasInternalSections) {
       setInternExternPending('word');
       return;
@@ -800,7 +847,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
         fetchLogoBase64(clientLogoUrl),
       ]);
       const filename = buildFilename(outputType, client, project, 'pdf');
-      await downloadPdfDoc(localContent, title, { chaseBase64, clientBase64 }, extras, filename, outputType, client, project);
+      await downloadPdfDoc(activeContent, title, { chaseBase64, clientBase64 }, extras, filename, outputType, client, project);
     } finally {
       setDownloadingPdf(false);
     }
@@ -845,6 +892,10 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
   }
 
   async function handleShare() {
+    if (activeLang === 'en' && enContent) {
+      await _doShare(enContent);
+      return;
+    }
     if (hasInternalSections) {
       setInternExternPending('share');
       return;
@@ -1227,6 +1278,23 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
             <Share2 className="w-3 h-3" strokeWidth={2} />
             {sharing ? 'Bezig...' : shareUrl ? 'Link gekopieerd!' : 'Deel als link'}
           </button>
+          {isAlldayType && (
+            <div className="hidden sm:flex items-center border border-white/[0.08] rounded-lg overflow-hidden">
+              <button
+                onClick={() => handleSwitchLang('nl')}
+                className={`h-8 px-2.5 text-[11px] font-semibold transition-colors ${activeLang === 'nl' ? 'bg-white/[0.10] text-white' : 'text-white/40 hover:text-white/70'}`}
+              >
+                NL
+              </button>
+              <button
+                onClick={() => handleSwitchLang('en')}
+                disabled={translatingLang}
+                className={`h-8 px-2.5 text-[11px] font-semibold transition-colors disabled:opacity-40 ${activeLang === 'en' ? 'bg-white/[0.10] text-white' : 'text-white/40 hover:text-white/70'}`}
+              >
+                {translatingLang ? '...' : 'EN'}
+              </button>
+            </div>
+          )}
           {editMode ? (
             <button
               onClick={handleSaveEditMode}

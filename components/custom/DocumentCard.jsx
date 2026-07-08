@@ -54,7 +54,6 @@ export default function DocumentCard({
   fotoMidden = null,
   fotoAchter = null,
   threadId = null,
-  onTranslated = null,
 }) {
   const [copyLabel, setCopyLabel] = useState('Kopiëren');
   const [wordLoading, setWordLoading] = useState(false);
@@ -64,7 +63,6 @@ export default function DocumentCard({
   const [shareLabel, setShareLabel] = useState('Deel als link');
   const [shareDone, setShareDone] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [translating, setTranslating] = useState(false);
 
   async function handleDelete(e) {
     e.stopPropagation();
@@ -194,46 +192,6 @@ export default function DocumentCard({
     }
   }
 
-  const isAlldayType = outputType === 'allday-gespreksverslag' || outputType === 'allday-debrief';
-
-  async function handleTranslate(e) {
-    e.stopPropagation();
-    setTranslating(true);
-    try {
-      const prompt = `Vertaal dit document volledig naar het Engels. Behoud exact de markdown-opmaak, structuur en secties. Vertaal ook de label-namen (bijv. **Datum:** → **Date:**, **Aanwezig:** → **Present:**, **Type gesprek:** → **Type of meeting:**, **Klant/opdrachtgever:** → **Client:**, **Projectfase** → **Project phase**, etc.). Genereer ALLEEN het vertaalde document, zonder inleiding of uitleg.\n\nDocument:\n\n${content}`;
-      const res = await fetch('/api/chat-custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          threadId: null, message: prompt, outputType: null, taskLabel: null,
-          client: null, clientConfirmed: false, imageAttachments: [],
-          documentAttachments: [], txtAttachments: [], prevHasDoc: false,
-        }),
-      });
-      if (!res.ok) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'text' && data.text) fullContent += data.text;
-          } catch {}
-        }
-      }
-      if (fullContent.trim()) onTranslated?.(fullContent.trim());
-    } catch (err) {
-      console.error('Translation error:', err);
-    } finally {
-      setTranslating(false);
-    }
-  }
-
   return (
     <>
     <div className="mt-2 border border-white/[0.10] rounded-xl p-4 bg-white/[0.03] max-w-lg">
@@ -304,15 +262,6 @@ export default function DocumentCard({
           >
             <Download className="w-3 h-3" strokeWidth={2} />
             {pptxLoading ? 'Bezig...' : 'PowerPoint'}
-          </button>
-        )}
-        {isAlldayType && onTranslated && (
-          <button
-            onClick={handleTranslate}
-            disabled={translating}
-            className="flex items-center gap-1.5 h-8 px-3 bg-white/[0.06] border border-white/[0.08] rounded-lg text-[12px] text-white/60 hover:text-white hover:bg-white/[0.09] transition-colors disabled:opacity-40"
-          >
-            {translating ? 'Vertalen...' : '🇬🇧 Engels'}
           </button>
         )}
         {audioUrl && (
