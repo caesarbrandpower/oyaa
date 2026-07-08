@@ -119,6 +119,35 @@ function htmlBlockToMarkdown(block, markerMap) {
   return result.replace(/\n\n+/g, '\n').trim();
 }
 
+const PHASE_SHORT_NAMES = ['Klantcontact', 'Beschikbaarheid', 'Briefing', 'Debrief', 'Team', 'PM taken', 'Facturatie', 'Preproductie', 'Uitvoering', 'Afronding'];
+
+function renderPhaseGrid(content) {
+  const m = content.match(/\*\*Projectfase\*\*\n\nFase (\d+) van 10[^\n]*\n\n((?:\d+\.[^\n]+\n?){1,10})/);
+  if (!m) return content;
+  const phases = m[2].trim().split('\n').map(line => {
+    const lm = line.match(/^(\d+)\.\s+(.+?)(?:\s+\(([^)]+)\))?$/);
+    return lm ? { num: parseInt(lm[1]), status: lm[3] || '' } : null;
+  }).filter(Boolean);
+  const sep = '<span style="color:rgba(255,255,255,0.12);margin:0 3px">·</span>';
+  function pill(p) {
+    const name = PHASE_SHORT_NAMES[p.num - 1] || `Fase ${p.num}`;
+    if (p.status.includes('afgerond')) return `<span style="color:rgba(255,255,255,0.30);font-size:11px;white-space:nowrap">${p.num}. ${name} ✓</span>`;
+    if (p.status.includes('huidige fase')) return `<span style="color:#e85d04;font-weight:700;font-size:11px;white-space:nowrap">► ${p.num}. ${name}</span>`;
+    return `<span style="color:rgba(255,255,255,0.20);font-size:11px;white-space:nowrap">${p.num}. ${name}</span>`;
+  }
+  const row1 = phases.slice(0, 5).map(pill).join(sep);
+  const row2 = phases.slice(5).map(pill).join(sep);
+  const grid = `\n\n<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;line-height:2.2">${row1}<br/>${row2}</div>\n\n`;
+  return content.replace(m[0], `**Projectfase**${grid}`);
+}
+
+function stripInternalSections(content) {
+  return content
+    .split('\n\n---\n\n')
+    .filter(s => !s.trimStart().startsWith('**Projectfase**') && !s.trimStart().startsWith('**Procesreminder**'))
+    .join('\n\n---\n\n');
+}
+
 function extractTitle(markdown) {
   const m = markdown.match(/^#{1,3}\s+(.+)$/m);
   if (m) return m[1].trim().replace(/→/g, 'naar');
@@ -625,7 +654,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
 
   const title = extractTitle(localContent);
   const markeringen = parseMarkeringen(localContent);
-  const bodyHtml = annotateParaIdx(injectLabelHtml(md.parse(localContent)));
+  const bodyHtml = annotateParaIdx(injectLabelHtml(md.parse(renderPhaseGrid(localContent))));
 
   const chaseLogoUrl = tenant?.logo_url ?? null;
 
@@ -675,7 +704,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
         fetchLogoBuffer(clientLogoUrl),
       ]);
       const filename = buildFilename(outputType, client, project, 'docx');
-      await downloadWordDoc(localContent, title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
+      await downloadWordDoc(stripInternalSections(localContent), title, { chaseBuffer, clientBuffer }, extras, filename, outputType, client, project);
     } finally {
       setDownloading(false);
     }
@@ -726,7 +755,7 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
   }
 
   function buildShareContent() {
-    let c = localContent;
+    let c = stripInternalSections(localContent);
     if (extras?.photos?.length > 0 || extras?.links?.length > 0) {
       c += '\n\n---\n\n## Bijlagen\n\n';
       if (extras.photos?.length > 0) {

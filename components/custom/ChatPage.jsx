@@ -3,13 +3,26 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Menu, Play, Pause } from 'lucide-react';
+import { Menu, Play, Pause, X } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageList from './MessageList';
 import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO, WIZARD_CONFIG } from '@/lib/custom-prompts';
 import { buildWordBlob, fetchImageAsBuffer, fetchLogoBuffer } from '@/lib/doc-export';
+
+const ALLDAY_NEXT_STEPS = {
+  3: {
+    checklist: ['Is de briefing volledig gedocumenteerd?', 'Zijn de deliverables helder afgebakend?', 'Is het budget bevestigd of onder voorbehoud?'],
+    nextTask: 'allday-debrief',
+    nextLabel: 'Start Debrief',
+  },
+  4: {
+    checklist: ['Is de debrief goedgekeurd door de klant?', 'Is de scope akkoord?', 'Is de planning bevestigd?'],
+    nextTask: null,
+    nextLabel: null,
+  },
+};
 
 function looksLikePastedTranscript(text) {
   if (text.length < 500) return false;
@@ -60,6 +73,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // chatPrefill: null | { text: string, id: number }
   const [activeTask, setActiveTask] = useState(null);
   // activeTask: null | task object from enabled_output_types
+  const [alldayNextStep, setAlldayNextStep] = useState(null);
+  // alldayNextStep: null | { phase: number, client: string|null, project: string|null }
   const [pendingTitleGen, setPendingTitleGen] = useState(null);
   // pendingTitleGen: null | { threadId, content, outputType }
   const pendingWizardPhotosRef = useRef([]);
@@ -758,6 +773,14 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   created_at: new Date().toISOString(),
                 }];
               });
+              // Proactieve volgende stap na allday gespreksverslag
+              if (finalIsDocument && isGenerateIntent && effectiveDocType === 'allday-gespreksverslag' && event.content) {
+                const pm = event.content.match(/Fase (\d+) van 10/);
+                const phaseNum = pm ? parseInt(pm[1]) : null;
+                if (phaseNum && ALLDAY_NEXT_STEPS[phaseNum]) {
+                  setAlldayNextStep({ phase: phaseNum, client: saveClient, project: saveProject });
+                }
+              }
               // Post-verbeter bericht opslaan in DB zodat het na herladen zichtbaar blijft
               if (improvePostContent && activeThreadRef.current?.id) {
                 fetch('/api/messages', {
@@ -1128,7 +1151,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         task={activeTask}
         onClose={handleTaskPanelClose}
         onGenerate={handleTaskGenerate}
-        wizardConfig={WIZARD_CONFIG[activeTask?.id] ?? null}
+        wizardConfig={activeTask ? { ...(WIZARD_CONFIG[activeTask.id] ?? {}), ...(activeTask._prefill ?? {}) } : null}
       />
     )}
     {activeDocument && (
@@ -1422,6 +1445,45 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               </div>
             )}
+            {/* Proactieve volgende stap na allday gespreksverslag */}
+            {alldayNextStep && (() => {
+              const step = ALLDAY_NEXT_STEPS[alldayNextStep.phase];
+              if (!step) return null;
+              const debriefTask = step.nextTask ? outputTypes.find(t => t.id === step.nextTask) : null;
+              return (
+                <div className="px-4 md:px-8 pb-6">
+                  <div className="max-w-3xl mx-auto">
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <p className="text-[13px] font-semibold text-white">Klaar voor de volgende stap?</p>
+                        <button onClick={() => setAlldayNextStep(null)} className="text-white/20 hover:text-white/50 transition-colors shrink-0">
+                          <X className="w-3.5 h-3.5" strokeWidth={2} />
+                        </button>
+                      </div>
+                      <ul className="space-y-2 mb-4">
+                        {step.checklist.map((q, i) => (
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-white/55">
+                            <span className="mt-0.5 w-3 h-3 shrink-0 border border-white/20 rounded-sm" />
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                      {debriefTask && (
+                        <button
+                          onClick={() => {
+                            setActiveTask({ ...debriefTask, _prefill: { initialClient: alldayNextStep.client, initialProject: alldayNextStep.project } });
+                            setAlldayNextStep(null);
+                          }}
+                          className="inline-flex items-center h-8 px-4 rounded-lg bg-orange/15 border border-orange/30 text-orange text-[12px] font-medium hover:bg-orange/25 transition-colors"
+                        >
+                          {step.nextLabel} →
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             </>
           )}
         </div>

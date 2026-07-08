@@ -43,8 +43,8 @@ export default function TaskSidePanel({ task, onClose, onGenerate, wizardConfig 
   const totalSteps = isSearch ? 2 : 3;
 
   const [step, setStep] = useState(1);
-  const [clientInput, setClientInput] = useState('');
-  const [projectInput, setProjectInput] = useState('');
+  const [clientInput, setClientInput] = useState(wizardConfig?.initialClient ?? '');
+  const [projectInput, setProjectInput] = useState(wizardConfig?.initialProject ?? '');
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [description, setDescription] = useState('');
   const [transcript, setTranscript] = useState('');

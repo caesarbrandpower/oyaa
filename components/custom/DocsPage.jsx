@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   FileText, ClipboardList, PenLine, BarChart2, Search,
   ChevronRight, ChevronDown, Folder, FolderOpen, Menu,
-  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush, Camera, LayoutGrid,
+  MoreHorizontal, X, Mic, Clipboard, Send, Paintbrush, Camera, LayoutGrid, Check,
 } from 'lucide-react';
 import RecordingButton from './RecordingButton';
 import Sidebar from './Sidebar';
@@ -721,10 +721,15 @@ export default function DocsPage({ user, tenant, docThreads, sidebarThreads, pro
                             />
                             <button
                               onClick={(e) => { e.stopPropagation(); logoInputRefs.current[clientName]?.click(); }}
-                              title="Logo uploaden — PNG of SVG, minimaal 400px breed, voor de beste kwaliteit in documenten"
-                              className="opacity-0 group-hover/folder:opacity-100 w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+                              title={clientLogos[clientName] ? 'Logo bijwerken' : 'Logo uploaden — PNG of SVG, minimaal 400px breed, voor de beste kwaliteit in documenten'}
+                              className={`w-6 h-6 flex items-center justify-center rounded hover:bg-white/[0.06] transition-all relative ${clientLogos[clientName] ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover/folder:opacity-100'}`}
                             >
-                              <Camera className="w-3.5 h-3.5" strokeWidth={1.5} />
+                              <Camera className={`w-3.5 h-3.5 ${clientLogos[clientName] ? 'text-green-400' : 'text-white/25'}`} strokeWidth={1.5} />
+                              {clientLogos[clientName] && (
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full flex items-center justify-center">
+                                  <Check className="w-1 h-1 text-white" strokeWidth={3} />
+                                </span>
+                              )}
                             </button>
                             {/* Map 3-dots menu */}
                             <div
