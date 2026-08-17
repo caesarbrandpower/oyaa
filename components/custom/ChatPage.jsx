@@ -440,6 +440,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 locationId: pending.locationId,
                 veld: pending.veld,
                 nieuweWaarde: pending.nieuweWaarde,
+                modus: pending.modus,
               }),
             });
             const bevestigingsTekst = res.ok
@@ -998,8 +999,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 });
               }
             } else if (event.type === 'location_write_confirm') {
-              const oudStr = event.oudeWaarde != null ? `"${event.oudeWaarde}"` : '(geen waarde)';
-              const bevestigMsg = `Wil je **${event.veld}** van **${event.locatieNaam}** wijzigen van ${oudStr} naar "${event.nieuweWaarde}"? Typ ja om te bevestigen.`;
+              const APPEND_FIELDS = ['bijzonderheden', 'bereik_note', 'omschrijving'];
+              const effectieveModus = event.modus === 'vervangen' ? 'vervangen' : 'aanvullen';
+              let bevestigMsg;
+              if (effectieveModus === 'aanvullen' && APPEND_FIELDS.includes(event.veld) && event.oudeWaarde) {
+                const gecombineerdStr = `${event.oudeWaarde}\n${event.nieuweWaarde}`;
+                bevestigMsg = `Wil je **${event.veld}** van **${event.locatieNaam}** aanvullen? Nieuwe volledige waarde:\n\n${gecombineerdStr}\n\nTyp ja om te bevestigen.`;
+              } else {
+                const oudStr = event.oudeWaarde != null ? `"${event.oudeWaarde}"` : '(geen waarde)';
+                bevestigMsg = `Wil je **${event.veld}** van **${event.locatieNaam}** wijzigen van ${oudStr} naar "${event.nieuweWaarde}"? Typ ja om te bevestigen.`;
+              }
               setMessages(prev => [
                 ...prev.filter(m => m.id !== placeholderId),
                 { id: 'lw-confirm-' + Date.now(), role: 'assistant', content: bevestigMsg, streaming: false, local: true, created_at: new Date().toISOString() },
@@ -1010,6 +1019,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 veld: event.veld,
                 oudeWaarde: event.oudeWaarde,
                 nieuweWaarde: event.nieuweWaarde,
+                modus: effectieveModus,
               };
               setSendingState(false);
             } else if (event.type === 'confirm') {

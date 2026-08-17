@@ -214,6 +214,13 @@ export async function POST(request) {
             if (intent) {
               const matchedLoc = locNamen.find(l => l.naam === intent.locatieNaam);
               if (matchedLoc) {
+                if (intent.modus === 'verwijder') {
+                  const huidigeWaarde = matchedLoc[intent.veld] ?? '(leeg)';
+                  writeEvent(controller, { type: 'chunk', text: `Hier is de huidige inhoud van **${intent.veld}** bij **${matchedLoc.naam}**:\n\n${huidigeWaarde}\n\nWat wil je hieruit verwijderen?` });
+                  writeEvent(controller, { type: 'done', isDocument: false });
+                  controller.close();
+                  return;
+                }
                 const oudeWaarde = matchedLoc[intent.veld] ?? null;
                 writeEvent(controller, {
                   type: 'location_write_confirm',
@@ -222,6 +229,7 @@ export async function POST(request) {
                   veld: intent.veld,
                   oudeWaarde: oudeWaarde != null ? String(oudeWaarde) : null,
                   nieuweWaarde: intent.nieuweWaarde,
+                  modus: intent.modus,
                 });
                 controller.close();
                 return;
@@ -540,7 +548,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             const proactiveInstruction = !wantsFullSummary
               ? `\n\nALS DE GEBRUIKER EEN SAMENVATTING VRAAGT: Vraagt de gebruiker om een samenvatting of overzicht van een document in de kluis zonder 'volledig', 'compleet', 'alle' of 'heel' te zeggen, reageer dan proactief met: 'Ik heb de volledige [naam van het document] in de kluis. Wil je dat ik daar een complete samenvatting van maak?'`
               : '';
-            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. Bij een concrete vraag (resultaten, aantallen, advies over een specifiek project): geef direct een kort, inhoudelijk antwoord op basis van wat je vindt — vraag niet eerst toestemming om een samenvatting te maken. Bied pas aan dieper in te gaan als het antwoord beknopt moest blijven door de hoeveelheid informatie. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\nVERPLICHT AAN HET EINDE: Sluit je antwoord altijd af met exact deze regel (met de werkelijk gebruikte bronnummers ingevuld, kommagescheiden): [GEBRUIKTE_BRONNEN: N, N]. Neem een bron alleen op als je concrete inhoud (feiten, cijfers, citaten, specifieke punten) uit dat document hebt overgenomen in je antwoord. Als je een document alleen noemt om te zeggen dat het geen relevante informatie bevat, reken dat NIET als gebruikt en laat dat bronnummer weg. Deze regel wordt automatisch verwijderd en is nooit zichtbaar voor de gebruiker.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
+            vaultSystemSuffix = `CONTEXT UIT DE KLUIS:\nHieronder staan fragmenten uit eerdere documenten en uploads van dit bureau, genummerd als bronnen. Gebruik ze alleen als ze relevant zijn voor het gesprek. Bij een concrete vraag (resultaten, aantallen, advies over een specifiek project): geef direct een kort, inhoudelijk antwoord op basis van wat je vindt — vraag niet eerst toestemming om een samenvatting te maken. Bied pas aan dieper in te gaan als het antwoord beknopt moest blijven door de hoeveelheid informatie. Dit is achtergrondcontext, geen input van de gebruiker. De fragmenten kunnen placeholders bevatten zoals [Naam 1], [EMAIL 1] of [TELEFOON 1]; behandel die als gewone waarden, neem ze letterlijk over waar relevant en benoem nooit dat informatie geanonimiseerd of een placeholder is.\n\nAls een bronfragment markeringen bevat zoals [UITZOEKEN INTERN], [AFSTEMMEN MET KLANT], [CIJFERS TOEVOEGEN] of [CHECK: ...], is die informatie onbevestigd — noem het als onzeker of laat het weg.\nAls je informatie uit een bron overneemt, benoem de bron dan inline met datum, bijvoorbeeld: "volgens de briefing van 7 juli" of "zoals beschreven in [naam document]". De datum staat in het bronblok als (datum).\n\nVERPLICHT AAN HET EINDE: Sluit je antwoord altijd af met exact deze regel (met de werkelijk gebruikte bronnummers ingevuld, kommagescheiden): [GEBRUIKTE_BRONNEN: N, N]. Neem een bron alleen op als je concrete inhoud (feiten, cijfers, citaten, specifieke punten) uit dat document hebt overgenomen in je antwoord. Als je een document alleen noemt om te zeggen dat het geen relevante informatie bevat, reken dat NIET als gebruikt en laat dat bronnummer weg. Deze regel wordt automatisch verwijderd en is nooit zichtbaar voor de gebruiker.\n\n${formatVaultBlock(anonVaultSources)}${proactiveInstruction}`;
           } else if (vaultOn && !skipVaultRetrieval) {
             vaultSystemSuffix = `KLUIS: er is in de kennisbank van het bureau gezocht naar context bij dit gesprek, maar er is niets relevants gevonden. Vraagt de gebruiker naar eerdere documenten, projecten of afspraken, zeg dan eerlijk dat je daarover niets in de kluis hebt gevonden. Verzin nooit eerdere documenten of afspraken.`;
           }
