@@ -492,7 +492,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                             </div>
                           </div>
                         ) : (
-                          <p className="text-[13px] text-white/80 leading-snug">
+                          <p className="text-[13px] text-white/80 leading-snug whitespace-pre-line">
                             {loc.bijzonderheden || (
                               <span className="text-white/25 italic">Geen bijzonderheden</span>
                             )}

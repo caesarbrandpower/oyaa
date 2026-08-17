@@ -37,7 +37,6 @@ function writeEvent(controller, data) {
 // ── Route handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request) {
-  console.log('[DEBUG-ENTRY] POST /api/chat-custom aangeroepen', new Date().toISOString());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
@@ -199,13 +198,6 @@ export async function POST(request) {
         const locationsOn = tenant?.tenant_config?.features?.locations === true;
 
         let locationWriteConfirmSent = false;
-
-        console.log('[DEBUG-WRITE]', JSON.stringify({
-          locationsOn,
-          locationWriteConfirmed,
-          hasWriteIntent: hasWriteIntent(userOnlyMessage),
-          userOnlyMessageSlice: userOnlyMessage?.slice(0, 120),
-        }));
 
         if (locationsOn && !locationWriteConfirmed) {
           const { data: locNamen } = await supabase
@@ -576,14 +568,6 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             : useStructuredPrompt
               ? structuredDocSystemPrompt
               : CUSTOM_SYSTEM_PROMPT;
-
-        console.log('[DEBUG-PROMPT]', JSON.stringify({
-          isFreeChat,
-          useStructuredPrompt,
-          effectiveOutputType,
-          promptStart: systemPrompt?.slice(0, 80),
-          hasACTIES: systemPrompt?.includes('ACTIES EN BEVESTIGINGEN'),
-        }));
 
         // Kluiscontext alleen in conversatiemodus, als APART system-blok: het
         // statische promptdeel blijft dan cachebaar (cache_control), terwijl de
