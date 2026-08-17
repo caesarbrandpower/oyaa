@@ -10,6 +10,7 @@ import TaskButtons from './TaskButtons';
 import ChatInput from './ChatInput';
 import { DOCUMENT_OUTPUT_TYPES, OUTPUT_TYPE_INFO, WIZARD_CONFIG } from '@/lib/custom-prompts';
 import { buildWordBlob, fetchImageAsBuffer, fetchLogoBuffer } from '@/lib/doc-export';
+import { looksLikeDocument } from '@/lib/document-utils';
 
 const ALLDAY_NEXT_STEPS = {
   3: {
@@ -32,14 +33,6 @@ function looksLikePastedTranscript(text) {
   return mdChars / text.length < 0.03;
 }
 
-function looksLikeDocument(content) {
-  if (!content || content.length < 300) return false;
-  const headings = content.match(/^#{1,3}\s+.+$/gm) || [];
-  if (headings.length >= 2) return true;
-  // Ook documenten met bold-sectiekoppen detecteren (bijv. **In het kort** of **Actiepunten**)
-  const boldSections = content.match(/^\*\*[^*\n]{2,50}\*\*/gm) || [];
-  return boldSections.length >= 3 && content.length > 500;
-}
 function formatAudioTime(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
   const m = Math.floor(seconds / 60);
@@ -771,7 +764,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                   )
                 );
               }
-              const finalIsDocument = isDocument;
+              const finalIsDocument = event.isDocument ?? isDocument;
               const finalMsg = {
                 id: event.messageId,
                 role: 'assistant',
