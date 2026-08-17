@@ -609,9 +609,9 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 {msg.locationSources.map((l) => (
                   <span
                     key={l.naam}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/[0.08] border border-blue-400/[0.15] text-[10px] text-blue-300/60"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.08] text-[10px] text-white/40"
                   >
-                    <span className="text-blue-300/80 font-medium">Locatie</span>
+                    <span className="text-white/60 font-medium">Locatie</span>
                     {l.naam}{l.stad ? ` · ${l.stad}` : ''}
                   </span>
                 ))}

@@ -52,3 +52,14 @@ as $$
   ) ranked
   where ranked.similarity > match_threshold;
 $$;
+
+-- Eenmalige backfill: tel openstaande markeringen in bestaande documenten.
+UPDATE public.vault_documents
+SET open_markers_count = (
+  SELECT COUNT(*)
+  FROM regexp_matches(
+    COALESCE(raw_content, ''),
+    '\[(UITZOEKEN INTERN|AFSTEMMEN MET KLANT|CIJFERS TOEVOEGEN|CHECK:[^\]]*)\]',
+    'g'
+  )
+);
