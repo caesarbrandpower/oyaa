@@ -197,6 +197,13 @@ export async function POST(request) {
         const locationWriteConfirmed = body.locationWriteConfirmed === true;
         const locationsOn = tenant?.tenant_config?.features?.locations === true;
 
+        console.log('[DEBUG-WRITE]', JSON.stringify({
+          locationsOn,
+          locationWriteConfirmed,
+          hasWriteIntent: hasWriteIntent(userOnlyMessage),
+          userOnlyMessageSlice: userOnlyMessage?.slice(0, 120),
+        }));
+
         if (locationsOn && !locationWriteConfirmed && hasWriteIntent(userOnlyMessage)) {
           const { data: locNamen } = await supabase
             .from('locations')
@@ -557,6 +564,14 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
             : useStructuredPrompt
               ? structuredDocSystemPrompt
               : CUSTOM_SYSTEM_PROMPT;
+
+        console.log('[DEBUG-PROMPT]', JSON.stringify({
+          isFreeChat,
+          useStructuredPrompt,
+          effectiveOutputType,
+          promptStart: systemPrompt?.slice(0, 80),
+          hasACTIES: systemPrompt?.includes('ACTIES EN BEVESTIGINGEN'),
+        }));
 
         // Kluiscontext alleen in conversatiemodus, als APART system-blok: het
         // statische promptdeel blijft dan cachebaar (cache_control), terwijl de
