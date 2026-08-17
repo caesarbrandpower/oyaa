@@ -11,6 +11,7 @@ import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
+import { looksLikeDocument } from '@/lib/document-utils';
 export const maxDuration = 120;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -919,6 +920,11 @@ ${userTextOnly}`;
           detectedClient,
           detectedProject,
           outputType: effectiveOutputType ?? null,
+          // Corrigeer isDocument op basis van werkelijke content-structuur.
+          // hasGenerateIntent kan true zijn terwijl Claude een verduidelijkingsvraag stelt.
+          // looksLikeDocument vereist bold sectiekoppen of markdown headings — verduidelijkingsvragen
+          // halen die drempel niet. Bij twijfel false: gemiste briefing is beter dan leeg document.
+          isDocument: isDocument && looksLikeDocument(displayContent),
           ...(evaluationData ? { evaluationData } : {}),
         });
 
