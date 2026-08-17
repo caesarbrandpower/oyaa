@@ -37,6 +37,7 @@ function writeEvent(controller, data) {
 // ── Route handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request) {
+  console.log('[DEBUG-ENTRY] POST /api/chat-custom aangeroepen', new Date().toISOString());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
