@@ -213,6 +213,13 @@ export async function POST(request) {
             if (intent) {
               const matchedLoc = locNamen.find(l => l.naam === intent.locatieNaam);
               if (matchedLoc) {
+                if (intent.modus === 'verwijder') {
+                  const huidigeWaarde = matchedLoc[intent.veld] ?? '(leeg)';
+                  writeEvent(controller, { type: 'chunk', text: `Hier is de huidige inhoud van **${intent.veld}** bij **${matchedLoc.naam}**:\n\n${huidigeWaarde}\n\nWat wil je hieruit verwijderen?` });
+                  writeEvent(controller, { type: 'done', isDocument: false });
+                  controller.close();
+                  return;
+                }
                 const oudeWaarde = matchedLoc[intent.veld] ?? null;
                 writeEvent(controller, {
                   type: 'location_write_confirm',

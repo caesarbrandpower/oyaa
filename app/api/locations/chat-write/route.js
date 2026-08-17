@@ -28,6 +28,10 @@ export async function POST(request) {
     return Response.json({ error: `Veld '${veld}' mag niet via de chat worden aangepast` }, { status: 400 });
   }
 
+  if (modus === 'verwijder') {
+    return Response.json({ error: 'verwijder_niet_automatisch' }, { status: 400 });
+  }
+
   const service = createServiceClient();
 
   // Controleer eigenaarschap via tenant
