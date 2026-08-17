@@ -604,6 +604,19 @@ export default function MessageList({ messages, sending, onOpenDocument, briefin
                 ))}
               </div>
             )}
+            {msg.role === 'assistant' && !msg.streaming && msg.locationSources?.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {msg.locationSources.map((l) => (
+                  <span
+                    key={l.naam}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/[0.08] border border-blue-400/[0.15] text-[10px] text-blue-300/60"
+                  >
+                    <span className="text-blue-300/80 font-medium">Locatie</span>
+                    {l.naam}{l.stad ? ` · ${l.stad}` : ''}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         );

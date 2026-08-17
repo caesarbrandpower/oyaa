@@ -655,6 +655,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         let buffer = '';
         let isDocument = false;
         let receivedSources = null;
+        let receivedLocationSources = null;
         chunkBufferRef.current = '';
         streamingPlaceholderIdRef.current = placeholderId;
 
@@ -751,6 +752,11 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               setMessages((prev) =>
                 prev.map(m => m.id === placeholderId ? { ...m, sources: receivedSources } : m)
               );
+            } else if (event.type === 'location_sources') {
+              receivedLocationSources = event.locations ?? null;
+              setMessages((prev) =>
+                prev.map(m => m.id === placeholderId ? { ...m, locationSources: receivedLocationSources } : m)
+              );
             } else if (event.type === 'chunk') {
               chunkBufferRef.current += event.text;
             } else if (event.type === 'done') {
@@ -776,6 +782,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 output_type: outputType ?? event.outputType ?? activeThreadRef.current?.output_type ?? null,
                 created_at: new Date().toISOString(),
                 sources: receivedSources,
+                locationSources: receivedLocationSources,
               };
               const saveClient = event.detectedClient ?? client ?? activeThreadRef.current?.client ?? null;
               const saveProject = event.detectedProject ?? activeThreadRef.current?.project ?? null;
