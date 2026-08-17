@@ -191,6 +191,8 @@ export async function POST(request) {
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
 
         // ── Write-intent detectie voor locaties ────────────────────────────────
+        // Bevestigde writes gaan rechtstreeks naar /api/locations/chat-write (client-side),
+        // dus locationWriteConfirmed kan hier nooit true zijn. Guard voor de volledigheid.
         const locationWriteConfirmed = body.locationWriteConfirmed === true;
         const locationsOn = tenant?.tenant_config?.features?.locations === true;
 
