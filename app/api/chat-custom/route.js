@@ -205,10 +205,23 @@ export async function POST(request) {
             .order('naam');
 
           if (locNamen?.length > 0) {
+            const recentUserMessages = allMessages
+              .filter(m => m.role === 'user')
+              .slice(-3, -1)
+              .map(m => {
+                if (typeof m.content === 'string') return m.content;
+                if (Array.isArray(m.content)) {
+                  return m.content.filter(c => c.type === 'text').map(c => c.text).join(' ');
+                }
+                return '';
+              })
+              .filter(Boolean);
+
             const intent = await parseWriteIntent(
               userOnlyMessage,
               locNamen.map(l => l.naam),
-              client
+              client,
+              recentUserMessages
             );
 
             if (intent) {
@@ -234,6 +247,12 @@ export async function POST(request) {
                 controller.close();
                 return;
               }
+            } else {
+              // Haiku kon geen locatienaam of veld herkennen. Stuur vaste fallback, nooit model in.
+              writeEvent(controller, { type: 'chunk', text: 'Ik kon geen locatienaam herkennen in dit verzoek. Bedoel je een specifieke locatie? Zeg dan bijvoorbeeld: "Zet bij [locatienaam] dat [nieuwe waarde]."' });
+              writeEvent(controller, { type: 'done', isDocument: false });
+              controller.close();
+              return;
             }
           }
         }
