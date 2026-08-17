@@ -33,13 +33,15 @@ export async function POST(request) {
   // Controleer eigenaarschap via tenant
   const { data: loc, error: locError } = await service
     .from('locations')
-    .select('id, naam, ' + veld)
+    .select('id, naam, tenant_id, ' + veld)
     .eq('id', locationId)
-    .eq('tenant_id', tenant.id)
     .single();
 
   if (locError || !loc) {
     return Response.json({ error: 'Locatie niet gevonden' }, { status: 404 });
+  }
+  if (loc.tenant_id !== tenant.id) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const oudeWaarde = loc[veld] ?? null;
@@ -47,7 +49,7 @@ export async function POST(request) {
   // Schrijf de wijziging
   const { data: updated, error: updateError } = await service
     .from('locations')
-    .update({ [veld]: nieuweWaarde || null, updated_at: new Date().toISOString() })
+    .update({ [veld]: nieuweWaarde ?? null, updated_at: new Date().toISOString() })
     .eq('id', locationId)
     .eq('tenant_id', tenant.id)
     .select()
@@ -67,7 +69,7 @@ export async function POST(request) {
       gewijzigd_via: 'chat',
       veld_naam: veld,
       oude_waarde: oudeWaarde != null ? String(oudeWaarde) : null,
-      nieuwe_waarde: nieuweWaarde || null,
+      nieuwe_waarde: nieuweWaarde ?? null,
     })
     .select()
     .single();
