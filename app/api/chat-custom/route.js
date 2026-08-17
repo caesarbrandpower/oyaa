@@ -197,6 +197,8 @@ export async function POST(request) {
         const locationWriteConfirmed = body.locationWriteConfirmed === true;
         const locationsOn = tenant?.tenant_config?.features?.locations === true;
 
+        let locationWriteConfirmSent = false;
+
         console.log('[DEBUG-WRITE]', JSON.stringify({
           locationsOn,
           locationWriteConfirmed,
@@ -204,7 +206,7 @@ export async function POST(request) {
           userOnlyMessageSlice: userOnlyMessage?.slice(0, 120),
         }));
 
-        if (locationsOn && !locationWriteConfirmed && hasWriteIntent(userOnlyMessage)) {
+        if (locationsOn && !locationWriteConfirmed) {
           const { data: locNamen } = await supabase
             .from('locations')
             .select('id, naam, bijzonderheden, parkeren, laden_lossen, vergunning_status, bereik, bereik_note, prijs, prijssoort, status, adres, omschrijving, doelgroep, channel, stad')
@@ -212,54 +214,63 @@ export async function POST(request) {
             .order('naam');
 
           if (locNamen?.length > 0) {
-            const recentUserMessages = allMessages
-              .filter(m => m.role === 'user')
-              .slice(-3, -1)
-              .map(m => {
-                if (typeof m.content === 'string') return m.content;
-                if (Array.isArray(m.content)) {
-                  return m.content.filter(c => c.type === 'text').map(c => c.text).join(' ');
-                }
-                return '';
-              })
-              .filter(Boolean);
-
-            const intent = await parseWriteIntent(
-              userOnlyMessage,
-              locNamen.map(l => l.naam),
-              client,
-              recentUserMessages
+            const writeIntent = hasWriteIntent(userOnlyMessage);
+            const hasLocMention = !writeIntent && locNamen.some(
+              l => userOnlyMessage.toLowerCase().includes(l.naam.toLowerCase())
             );
 
-            if (intent) {
-              const matchedLoc = locNamen.find(l => l.naam === intent.locatieNaam);
-              if (matchedLoc) {
-                if (intent.modus === 'verwijder') {
-                  const huidigeWaarde = matchedLoc[intent.veld] ?? '(leeg)';
-                  writeEvent(controller, { type: 'chunk', text: `Hier is de huidige inhoud van **${intent.veld}** bij **${matchedLoc.naam}**:\n\n${huidigeWaarde}\n\nWat wil je hieruit verwijderen?` });
-                  writeEvent(controller, { type: 'done', isDocument: false });
+            if (writeIntent || hasLocMention) {
+              const recentUserMessages = allMessages
+                .filter(m => m.role === 'user')
+                .slice(-3, -1)
+                .map(m => {
+                  if (typeof m.content === 'string') return m.content;
+                  if (Array.isArray(m.content)) {
+                    return m.content.filter(c => c.type === 'text').map(c => c.text).join(' ');
+                  }
+                  return '';
+                })
+                .filter(Boolean);
+
+              const intent = await parseWriteIntent(
+                userOnlyMessage,
+                locNamen.map(l => l.naam),
+                client,
+                recentUserMessages
+              );
+
+              if (intent) {
+                const matchedLoc = locNamen.find(l => l.naam === intent.locatieNaam);
+                if (matchedLoc) {
+                  if (intent.modus === 'verwijder') {
+                    const huidigeWaarde = matchedLoc[intent.veld] ?? '(leeg)';
+                    writeEvent(controller, { type: 'chunk', text: `Hier is de huidige inhoud van **${intent.veld}** bij **${matchedLoc.naam}**:\n\n${huidigeWaarde}\n\nWat wil je hieruit verwijderen?` });
+                    writeEvent(controller, { type: 'done', isDocument: false });
+                    controller.close();
+                    return;
+                  }
+                  const oudeWaarde = matchedLoc[intent.veld] ?? null;
+                  writeEvent(controller, {
+                    type: 'location_write_confirm',
+                    locationId: matchedLoc.id,
+                    locatieNaam: matchedLoc.naam,
+                    veld: intent.veld,
+                    oudeWaarde: oudeWaarde != null ? String(oudeWaarde) : null,
+                    nieuweWaarde: intent.nieuweWaarde,
+                    modus: intent.modus,
+                  });
+                  locationWriteConfirmSent = true;
                   controller.close();
                   return;
                 }
-                const oudeWaarde = matchedLoc[intent.veld] ?? null;
-                writeEvent(controller, {
-                  type: 'location_write_confirm',
-                  locationId: matchedLoc.id,
-                  locatieNaam: matchedLoc.naam,
-                  veld: intent.veld,
-                  oudeWaarde: oudeWaarde != null ? String(oudeWaarde) : null,
-                  nieuweWaarde: intent.nieuweWaarde,
-                  modus: intent.modus,
-                });
+              } else if (writeIntent) {
+                // Haiku kon geen locatienaam of veld herkennen. Stuur vaste fallback, nooit model in.
+                writeEvent(controller, { type: 'chunk', text: 'Ik kon geen locatienaam herkennen in dit verzoek. Bedoel je een specifieke locatie? Zeg dan bijvoorbeeld: "Zet bij [locatienaam] dat [nieuwe waarde]."' });
+                writeEvent(controller, { type: 'done', isDocument: false });
                 controller.close();
                 return;
               }
-            } else {
-              // Haiku kon geen locatienaam of veld herkennen. Stuur vaste fallback, nooit model in.
-              writeEvent(controller, { type: 'chunk', text: 'Ik kon geen locatienaam herkennen in dit verzoek. Bedoel je een specifieke locatie? Zeg dan bijvoorbeeld: "Zet bij [locatienaam] dat [nieuwe waarde]."' });
-              writeEvent(controller, { type: 'done', isDocument: false });
-              controller.close();
-              return;
+              // hasLocMention && !intent: doorvallen naar model (mogelijk gewoon een vraag)
             }
           }
         }
@@ -967,6 +978,24 @@ ${userTextOnly}`;
                 createdAt: s.createdAt,
                 sourceType: s.sourceType,
               })),
+            });
+          }
+        }
+
+        if (locationsOn && !locationWriteConfirmSent) {
+          const FABRICATION_PATTERNS = [
+            /locatiedatabase/i,
+            /heb\s+(ik\s+)?(dit\s+)?vastgelegd/i,
+            /heb\s+(ik\s+)?(dit\s+)?opgeslagen/i,
+            /heb\s+(ik\s+)?(dit\s+)?bijgewerkt/i,
+            /is\s+(nu\s+)?bijgewerkt\s+in/i,
+            /is\s+(nu\s+)?opgeslagen\s+in/i,
+          ];
+          const hasFabricationClaim = FABRICATION_PATTERNS.some(p => p.test(displayContent));
+          if (hasFabricationClaim) {
+            writeEvent(controller, {
+              type: 'chunk',
+              text: '\n\n_(Let op: er zijn in dit gesprek geen wijzigingen doorgevoerd in de database. Gebruik "Zet bij [locatienaam] dat [nieuwe waarde]" om een locatie bij te werken.)_',
             });
           }
         }
