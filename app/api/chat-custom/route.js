@@ -584,7 +584,7 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
         }
 
         // ── Database-context (locaties + leveranciers) — tweelaags retrieval ───
-        const databaseContextSuffix = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
+        const { contextText: databaseContextSuffix, mentionedLocations } = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
 
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
@@ -964,6 +964,17 @@ ${userTextOnly}`;
               })),
             });
           }
+        }
+
+        if (mentionedLocations?.length > 0) {
+          writeEvent(controller, {
+            type: 'location_sources',
+            locations: mentionedLocations.map(l => ({
+              naam: l.naam,
+              stad: l.stad,
+              channel: l.channel,
+            })),
+          });
         }
 
         if (locationsOn && !locationWriteConfirmSent) {
