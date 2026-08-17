@@ -53,7 +53,9 @@ export async function POST(request) {
   const APPEND_FIELDS = ['bijzonderheden', 'bereik_note', 'omschrijving'];
   let definitieveWaarde;
   if (modus === 'aanvullen' && APPEND_FIELDS.includes(veld) && oudeWaarde) {
-    definitieveWaarde = `${oudeWaarde}\n${nieuweWaarde}`;
+    const base = oudeWaarde.trimEnd();
+    const baseMetPunt = /[.!?]$/.test(base) ? base : base + '.';
+    definitieveWaarde = `${baseMetPunt}\n${nieuweWaarde}`;
   } else {
     definitieveWaarde = nieuweWaarde ?? null;
   }
