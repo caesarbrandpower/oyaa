@@ -83,6 +83,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // pendingWizardPhotosRef: foto's van wizard stap 2, tijdelijk opgeslagen tot messageId bekend is
   const pendingConfirmationRef = useRef(null);
   // pendingConfirmationRef: { suggestion, messageText, outputType, taskLabel, displayText, imageAttachments }
+  const pendingLocationWriteRef = useRef(null);
+  // pendingLocationWriteRef: { locationId, locatieNaam, veld, oudeWaarde, nieuweWaarde }
   const pendingImageRef = useRef(null);
   // pendingImageRef: null | { imageAttachments } — wachtend op gebruikerskeuze (informatie uithalen / bijlage)
   const threadDocsRef = useRef([]);
@@ -427,6 +429,52 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }
         // "informatie" of andere keuze — stuur afbeelding door naar Claude
         imageAttachments = pending.imageAttachments;
+      }
+
+      // Locatie-schrijfbevestiging: gebruiker reageert op een voorgestelde wijziging
+      if (pendingLocationWriteRef.current) {
+        const pending = pendingLocationWriteRef.current;
+        pendingLocationWriteRef.current = null;
+        const isYes = /^(ja|yes|jep|yep|ok|okay|klopt|correct|doen|doe het)$/i.test(messageText.trim());
+
+        if (isYes) {
+          setSendingState(true);
+          try {
+            const res = await fetch('/api/locations/chat-write', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                locationId: pending.locationId,
+                veld: pending.veld,
+                nieuweWaarde: pending.nieuweWaarde,
+              }),
+            });
+            const bevestigingsTekst = res.ok
+              ? `✓ ${pending.veld} van ${pending.locatieNaam} bijgewerkt.`
+              : 'Kon de wijziging niet opslaan. Probeer het opnieuw.';
+            setMessages(prev => [
+              ...prev,
+              { id: 'user-lw-' + Date.now(), role: 'user', content: messageText, created_at: new Date().toISOString() },
+              { id: 'lw-' + Date.now(), role: 'assistant', content: bevestigingsTekst, streaming: false, local: true, created_at: new Date().toISOString() },
+            ]);
+          } catch {
+            setMessages(prev => [
+              ...prev,
+              { id: 'user-lw-' + Date.now(), role: 'user', content: messageText, created_at: new Date().toISOString() },
+              { id: 'lw-err-' + Date.now(), role: 'assistant', content: 'Kon de wijziging niet opslaan. Probeer het opnieuw.', streaming: false, local: true, created_at: new Date().toISOString() },
+            ]);
+          } finally {
+            setSendingState(false);
+          }
+        } else {
+          setMessages(prev => [
+            ...prev,
+            { id: 'user-lw-cancel-' + Date.now(), role: 'user', content: messageText, created_at: new Date().toISOString() },
+            { id: 'lw-cancel-' + Date.now(), role: 'assistant', content: 'Geen probleem, de wijziging is niet doorgevoerd.', streaming: false, local: true, created_at: new Date().toISOString() },
+          ]);
+          setSendingState(false);
+        }
+        return;
       }
 
       // Bevestigingsflow: gebruiker reageert op klantnaam-bevestiging
@@ -956,6 +1004,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                     : null,
                 });
               }
+            } else if (event.type === 'location_write_confirm') {
+              const oudStr = event.oudeWaarde != null ? `"${event.oudeWaarde}"` : '(geen waarde)';
+              const bevestigMsg = `Wil je **${event.veld}** van **${event.locatieNaam}** wijzigen van ${oudStr} naar "${event.nieuweWaarde}"? Typ ja om te bevestigen.`;
+              setMessages(prev => [
+                ...prev.filter(m => m.id !== placeholderId),
+                { id: 'lw-confirm-' + Date.now(), role: 'assistant', content: bevestigMsg, streaming: false, local: true, created_at: new Date().toISOString() },
+              ]);
+              pendingLocationWriteRef.current = {
+                locationId: event.locationId,
+                locatieNaam: event.locatieNaam,
+                veld: event.veld,
+                oudeWaarde: event.oudeWaarde,
+                nieuweWaarde: event.nieuweWaarde,
+              };
+              setSendingState(false);
             } else if (event.type === 'confirm') {
               const confirmMessage = event.confirmType === 'new_client'
                 ? `We slaan **${event.name}** op als nieuwe klantnaam. Klopt de schrijfwijze? Typ *ja* om te bevestigen of geef de juiste naam op.`

@@ -11,6 +11,8 @@ import { retrieveVaultContext, formatVaultBlock, retrieveFullDocument } from '@/
 import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
+import { buildDatabaseContext } from '@/lib/locations-retrieval';
+import { hasWriteIntent, parseWriteIntent } from '@/lib/locations-write';
 export const maxDuration = 120;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -187,6 +189,46 @@ export async function POST(request) {
         // als de berichtgeschiedenis. Overslaan als deze beurt alleen het
         // analyseblok gaat draaien (PDF's aanwezig, nog niet bevestigd).
         const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+
+        // ── Write-intent detectie voor locaties ────────────────────────────────
+        // Bevestigde writes gaan rechtstreeks naar /api/locations/chat-write (client-side),
+        // dus locationWriteConfirmed kan hier nooit true zijn. Guard voor de volledigheid.
+        const locationWriteConfirmed = body.locationWriteConfirmed === true;
+        const locationsOn = tenant?.tenant_config?.features?.locations === true;
+
+        if (locationsOn && !locationWriteConfirmed && hasWriteIntent(userOnlyMessage)) {
+          const { data: locNamen } = await supabase
+            .from('locations')
+            .select('id, naam, bijzonderheden, parkeren, laden_lossen, vergunning_status, bereik, bereik_note, prijs, prijssoort, status, adres, omschrijving, doelgroep, channel, stad')
+            .eq('tenant_id', tenant.id)
+            .order('naam');
+
+          if (locNamen?.length > 0) {
+            const intent = await parseWriteIntent(
+              userOnlyMessage,
+              locNamen.map(l => l.naam),
+              client
+            );
+
+            if (intent) {
+              const matchedLoc = locNamen.find(l => l.naam === intent.locatieNaam);
+              if (matchedLoc) {
+                const oudeWaarde = matchedLoc[intent.veld] ?? null;
+                writeEvent(controller, {
+                  type: 'location_write_confirm',
+                  locationId: matchedLoc.id,
+                  locatieNaam: matchedLoc.naam,
+                  veld: intent.veld,
+                  oudeWaarde: oudeWaarde != null ? String(oudeWaarde) : null,
+                  nieuweWaarde: intent.nieuweWaarde,
+                });
+                controller.close();
+                return;
+              }
+            }
+          }
+        }
+
         const hasUserContent = bodyHasUserContent !== false;
 
         // Vroege CSV + evaluatie-detectie: sla output_type op zodat threadOutputTypeFromDb gevuld is
@@ -503,33 +545,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
-        // ── Database-context (locaties + leveranciers) ─────────────────────────
-        let databaseContextSuffix = '';
-        const locationsOn = tenant?.tenant_config?.features?.locations === true;
-        const suppliersOn = tenant?.tenant_config?.features?.suppliers === true;
-
-        if (locationsOn || suppliersOn) {
-          const [locResult, supResult] = await Promise.all([
-            locationsOn
-              ? supabase.from('locations').select('naam, omschrijving, stad, channel, doelgroep, parkeren, laden_lossen, vergunning_status, bijzonderheden').eq('tenant_id', tenant.id).order('naam')
-              : Promise.resolve({ data: null }),
-            suppliersOn
-              ? supabase.from('suppliers').select('naam, omschrijving, categorie, regio, levertijd, prijsindicatie, contactpersoon, telefoon, email, website, bijzonderheden').eq('tenant_id', tenant.id).order('naam')
-              : Promise.resolve({ data: null }),
-          ]);
-
-          const tenantLabel = tenant?.name ?? 'dit bureau';
-          const dbSections = [];
-          if (locationsOn && locResult.data?.length > 0) {
-            dbSections.push(`## Locatiedatabase\nDe volgende locaties zijn beschikbaar voor ${tenantLabel}:\n${JSON.stringify(locResult.data, null, 2)}`);
-          }
-          if (suppliersOn && supResult.data?.length > 0) {
-            dbSections.push(`## Leveranciersdatabase\nDe volgende leveranciers zijn beschikbaar voor ${tenantLabel}:\n${JSON.stringify(supResult.data, null, 2)}`);
-          }
-          if (dbSections.length > 0) {
-            databaseContextSuffix = dbSections.join('\n\n');
-          }
-        }
+        // ── Database-context (locaties + leveranciers) — tweelaags retrieval ───
+        const databaseContextSuffix = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
 
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
