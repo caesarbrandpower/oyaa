@@ -66,7 +66,7 @@ function mapRecord(r) {
     bereik,
     bereik_note:  r.bereik_note?.trim() || null,
     bijzonderheden,
-    telefoon:     r.contact_telefoon?.trim() || null,
+    // telefoon wordt bewust NIET opgeslagen in de DB (AVG)
     status:       'onbekend',
     bron:         'Ninox-import augustus 2026',
   };
@@ -102,7 +102,7 @@ async function main() {
       if (bestaandeLoc.status && bestaandeLoc.status !== 'onbekend') {
         delete updatePayload.status;
       }
-      if (bestaandeLoc.bron && bestaandeLoc.bron !== 'onbekend') {
+      if (bestaandeLoc.bron && bestaandeLoc.bron !== 'Ninox-import augustus 2026') {
         delete updatePayload.bron;
       }
 
