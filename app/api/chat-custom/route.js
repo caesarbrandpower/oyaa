@@ -221,6 +221,7 @@ export async function POST(request) {
                   veld: intent.veld,
                   oudeWaarde: oudeWaarde != null ? String(oudeWaarde) : null,
                   nieuweWaarde: intent.nieuweWaarde,
+                  modus: intent.modus,
                 });
                 controller.close();
                 return;

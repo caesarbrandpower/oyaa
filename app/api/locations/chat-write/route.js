@@ -20,7 +20,7 @@ export async function POST(request) {
     return Response.json({ error: 'Ongeldig verzoek' }, { status: 400 });
   }
 
-  const { locationId, veld, nieuweWaarde } = body;
+  const { locationId, veld, nieuweWaarde, modus = 'vervangen' } = body;
   if (!locationId || !veld || nieuweWaarde === undefined) {
     return Response.json({ error: 'locationId, veld en nieuweWaarde zijn verplicht' }, { status: 400 });
   }
@@ -46,10 +46,18 @@ export async function POST(request) {
 
   const oudeWaarde = loc[veld] ?? null;
 
+  const APPEND_FIELDS = ['bijzonderheden', 'bereik_note', 'omschrijving'];
+  let definitieveWaarde;
+  if (modus === 'aanvullen' && APPEND_FIELDS.includes(veld) && oudeWaarde) {
+    definitieveWaarde = `${oudeWaarde}\n${nieuweWaarde}`;
+  } else {
+    definitieveWaarde = nieuweWaarde ?? null;
+  }
+
   // Schrijf de wijziging
   const { data: updated, error: updateError } = await service
     .from('locations')
-    .update({ [veld]: nieuweWaarde ?? null, updated_at: new Date().toISOString() })
+    .update({ [veld]: definitieveWaarde, updated_at: new Date().toISOString() })
     .eq('id', locationId)
     .eq('tenant_id', tenant.id)
     .select()
@@ -69,7 +77,7 @@ export async function POST(request) {
       gewijzigd_via: 'chat',
       veld_naam: veld,
       oude_waarde: oudeWaarde != null ? String(oudeWaarde) : null,
-      nieuwe_waarde: nieuweWaarde ?? null,
+      nieuwe_waarde: definitieveWaarde,
     })
     .select()
     .single();
