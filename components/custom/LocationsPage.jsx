@@ -23,11 +23,11 @@ const CHANNEL_ICONS = {
 const VERGUNNING_CONFIG = {
   aanwezig: { cls: 'bg-green-500/15 text-green-400', label: 'Vergunning aanwezig' },
   verlopen: { cls: 'bg-orange/15 text-orange',        label: 'Vergunning verlopen' },
-  geen:     { cls: 'bg-white/10 text-white/35',       label: 'Geen vergunning' },
 };
 
 function VergunningBadge({ status }) {
-  const c = VERGUNNING_CONFIG[status] ?? VERGUNNING_CONFIG.geen;
+  const c = VERGUNNING_CONFIG[status];
+  if (!c) return null;
   return (
     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${c.cls}`}>
       {c.label}
@@ -414,9 +414,31 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                 </div>
 
                 {/* Uitgevouwen detail */}
-                {isExpanded && (
+                {isExpanded && (() => {
+                  const PLATTEGROND_RE = /\nPlattegrond: [^\n]+/g;
+                  const plattegrondRefs = (loc.bijzonderheden?.match(PLATTEGROND_RE) ?? []).map(s => s.replace('\nPlattegrond: ', '').trim());
+                  const bijzClean = loc.bijzonderheden?.replace(PLATTEGROND_RE, '').trim() || null;
+                  const prijsLabel = loc.prijs != null
+                    ? `€${Number(loc.prijs).toLocaleString('nl-NL')}${loc.prijssoort ? ` ${loc.prijssoort}` : ''}`
+                    : null;
+                  return (
                   <div className="px-4 pb-4 border-t border-white/[0.05]">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-3">
+                      {loc.adres && (
+                        <DetailItem label="Adres" wide>{loc.adres}</DetailItem>
+                      )}
+                      {prijsLabel && (
+                        <DetailItem label="Kosten">{prijsLabel}</DetailItem>
+                      )}
+                      {loc.bereik != null && (
+                        <DetailItem label="Bereik/dag">{Number(loc.bereik).toLocaleString('nl-NL')}</DetailItem>
+                      )}
+                      {loc.status && loc.status !== 'onbekend' && (
+                        <DetailItem label="Status">{loc.status}</DetailItem>
+                      )}
+                      {loc.bron && (
+                        <DetailItem label="Bron">{loc.bron}</DetailItem>
+                      )}
                       {loc.telefoon && (
                         <DetailItem label="Telefoon">
                           <a href={`tel:${loc.telefoon}`} className="text-orange underline-offset-2 hover:underline">
@@ -493,13 +515,23 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           </div>
                         ) : (
                           <p className="text-[13px] text-white/80 leading-snug whitespace-pre-line">
-                            {loc.bijzonderheden || (
+                            {bijzClean || (
                               <span className="text-white/25 italic">Geen bijzonderheden</span>
                             )}
                           </p>
                         )}
                       </div>
                     </div>
+
+                    {/* Plattegrond-verwijzingen uit Ninox */}
+                    {plattegrondRefs.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1">Plattegrond</p>
+                        {plattegrondRefs.map((ref, i) => (
+                          <p key={i} className="text-[12px] text-white/30 italic">{ref} (nog niet beschikbaar)</p>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Bijlagen */}
                     <div className="mt-4">
@@ -533,7 +565,8 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                       </div>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
