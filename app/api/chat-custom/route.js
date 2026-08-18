@@ -738,22 +738,26 @@ ${userTextOnly}`;
         let finalMsg = firstStreamMsg;
 
         // Tool-use round-trip: als het model een tool aanroept, uitvoeren en tweede stream starten
+        const allLocationSources = [];
+
         if (firstStreamMsg.stop_reason === 'tool_use' && pendingToolCalls.length > 0) {
           const toolResults = await Promise.all(
             pendingToolCalls.map(async (tc) => {
-              let result;
+              let resultText;
               try {
                 const input = JSON.parse(tc.inputStr);
                 if (tc.name === 'search_locations') {
-                  result = await executeLocationTool(input, supabase, tenant.id);
+                  const result = await executeLocationTool(input, supabase, tenant.id);
+                  resultText = result.text;
+                  allLocationSources.push(...result.locations);
                 } else {
-                  result = 'Onbekende tool.';
+                  resultText = 'Onbekende tool.';
                 }
               } catch (err) {
                 console.error('[TOOL] fout bij uitvoeren:', tc.name, err?.message);
-                result = 'Tool-uitvoering mislukt.';
+                resultText = 'Tool-uitvoering mislukt.';
               }
-              return { tool_use_id: tc.id, content: result };
+              return { tool_use_id: tc.id, content: resultText };
             })
           );
 
@@ -1039,6 +1043,26 @@ ${userTextOnly}`;
               })),
             });
           }
+        }
+
+        // Emit location_sources op basis van daadwerkelijk teruggegeven records (niet parameters).
+        // Bij > 4 unieke locaties: één samengevatte chip in plaats van losse badges.
+        if (allLocationSources.length > 0) {
+          const seenNamen = new Set();
+          const dedupedSources = allLocationSources.filter(l => {
+            if (seenNamen.has(l.naam)) return false;
+            seenNamen.add(l.naam);
+            return true;
+          });
+          let locationSourcesPayload;
+          if (dedupedSources.length > 4) {
+            const channels = [...new Set(dedupedSources.map(l => l.channel).filter(Boolean))];
+            const channelLabel = channels.length === 1 ? ` (${channels[0]})` : '';
+            locationSourcesPayload = [{ naam: `${dedupedSources.length} locaties${channelLabel}`, stad: null, channel: null }];
+          } else {
+            locationSourcesPayload = dedupedSources;
+          }
+          writeEvent(controller, { type: 'location_sources', locations: locationSourcesPayload });
         }
 
         if (locationsOn && !locationWriteConfirmSent) {
