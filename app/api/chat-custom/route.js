@@ -900,19 +900,20 @@ ${userTextOnly}`;
         if (clientName) {
           detectedClient = clientName;
           if (isFirstTurn && wizardProject?.trim()) detectedProject = wizardProject.trim();
-        } else if (threadClientFromDb) {
-          detectedClient = threadClientFromDb;
-          detectedProject = threadProjectFromDb;
         } else if (recordingClient) {
           // Recording-split: gebruik de client van de recording-thread direct — sla regex over
           detectedClient = recordingClient;
         } else {
           const clientMatch =
-            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
-            userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
+            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
+            userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
           if (clientMatch) {
             const existingForGen = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             detectedClient = normalizeClientName(clientMatch[1], existingForGen);
+          }
+          if (!detectedClient && threadClientFromDb) {
+            detectedClient = threadClientFromDb;
+            detectedProject = threadProjectFromDb;
           }
         }
 
