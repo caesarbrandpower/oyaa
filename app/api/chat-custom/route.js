@@ -586,11 +586,6 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
 
         // ── Database-context (locaties + leveranciers) — tweelaags retrieval ───
         const { contextText: databaseContextSuffix, mentionedLocations } = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
-        if (databaseContextSuffix) {
-          console.log('[DB-CONTEXT] userMessage:', userOnlyMessage?.slice(0, 120));
-          console.log('[DB-CONTEXT] mentionedLocations:', mentionedLocations?.map(l => l.naam));
-          console.log('[DB-CONTEXT] fullContext:\n' + databaseContextSuffix);
-        }
 
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
