@@ -12,7 +12,7 @@ import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
 import { looksLikeDocument } from '@/lib/document-utils';
-import { buildDatabaseContext } from '@/lib/locations-retrieval';
+import { LOCATION_TOOL_SCHEMA, executeLocationTool, buildLocationNameContext } from '@/lib/locations-retrieval';
 import { hasWriteIntent, parseWriteIntent } from '@/lib/locations-write';
 export const maxDuration = 120;
 
@@ -584,8 +584,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
-        // ── Database-context (locaties + leveranciers) — tweelaags retrieval ───
-        const { contextText: databaseContextSuffix, mentionedLocations } = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
+        // ── Database-context (locaties) — namen-index als system-suffix ─────────
+        const locationNameContext = locationsOn ? await buildLocationNameContext(tenant, supabase) : '';
 
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
@@ -693,33 +693,107 @@ ${userTextOnly}`;
 
 
         let fullText = '';
+        const locationTools = locationsOn && !isDocument ? [LOCATION_TOOL_SCHEMA] : [];
+
         const streamParams = {
           model: 'claude-sonnet-4-6',
           max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
           system: [
             { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
             ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
-            ...(databaseContextSuffix ? [{ type: 'text', text: databaseContextSuffix }] : []),
+            ...(locationNameContext ? [{ type: 'text', text: locationNameContext }] : []),
           ],
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : isFreeChat ? { temperature: 0.7 } : {}),
           ...(isFreeChat ? {
             tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
             betas: ['web-search-2025-03-05'],
+          } : locationTools.length > 0 ? {
+            tools: locationTools,
           } : {}),
         };
         const claudeStream = isFreeChat
           ? client.beta.messages.stream(streamParams)
           : client.messages.stream(streamParams);
 
+        // Verzamelen van tool-calls tijdens de eerste stream
+        const pendingToolCalls = [];
+        let currentToolCall = null;
+
         for await (const chunk of claudeStream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          if (chunk.type === 'content_block_start' && chunk.content_block?.type === 'tool_use') {
+            currentToolCall = { id: chunk.content_block.id, name: chunk.content_block.name, inputStr: '' };
+            pendingToolCalls.push(currentToolCall);
+          } else if (chunk.type === 'content_block_delta' && chunk.delta.type === 'input_json_delta' && currentToolCall) {
+            currentToolCall.inputStr += chunk.delta.partial_json;
+          } else if (chunk.type === 'content_block_stop') {
+            currentToolCall = null;
+          } else if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             fullText += chunk.delta.text;
             writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
           }
         }
 
-        const finalMsg = await claudeStream.finalMessage();
+        let firstStreamMsg = await claudeStream.finalMessage();
+        let finalMsg = firstStreamMsg;
+
+        // Tool-use round-trip: als het model een tool aanroept, uitvoeren en tweede stream starten
+        if (firstStreamMsg.stop_reason === 'tool_use' && pendingToolCalls.length > 0) {
+          const toolResults = await Promise.all(
+            pendingToolCalls.map(async (tc) => {
+              let result;
+              try {
+                const input = JSON.parse(tc.inputStr);
+                if (tc.name === 'search_locations') {
+                  result = await executeLocationTool(input, supabase, tenant.id);
+                } else {
+                  result = 'Onbekende tool.';
+                }
+              } catch (err) {
+                console.error('[TOOL] fout bij uitvoeren:', tc.name, err?.message);
+                result = 'Tool-uitvoering mislukt.';
+              }
+              return { tool_use_id: tc.id, content: result };
+            })
+          );
+
+          const messagesWithToolResult = [
+            ...claudeMessages,
+            { role: 'assistant', content: firstStreamMsg.content },
+            {
+              role: 'user',
+              content: toolResults.map(r => ({
+                type: 'tool_result',
+                tool_use_id: r.tool_use_id,
+                content: r.content,
+              })),
+            },
+          ];
+
+          const claudeStream2 = client.messages.stream({
+            ...streamParams,
+            messages: messagesWithToolResult,
+          });
+
+          for await (const chunk of claudeStream2) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              fullText += chunk.delta.text;
+              writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
+            }
+          }
+
+          finalMsg = await claudeStream2.finalMessage();
+
+          // Log tokens van de eerste stream (tool-beslissing) apart
+          insertTokenUsage({
+            tenantId: tenant?.id ?? null,
+            userId: user.id,
+            threadId: activeThreadId,
+            requestType: 'chat-custom-tool-decision',
+            model: 'claude-sonnet-4-6',
+            usage: firstStreamMsg.usage,
+          });
+        }
         if (isFreeChat) {
           // Input is pas volledig na finalMessage() — niet tijdens content_block_start
           const searchBlocks = (finalMsg.content ?? []).filter(b => b.type === 'server_tool_use' && b.name === 'web_search');
@@ -965,17 +1039,6 @@ ${userTextOnly}`;
               })),
             });
           }
-        }
-
-        if (mentionedLocations?.length > 0) {
-          writeEvent(controller, {
-            type: 'location_sources',
-            locations: mentionedLocations.map(l => ({
-              naam: l.naam,
-              stad: l.stad,
-              channel: l.channel,
-            })),
-          });
         }
 
         if (locationsOn && !locationWriteConfirmSent) {
