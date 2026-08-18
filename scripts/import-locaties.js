@@ -50,11 +50,12 @@ function mapRecord(r) {
   const prijsRaw = r.prijs ? parseFloat(r.prijs.replace(/[^\d,.-]/g, '').replace(',', '.')) : null;
   const prijs = prijsRaw !== null && !isNaN(prijsRaw) ? prijsRaw : null;
 
-  const bereikRaw = r.bereik ? parseInt(r.bereik.replace(/\D/g, ''), 10) : null;
+  const bereikRaw = r.bereik ? Math.round(parseFloat(r.bereik)) : null;
   const bereik = bereikRaw !== null && !isNaN(bereikRaw) ? bereikRaw : null;
 
   const geldPrijssoort = ['huurprijs', 'vergunningskosten'];
-  const prijssoort = geldPrijssoort.includes(r.prijssoort?.trim()) ? r.prijssoort.trim() : null;
+  const prijssoortNorm = r.prijssoort?.trim().toLowerCase() ?? '';
+  const prijssoort = geldPrijssoort.includes(prijssoortNorm) ? prijssoortNorm : null;
 
   return {
     tenant_id:    TENANT_ID,
@@ -66,7 +67,7 @@ function mapRecord(r) {
     bereik,
     bereik_note:  r.bereik_note?.trim() || null,
     bijzonderheden,
-    // telefoon wordt bewust NIET opgeslagen in de DB (AVG)
+    telefoon:     r.contact_telefoon?.trim() || null,
     status:       'onbekend',
     bron:         'Ninox-import augustus 2026',
   };
