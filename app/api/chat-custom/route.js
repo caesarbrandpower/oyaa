@@ -385,9 +385,16 @@ export async function POST(request) {
             'account-pm-briefing':  'PM-briefing',
           };
           const docLabel = (effectiveOutputType && DOC_LABELS[effectiveOutputType]) ?? 'document';
+          const questionText = `Wat is de input voor deze ${docLabel}? Plak hier de campagnegegevens, een transcript of andere relevante info — dan maak ik het direct.`;
+          const { data: savedQuestion } = await supabase.from('messages').insert({
+            thread_id: activeThreadId,
+            role: 'assistant',
+            content: questionText,
+          }).select('id').single();
+          const questionId = savedQuestion?.id ?? crypto.randomUUID();
           writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument: false, outputType: null });
-          writeEvent(controller, { type: 'chunk', text: `Wat is de input voor deze ${docLabel}? Plak hier de campagnegegevens, een transcript of andere relevante info — dan maak ik het direct.` });
-          writeEvent(controller, { type: 'done', isDocument: false });
+          writeEvent(controller, { type: 'chunk', text: questionText });
+          writeEvent(controller, { type: 'done', isDocument: false, content: questionText, messageId: questionId });
           controller.close();
           return;
         }

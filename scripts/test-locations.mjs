@@ -122,6 +122,8 @@ const TESTS = [
   },
 ];
 
+const RUN_TIMEOUT_MS = 45_000;
+
 async function runOnce(q) {
   const messages = [{ role: 'user', content: q }];
 
@@ -231,7 +233,18 @@ for (const test of TESTS) {
   const runResults = [];
   for (let run = 1; run <= RUNS; run++) {
     process.stdout.write(`  Run ${run}/${RUNS}... `);
-    const result = await runOnce(test.q);
+    let result;
+    try {
+      result = await Promise.race([
+        runOnce(test.q),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), RUN_TIMEOUT_MS)),
+      ]);
+    } catch (err) {
+      console.log('FAIL (timeout/error)');
+      console.log('    ✗', err.message);
+      runResults.push({ run, passed: false, failures: [err.message], stopReason: 'error', calledTools: [], toolInputsParsed: [], finalText: '' });
+      continue;
+    }
     const failures = check(test, result);
     const passed = failures.length === 0;
     console.log(passed ? 'PASS' : 'FAIL');
