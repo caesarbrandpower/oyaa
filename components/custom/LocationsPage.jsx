@@ -11,7 +11,6 @@ import {
 const CHANNELS = ['Centrumlocatie', 'Treinstation', 'Winkelcentrum', 'Outdoor', 'Event', 'Markt'];
 const DOELGROEP_OPTIONS = ['Forensen', 'Studenten', 'Gezinnen', 'Shoppers', 'Toeristen', 'Werkenden', 'Breed publiek'];
 const LEEFTIJDSGROEP_OPTIONS = ['18-25', '18-35', '25-45', '30-45', '45+', 'Alle leeftijden'];
-const STATUS_OPTIONS = ['actief', 'vervallen', 'onbekend'];
 const VERGUNNING_STATUSSEN = ['aanwezig', 'verlopen', 'geen'];
 
 const CHANNEL_ICONS = {
@@ -103,7 +102,6 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   const [filterChannel, setFilterChannel] = useState('');
   const [filterDoelgroep, setFilterDoelgroep] = useState('');
   const [filterLeeftijdsgroep, setFilterLeeftijdsgroep] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingForId, setUploadingForId] = useState(null);
   const [uploadError, setUploadError] = useState({});
@@ -113,8 +111,8 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   const [savingDoelgroep, setSavingDoelgroep] = useState(null);
   const [editingLeeftijdsgroep, setEditingLeeftijdsgroep] = useState(null);
   const [savingLeeftijdsgroep, setSavingLeeftijdsgroep] = useState(null);
-  const [editingStatus, setEditingStatus] = useState(null);
-  const [savingStatus, setSavingStatus] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
   const [creating, setCreating] = useState(false);
@@ -139,8 +137,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
       const matchChannel = !filterChannel || l.channel === filterChannel;
       const matchDoelgroep = !filterDoelgroep || (Array.isArray(l.doelgroep) && l.doelgroep.includes(filterDoelgroep));
       const matchLeeftijdsgroep = !filterLeeftijdsgroep || (Array.isArray(l.leeftijdsgroep) && l.leeftijdsgroep.includes(filterLeeftijdsgroep));
-      const matchStatus = !filterStatus || (l.status ?? 'onbekend') === filterStatus;
-      return matchSearch && matchChannel && matchDoelgroep && matchLeeftijdsgroep && matchStatus;
+      return matchSearch && matchChannel && matchDoelgroep && matchLeeftijdsgroep;
     });
     return [...matches].sort((a, b) => {
       const aFav = favorietIds.has(a.id);
@@ -149,7 +146,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
       if (!aFav && bFav) return 1;
       return a.naam.localeCompare(b.naam, 'nl');
     });
-  }, [locations, search, filterChannel, filterDoelgroep, filterLeeftijdsgroep, filterStatus, favorietIds]);
+  }, [locations, search, filterChannel, filterDoelgroep, filterLeeftijdsgroep, favorietIds]);
 
   function startUpload(locationId) {
     setUploadError(prev => ({ ...prev, [locationId]: null }));
@@ -210,18 +207,18 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
     }
   }
 
-  async function saveStatusField(id, value) {
-    setSavingStatus(id);
-    const res = await fetch('/api/locations/update', {
-      method: 'PATCH',
+  async function deleteLocation(id) {
+    setDeletingId(id);
+    const res = await fetch('/api/locations/delete', {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location_id: id, status: value }),
+      body: JSON.stringify({ location_id: id }),
     });
-    const json = await res.json();
-    setSavingStatus(null);
+    setDeletingId(null);
     if (res.ok) {
-      setLocations(prev => prev.map(l => l.id === id ? { ...l, status: json.location.status } : l));
-      setEditingStatus(null);
+      setLocations(prev => prev.filter(l => l.id !== id));
+      setConfirmDeleteId(null);
+      setExpandedId(null);
     }
   }
 
@@ -386,14 +383,6 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
             <option value="">Alle leeftijden</option>
             {LEEFTIJDSGROEP_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20"
-          >
-            <option value="">Alle statussen</option>
-            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
         </div>
 
         <p className="text-[11px] text-white/30 uppercase tracking-wide mb-3">
@@ -409,7 +398,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
             return (
               <div
                 key={loc.id}
-                className={`rounded-xl border overflow-hidden transition-opacity ${loc.status === 'vervallen' ? 'bg-white/[0.015] border-white/[0.04] opacity-50 hover:opacity-80' : 'bg-white/[0.03] border-white/[0.06]'}`}
+                className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden"
               >
                 {/* Dichte kaart */}
                 <div
@@ -441,11 +430,6 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           {l}
                         </span>
                       ))}
-                      {loc.status === 'vervallen' && (
-                        <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-400/60">
-                          vervallen
-                        </span>
-                      )}
                     </div>
                     {loc.omschrijving && (
                       <p className="mt-1.5 text-[12px] text-white/45 leading-snug line-clamp-2">
@@ -505,49 +489,9 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                       {loc.bereik != null && (
                         <DetailItem label="Bereik/dag">{Number(loc.bereik).toLocaleString('nl-NL')}</DetailItem>
                       )}
-                      {/* Status — inline bewerkbaar */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <DetailLabel>Status</DetailLabel>
-                          {editingStatus?.id !== loc.id && (
-                            <button
-                              onClick={() => setEditingStatus({ id: loc.id, value: loc.status ?? 'onbekend' })}
-                              className="text-white/25 hover:text-white/60 transition-colors"
-                            >
-                              <Pencil className="w-2.5 h-2.5" strokeWidth={1.75} />
-                            </button>
-                          )}
-                        </div>
-                        {editingStatus?.id === loc.id ? (
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={editingStatus.value}
-                              onChange={e => setEditingStatus(prev => ({ ...prev, value: e.target.value }))}
-                              className="h-7 px-2 bg-white/[0.05] border border-white/[0.12] rounded-md text-[12px] text-white/80 focus:outline-none focus:border-white/25"
-                            >
-                              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                            <button
-                              onClick={() => saveStatusField(loc.id, editingStatus.value)}
-                              disabled={savingStatus === loc.id}
-                              className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] bg-white/[0.08] border border-white/[0.12] rounded-md text-white/80 hover:text-white disabled:opacity-40 transition-colors"
-                            >
-                              {savingStatus === loc.id
-                                ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
-                                : <Check className="w-3 h-3" strokeWidth={1.75} />
-                              }
-                              Opslaan
-                            </button>
-                            <button onClick={() => setEditingStatus(null)} className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] text-white/40 hover:text-white/70 transition-colors">
-                              Annuleren
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-[13px] text-white/80 leading-snug">
-                            {loc.status ?? <span className="text-white/25 italic">Niet ingesteld</span>}
-                          </div>
-                        )}
-                      </div>
+                      {loc.status && loc.status !== 'onbekend' && (
+                        <DetailItem label="Status">{loc.status}</DetailItem>
+                      )}
                       {loc.telefoon && (
                         <DetailItem label="Telefoon">
                           <a href={`tel:${loc.telefoon}`} className="text-orange underline-offset-2 hover:underline">
@@ -783,7 +727,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           </div>
                         </>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={() => startUpload(loc.id)}
                           disabled={uploadingForId === loc.id}
@@ -797,6 +741,32 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                         </button>
                         {uploadError[loc.id] && (
                           <span className="text-[11px] text-red-400">{uploadError[loc.id]}</span>
+                        )}
+                        {confirmDeleteId === loc.id ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-[11px] text-white/50">Locatie verwijderen?</span>
+                            <button
+                              onClick={() => deleteLocation(loc.id)}
+                              disabled={deletingId === loc.id}
+                              className="inline-flex items-center gap-1 h-7 px-2.5 text-[11px] bg-red-500/10 border border-red-500/20 rounded-md text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                            >
+                              {deletingId === loc.id ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} /> : null}
+                              Ja, verwijder
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="h-7 px-2.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                            >
+                              Annuleren
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(loc.id)}
+                            className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] text-white/25 hover:text-red-400/70 transition-colors"
+                          >
+                            Verwijder locatie
+                          </button>
                         )}
                       </div>
                     </div>
