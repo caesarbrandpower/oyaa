@@ -13,7 +13,7 @@ import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
 import { looksLikeDocument } from '@/lib/document-utils';
 import { LOCATION_TOOL_SCHEMA, executeLocationTool, buildLocationNameContext } from '@/lib/locations-retrieval';
-import { hasWriteIntent, parseWriteIntent } from '@/lib/locations-write';
+import { hasWriteIntent, parseWriteIntent, isQuestion } from '@/lib/locations-write';
 export const maxDuration = 120;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ export async function POST(request) {
 
           if (locNamen?.length > 0) {
             const writeIntent = hasWriteIntent(userOnlyMessage);
-            const hasLocMention = !writeIntent && locNamen.some(
+            const hasLocMention = !writeIntent && !isQuestion(userOnlyMessage) && locNamen.some(
               l => userOnlyMessage.toLowerCase().includes(l.naam.toLowerCase())
             );
 
