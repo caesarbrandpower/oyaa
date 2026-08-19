@@ -38,10 +38,15 @@ const locationNameContext = await buildLocationNameContext(tenant, sb);
 const WEB_SEARCH_TOOL = { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
 const TOOLS = [WEB_SEARCH_TOOL, LOCATION_TOOL_SCHEMA];
 
+// SYSTEM wordt volledig bepaald door buildLocationNameContext (incl. formatinstructies).
+// Voeg hier alleen de basisrol toe; verdere instructies zitten in de context.
 const SYSTEM = [
   { type: 'text', text: 'Je bent een AI-assistent voor een eventmarketingbureau. Je helpt accountmanagers bij locatie- en mediaplanning voor sampling-campagnes en evenementen in Nederland.' },
   { type: 'text', text: locationNameContext },
 ];
+
+// Verboden tijdseenheid-patronen bij prijzen — gelden voor alle tests
+const NO_TIME_UNIT = [/\/dag\b/i, /\/week\b/i, /\/maand\b/i, /per dag\b/i, /per week\b/i, /per maand\b/i, /per jaar\b/i];
 
 // Acceptatiecriteria per test
 const TESTS = [
@@ -51,7 +56,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/bereik|cpm|€/i],
-      must_not:   [/geen toegang/i, /http[s]?:\/\//i],
+      must_not:   [/geen toegang/i, /http[s]?:\/\//i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -61,7 +66,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/bereik|€/i, /amsterdam/i],
-      must_not:   [/wil je dat ik de cijfers/i, /geen toegang/i],
+      must_not:   [/wil je dat ik de cijfers/i, /geen toegang/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -71,7 +76,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/2\.100|2100/i],
-      must_not:   [/geen toegang/i, /fictief|schat/i],
+      must_not:   [/geen toegang/i, /fictief|schat/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -81,7 +86,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/rotterdam/i, /cpm|€\d/i],
-      must_not:   [/geen toegang/i],
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -91,7 +96,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/utrecht centraal/i],
-      must_not:   [],
+      must_not:   [...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -101,7 +106,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/16|zestien/i],
-      must_not:   [/heeft bereik|[0-9]\.000|[0-9]{4,}/],
+      must_not:   [/heeft bereik|[0-9]\.000|[0-9]{4,}/, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -111,7 +116,7 @@ const TESTS = [
     checks: {
       must_call:  'search_locations',
       must_have:  [/€/i],
-      must_not:   [/per week|per maand|per dag|per jaar/i, /geen toegang/i],
+      must_not:   [...NO_TIME_UNIT, /geen toegang/i],
       stop_reason_first: 'tool_use',
     },
   },
