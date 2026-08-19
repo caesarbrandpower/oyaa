@@ -706,7 +706,10 @@ ${userTextOnly}`;
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : isFreeChat ? { temperature: 0.7 } : {}),
           ...(isFreeChat ? {
-            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+            tools: [
+              { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+              ...locationTools,
+            ],
             betas: ['web-search-2025-03-05'],
           } : locationTools.length > 0 ? {
             tools: locationTools,
@@ -736,6 +739,11 @@ ${userTextOnly}`;
 
         let firstStreamMsg = await claudeStream.finalMessage();
         let finalMsg = firstStreamMsg;
+
+        const toolCallNames = pendingToolCalls.map(tc => tc.name);
+        console.log('[TOOLS_SENT]', streamParams.tools?.map(t => t.name ?? t.type) ?? []);
+        console.log('[STOP_REASON]', firstStreamMsg.stop_reason, '| called:', toolCallNames);
+        writeEvent(controller, { type: 'debug_tools', tools_sent: streamParams.tools?.map(t => t.name ?? t.type) ?? [], stop_reason: firstStreamMsg.stop_reason, tools_called: toolCallNames });
 
         // Tool-use round-trip: als het model een tool aanroept, uitvoeren en tweede stream starten
         const allLocationSources = [];
@@ -774,9 +782,15 @@ ${userTextOnly}`;
             },
           ];
 
-          const claudeStream2 = client.messages.stream({
-            ...streamParams,
+          // Tweede stream: geen web_search meer (resultaten zitten al in de history),
+          // wel betas wanneer de eerste stream beta was (server_tool_use blocks in history).
+          const claudeStream2 = (isFreeChat ? client.beta.messages : client.messages).stream({
+            model: streamParams.model,
+            max_tokens: streamParams.max_tokens,
+            system: streamParams.system,
             messages: messagesWithToolResult,
+            ...(locationTools.length > 0 ? { tools: locationTools } : {}),
+            ...(isFreeChat ? { betas: ['web-search-2025-03-05'] } : {}),
           });
 
           for await (const chunk of claudeStream2) {
