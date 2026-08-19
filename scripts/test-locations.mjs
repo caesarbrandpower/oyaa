@@ -685,3 +685,16 @@ if (tsCookie) {
   });
   console.log(`Totaal TS: ${tsPass}/${tsTotal} geslaagd ${tsFail === 0 ? '✓' : '✗'}`);
 }
+
+// ── Cleanup: verwijder Testlocatie uit Chase-tenant ───────────────────────────
+{
+  const { data: testloc } = await sb.from('locations').select('id').eq('tenant_id', CHASE_STAGING).ilike('naam', 'testlocatie').limit(1);
+  if (testloc?.length) {
+    const { error: delErr } = await sb.from('locations').delete().eq('id', testloc[0].id);
+    if (delErr) {
+      console.log('\n(cleanup) Testlocatie verwijderen mislukt: ' + delErr.message);
+    } else {
+      console.log('\n(cleanup) Testlocatie verwijderd uit Chase-tenant.');
+    }
+  }
+}

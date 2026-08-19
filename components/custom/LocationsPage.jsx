@@ -111,6 +111,9 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   const [savingDoelgroep, setSavingDoelgroep] = useState(null);
   const [editingLeeftijdsgroep, setEditingLeeftijdsgroep] = useState(null);
   const [savingLeeftijdsgroep, setSavingLeeftijdsgroep] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
   const [creating, setCreating] = useState(false);
@@ -202,6 +205,25 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
     if (res.ok) {
       setLocations(prev => prev.map(l => l.id === id ? { ...l, [veld]: json.location[veld] } : l));
       setEditing(null);
+    }
+  }
+
+  async function deleteLocation(id) {
+    setDeletingId(id);
+    setDeleteError(null);
+    const res = await fetch('/api/locations/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: id }),
+    });
+    setDeletingId(null);
+    if (res.ok) {
+      setLocations(prev => prev.filter(l => l.id !== id));
+      setConfirmDeleteId(null);
+      setExpandedId(null);
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setDeleteError(json.error ?? 'Verwijderen mislukt');
     }
   }
 
@@ -710,7 +732,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           </div>
                         </>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={() => startUpload(loc.id)}
                           disabled={uploadingForId === loc.id}
@@ -724,6 +746,35 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                         </button>
                         {uploadError[loc.id] && (
                           <span className="text-[11px] text-red-400">{uploadError[loc.id]}</span>
+                        )}
+                        {confirmDeleteId === loc.id ? (
+                          <span className="inline-flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] text-white/50">Locatie verwijderen?</span>
+                            <button
+                              onClick={() => deleteLocation(loc.id)}
+                              disabled={deletingId === loc.id}
+                              className="inline-flex items-center gap-1 h-7 px-2.5 text-[11px] bg-red-500/10 border border-red-500/20 rounded-md text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                            >
+                              {deletingId === loc.id ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} /> : null}
+                              Ja, verwijder
+                            </button>
+                            <button
+                              onClick={() => { setConfirmDeleteId(null); setDeleteError(null); }}
+                              className="h-7 px-2.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                            >
+                              Annuleren
+                            </button>
+                            {deleteError && confirmDeleteId === loc.id && (
+                              <span className="text-[11px] text-red-400">{deleteError}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(loc.id)}
+                            className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] text-white/25 hover:text-red-400/70 transition-colors"
+                          >
+                            Verwijder locatie
+                          </button>
                         )}
                       </div>
                     </div>
