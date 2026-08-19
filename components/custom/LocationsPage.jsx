@@ -113,6 +113,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   const [savingLeeftijdsgroep, setSavingLeeftijdsgroep] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
   const [creating, setCreating] = useState(false);
@@ -209,6 +210,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
 
   async function deleteLocation(id) {
     setDeletingId(id);
+    setDeleteError(null);
     const res = await fetch('/api/locations/delete', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -219,6 +221,9 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
       setLocations(prev => prev.filter(l => l.id !== id));
       setConfirmDeleteId(null);
       setExpandedId(null);
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setDeleteError(json.error ?? 'Verwijderen mislukt');
     }
   }
 
@@ -743,7 +748,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           <span className="text-[11px] text-red-400">{uploadError[loc.id]}</span>
                         )}
                         {confirmDeleteId === loc.id ? (
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1.5 flex-wrap">
                             <span className="text-[11px] text-white/50">Locatie verwijderen?</span>
                             <button
                               onClick={() => deleteLocation(loc.id)}
@@ -754,11 +759,14 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                               Ja, verwijder
                             </button>
                             <button
-                              onClick={() => setConfirmDeleteId(null)}
+                              onClick={() => { setConfirmDeleteId(null); setDeleteError(null); }}
                               className="h-7 px-2.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
                             >
                               Annuleren
                             </button>
+                            {deleteError && confirmDeleteId === loc.id && (
+                              <span className="text-[11px] text-red-400">{deleteError}</span>
+                            )}
                           </span>
                         ) : (
                           <button
