@@ -144,17 +144,21 @@ const TESTS = [
     },
   },
   {
-    // Adresvraag: mag NIET via websearch, moet search_locations aanroepen.
-    // Regressiontest voor de bug waarbij isQuestion() ook de leesflow blokkeerde.
+    // Adresvraag: moet search_locations aanroepen EN het juiste adres teruggeven.
+    // Regressiontest (1) voor isQuestion() die de leesflow blokkeerde.
+    // Regressiontest (2) voor formatLocationTable die het adresveld weggooide.
     id: 'T8',
     q: 'Wat is het adres van Almere - Braderie/Markt?',
     checks: {
       must_call:  'search_locations',
-      must_not:   [/stadhuisplein/i, /geen toegang/i, ...NO_TIME_UNIT],
+      must_have:  [/schutterstraat/i],
+      must_not:   [/stadhuisplein/i, /geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
   {
+    // Parkeren: veld is nergens gevuld op staging — model mag correct "niet beschikbaar" zeggen.
+    // Test garandeert alleen dat search_locations wordt aangeroepen (niet websearch).
     id: 'T9',
     q: 'Hoe is het parkeren bij Rotterdam Centraal?',
     checks: {
@@ -164,6 +168,7 @@ const TESTS = [
     },
   },
   {
+    // Vergunning: veld is nergens gevuld op staging — model mag correct "niet beschikbaar" zeggen.
     id: 'T10',
     q: 'Wanneer verloopt de vergunning van Utrecht Centraal?',
     checks: {
@@ -173,11 +178,25 @@ const TESTS = [
     },
   },
   {
+    // Bijzonderheden Amsterdam Centraal: veld is gevuld ("Oranje hesjes + Contact met logistiek").
+    // Regressiontest voor formatLocationTable die bijzonderheden weggooide.
     id: 'T11',
     q: 'Wat zijn de bijzonderheden bij Amsterdam Centraal?',
     checks: {
       must_call:  'search_locations',
-      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      must_have:  [/hesjes|logistiek/i],
+      must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Adres Rotterdam Centraal: veld is gevuld ("Stationssingel 10, 3013HA Rotterdam").
+    id: 'T12',
+    q: 'Wat is het adres van Rotterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/stationssingel/i],
+      must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
