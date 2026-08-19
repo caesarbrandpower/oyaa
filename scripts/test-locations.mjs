@@ -425,13 +425,15 @@ async function generateSessionCookie() {
 }
 
 // Stuurt één SSE-verzoek naar de route en verzamelt alle events tot done/error/timeout.
-async function runSSERequest(cookieHeader, body) {
+async function runSSERequest(cookieHeader, body, tenantHostname) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), TS_TIMEOUT);
   try {
+    const reqHeaders = { 'Content-Type': 'application/json', 'Cookie': cookieHeader };
+    if (tenantHostname) reqHeaders['x-tenant-hostname'] = tenantHostname;
     const res = await fetch(`${TS_BASE_URL}/api/chat-custom`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cookie': cookieHeader },
+      headers: reqHeaders,
       body: JSON.stringify(body),
       signal: ac.signal,
     });
@@ -542,23 +544,79 @@ const TS_TESTS = [
   },
   {
     // Geval 4: locatievraag → onveranderd (regressietest)
+    // Check: tool aangeroepen (debug_tools aanwezig) — niet op response-inhoud, want model kan soms
+    // om verduidelijking vragen terwijl de tool al is aangeroepen.
     id: 'TS4',
     description: 'Locatievraag → search_locations wordt gebruikt (regressie)',
     body: { message: 'Wat is een goedkoper alternatief voor Utrecht Centraal?' },
     checks: (events) => {
       const doneEvent = events.find(e => e.type === 'done');
+      const debugEvent = events.find(e => e.type === 'debug_tools');
       const f = [];
       if (!doneEvent)                        f.push('geen done-event ontvangen');
       if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
       if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      if (!debugEvent) {
+        f.push('geen debug_tools event — search_locations werd niet aangeroepen');
+      } else {
+        const called = debugEvent.tools_called ?? [];
+        if (!called.includes('search_locations')) {
+          f.push('search_locations niet in tools_called: ' + JSON.stringify(called));
+        }
+      }
+      return { failures: f, doneEvent };
+    },
+  },
+  {
+    // Geval 5: doelgroep-filter → search_locations aangeroepen met doelgroep param;
+    //          locaties zonder doelgroep vallen buiten het resultaat.
+    //
+    // Voorwaarde: migratie 035 moet zijn uitgevoerd (doelgroep is text[]).
+    // Vóór de test zetten we doelgroep=['Studenten'] op één locatie (Alkmaar),
+    // zodat er altijd minstens één resultaat terugkomt. Na de test herstellen we.
+    id: 'TS5',
+    description: 'Doelgroep-filter → search_locations met doelgroep-param; locaties zonder doelgroep vallen buiten resultaat',
+    body: { message: 'Welke locaties bereiken studenten?' },
+    checks: (events) => {
+      const doneEvent = events.find(e => e.type === 'done');
+      const debugEvent = events.find(e => e.type === 'debug_tools');
+      const f = [];
+      if (!doneEvent)                        f.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      if (!debugEvent)                       f.push('geen debug_tools event — search_locations werd niet aangeroepen');
+      // Controleer of de tool-call een doelgroep-parameter bevat
+      if (!debugEvent) {
+        f.push('geen debug_tools event — search_locations werd niet aangeroepen');
+      } else {
+        const called = debugEvent.tools_called ?? [];
+        if (!called.includes('search_locations')) {
+          f.push('search_locations niet in tools_called: ' + JSON.stringify(called));
+        }
+        // Controleer of de tool-call een doelgroep-parameter bevat.
+        // Vereist migratie 035 (doelgroep als text[]). Zonder migratie kan het model
+        // de doelgroep-filter niet kennen vanuit bestaande locatiedata.
+        const tools = Array.isArray(debugEvent.tools) ? debugEvent.tools : [];
+        const hasDoelgroepParam = tools.some(t =>
+          t.name === 'search_locations' && t.input && 'doelgroep' in t.input
+        );
+        if (!hasDoelgroepParam) {
+          f.push('search_locations aangeroepen zonder doelgroep-parameter — model filtert niet op doelgroep (migratie 035 toegepast?)');
+        }
+      }
+      // Almere Centrum heeft geen doelgroep — mag NIET in de response verschijnen.
+      // Alkmaar heeft doelgroep=['Studenten'] (setup vóór de test) — MAG wel verschijnen.
       const content = doneEvent?.content ?? '';
-      if (!content.match(/bereik|cpm|€|\d+/i)) {
-        f.push('geen locatiedata gevonden in response — tool mogelijk niet aangeroepen');
+      if (/almere centrum/i.test(content)) {
+        f.push('Almere Centrum (geen doelgroep) verschijnt in de response — filter werkt niet');
       }
       return { failures: f, doneEvent };
     },
   },
 ];
+
+// IDs voor TS5-seeddata
+const TS5_LOCATIE_ID = 'ebde9d18-cc15-41ec-a4c6-da26649a700c'; // Alkmaar
 
 let tsCookie;
 try {
@@ -570,21 +628,43 @@ try {
   tsCookie = null;
 }
 
+let tsPass = 0, tsFail = 0;
+
 if (tsCookie) {
   for (const test of TS_TESTS) {
     console.log(`\n${test.id} — ${test.description}`);
-    const { httpStatus, events, timeout, error: fetchErr } = await runSSERequest(tsCookie, test.body);
+
+    // TS5: seed doelgroep vóór test, herstel daarna
+    if (test.id === 'TS5') {
+      const { error: seedErr } = await sb.from('locations').update({ doelgroep: ['Studenten'] }).eq('id', TS5_LOCATIE_ID);
+      if (seedErr) {
+        console.log('  SKIP — doelgroep-seeddata mislukt: ' + seedErr.message + ' (migratie 035 nog niet uitgevoerd?)');
+        tsFail++;
+        continue;
+      }
+    }
+
+    const { httpStatus, events, timeout, error: fetchErr } = await runSSERequest(tsCookie, test.body, tenant?.hostname);
+
+    // TS5 teardown: herstel doelgroep ongeacht testresultaat
+    if (test.id === 'TS5') {
+      const { error: teardownErr } = await sb.from('locations').update({ doelgroep: null }).eq('id', TS5_LOCATIE_ID);
+      if (teardownErr) console.log('  (teardown fout: ' + teardownErr.message + ')');
+    }
 
     if (timeout) {
       console.log(`  FAIL ✗ — TIMEOUT: geen done-event binnen ${TS_TIMEOUT / 1000}s`);
+      tsFail++;
       continue;
     }
     if (fetchErr) {
       console.log(`  FAIL ✗ — ${fetchErr}`);
+      tsFail++;
       continue;
     }
     if (httpStatus !== 200) {
       console.log(`  FAIL ✗ — HTTP ${httpStatus}`);
+      tsFail++;
       continue;
     }
 
@@ -595,5 +675,13 @@ if (tsCookie) {
     console.log(`    events: ${events.map(e => e.type).join(', ') || 'geen'}`);
     if (doneEvent?.content)   console.log(`    done.content: "${String(doneEvent.content).slice(0, 120)}"`);
     if (doneEvent?.messageId) console.log(`    done.messageId: ${doneEvent.messageId}`);
+    if (passed) tsPass++; else tsFail++;
   }
+
+  const tsTotal = TS_TESTS.length;
+  console.log(`\nSAMENVATTING — SSE route-integriteit`);
+  TS_TESTS.forEach((t, i) => {
+    // we don't track per-test pass/fail simply, so just report total
+  });
+  console.log(`Totaal TS: ${tsPass}/${tsTotal} geslaagd ${tsFail === 0 ? '✓' : '✗'}`);
 }

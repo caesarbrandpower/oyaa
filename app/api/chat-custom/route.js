@@ -796,9 +796,12 @@ ${userTextOnly}`;
         let finalMsg = firstStreamMsg;
 
         const toolCallNames = pendingToolCalls.map(tc => tc.name);
+        const toolCallInputs = pendingToolCalls.map(tc => {
+          try { return { name: tc.name, input: JSON.parse(tc.inputStr) }; } catch { return { name: tc.name, input: null }; }
+        });
         console.log('[TOOLS_SENT]', streamParams.tools?.map(t => t.name ?? t.type) ?? []);
         console.log('[STOP_REASON]', firstStreamMsg.stop_reason, '| called:', toolCallNames);
-        writeEvent(controller, { type: 'debug_tools', tools_sent: streamParams.tools?.map(t => t.name ?? t.type) ?? [], stop_reason: firstStreamMsg.stop_reason, tools_called: toolCallNames });
+        writeEvent(controller, { type: 'debug_tools', tools_sent: streamParams.tools?.map(t => t.name ?? t.type) ?? [], stop_reason: firstStreamMsg.stop_reason, tools_called: toolCallNames, tools: toolCallInputs });
 
         // Tool-use round-trip: als het model een tool aanroept, uitvoeren en tweede stream starten
         const allLocationSources = [];
