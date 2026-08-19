@@ -14,13 +14,15 @@ export async function DELETE(request) {
   const { location_id } = await request.json();
   if (!location_id) return Response.json({ error: 'location_id ontbreekt' }, { status: 400 });
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('locations')
     .delete()
     .eq('id', location_id)
-    .eq('tenant_id', tenant.id);
+    .eq('tenant_id', tenant.id)
+    .select('id');
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (!data?.length) return Response.json({ error: 'Locatie niet gevonden of geen toegang' }, { status: 404 });
 
   return Response.json({ ok: true });
 }
