@@ -25,13 +25,22 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 
-// Laad env vars uit .env.local
-const envRaw = readFileSync(resolve(root, '.env.local'), 'utf8');
-const env = {};
-for (const line of envRaw.split('\n')) {
-  const m = line.match(/^([A-Z_]+)=["']?(.+?)["']?\s*$/);
-  if (m) env[m[1]] = m[2];
+// Laad env vars uit .env.local en .env.vercel (later overschrijft eerder)
+function parseEnvFile(path) {
+  try {
+    const raw = readFileSync(path, 'utf8');
+    const result = {};
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^([A-Z0-9_]+)=["']?(.+?)["']?\s*$/);
+      if (m) result[m[1]] = m[2];
+    }
+    return result;
+  } catch { return {}; }
 }
+const env = {
+  ...parseEnvFile(resolve(root, '.env.vercel')),
+  ...parseEnvFile(resolve(root, '.env.local')),
+};
 
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE  = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,6 +140,44 @@ const TESTS = [
       must_call:  'search_locations',
       must_have:  [/€/i],
       must_not:   [...NO_TIME_UNIT, /geen toegang/i],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Adresvraag: mag NIET via websearch, moet search_locations aanroepen.
+    // Regressiontest voor de bug waarbij isQuestion() ook de leesflow blokkeerde.
+    id: 'T8',
+    q: 'Wat is het adres van Almere - Braderie/Markt?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/stadhuisplein/i, /geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    id: 'T9',
+    q: 'Hoe is het parkeren bij Rotterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    id: 'T10',
+    q: 'Wanneer verloopt de vergunning van Utrecht Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    id: 'T11',
+    q: 'Wat zijn de bijzonderheden bij Amsterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },

@@ -208,7 +208,7 @@ export async function POST(request) {
 
           if (locNamen?.length > 0) {
             const writeIntent = hasWriteIntent(userOnlyMessage);
-            const hasLocMention = !writeIntent && !isQuestion(userOnlyMessage) && locNamen.some(
+            const hasLocMention = !writeIntent && locNamen.some(
               l => userOnlyMessage.toLowerCase().includes(l.naam.toLowerCase())
             );
 
