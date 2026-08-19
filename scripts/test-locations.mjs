@@ -250,7 +250,7 @@ for (const test of TESTS) {
 }
 
 console.log('\n\n' + '='.repeat(60));
-console.log('SAMENVATTING');
+console.log('SAMENVATTING — locatie tool-use');
 console.log('='.repeat(60));
 let totalPass = 0, totalFail = 0;
 for (const s of summary) {
@@ -262,4 +262,85 @@ for (const s of summary) {
   }
   if (s.allPassed) totalPass++; else totalFail++;
 }
-console.log(`\nTotaal: ${totalPass}/${summary.length} tests volledig geslaagd`);
+console.log(`\nTotaal locatie: ${totalPass}/${summary.length} tests volledig geslaagd`);
+
+// ── TD: Document-input detectie (unit tests, geen API-aanroep) ───────────────
+
+console.log('\n\n' + '='.repeat(60));
+console.log('TD — document-input detectie (unit)');
+console.log('='.repeat(60));
+
+// Replica van de route-logica — moet 1-op-1 overeenkomen met route.js
+function computeDocInputFlags({ message, txtAttachments = [], documentAttachments = [], recordingTranscript = null }) {
+  const userOnlyMessage = message.split(/\n\n\[(?:Bijlage|Transcript):/)[0].trim();
+  const hasOwnContent = documentAttachments.length > 0 || txtAttachments.length > 0;
+  const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+  const wantsVaultAsInput = /\b(?:uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|in\s+de\s+kluis|van\s+de\s+kluis|via\s+de\s+kluis)\b/i.test(userOnlyMessage);
+
+  let contentBeyondCommand = userOnlyMessage;
+  if (hasGenerateIntent) {
+    const intentRe = /\b(?:maak|genereer)\b.{0,60}\b(?:briefing|evaluatie|rapport)\b|\b(?:maak\s+(?:de|hem|het|dit|haar))\b|\bdoe\s+het\s*(?:maar)?\b|\bbrief\w*\s+voor\s+\S/i;
+    const m = userOnlyMessage.match(intentRe);
+    if (m) {
+      contentBeyondCommand = (userOnlyMessage.slice(0, m.index) + ' ' + userOnlyMessage.slice(m.index + m[0].length)).trim();
+    }
+  }
+
+  const hasSubstantialInput =
+    hasOwnContent
+    || !!recordingTranscript
+    || message.length > userOnlyMessage.length
+    || userOnlyMessage.includes('\n')
+    || contentBeyondCommand.length > 70;
+
+  const isEmptyDocumentRequest = hasGenerateIntent && !hasSubstantialInput && !wantsVaultAsInput;
+
+  return { hasGenerateIntent, hasSubstantialInput, wantsVaultAsInput, isEmptyDocumentRequest, contentBeyondCommand };
+}
+
+const DOC_TESTS = [
+  {
+    id: 'TD1',
+    description: 'Kale opdracht — moet vragen om input',
+    input: { message: 'Maak een briefing naar de PM voor Coca-Cola' },
+    expected: { isEmptyDocumentRequest: true },
+  },
+  {
+    id: 'TD2',
+    description: 'Opdracht + ~80 tekens input op één regel — moet document maken',
+    input: { message: 'Maak een briefing naar de PM voor Coca-Cola. Klant wil sampling op Utrecht Centraal in september, budget 15k, doelgroep studenten.' },
+    expected: { isEmptyDocumentRequest: false, hasSubstantialInput: true },
+  },
+  {
+    id: 'TD3',
+    description: 'Opdracht + geplakt transcript met newlines — moet document maken',
+    input: { message: 'Maak een briefing naar de PM.\n\nDatum: 15 september\nLocatie: Utrecht Centraal\nBudget: €15.000\nDoelgroep: studenten 18-25\nContact: Sarah de Vries' },
+    expected: { isEmptyDocumentRequest: false, hasSubstantialInput: true },
+  },
+  {
+    id: 'TD4',
+    description: 'Expliciete kluis-aanroep — moet kluis gebruiken (niet vragen)',
+    input: { message: 'Maak een briefing op basis van wat in de kluis staat over Coca-Cola' },
+    expected: { isEmptyDocumentRequest: false, wantsVaultAsInput: true },
+  },
+];
+
+let docPass = 0, docFail = 0;
+for (const test of DOC_TESTS) {
+  const result = computeDocInputFlags(test.input);
+  const failures = [];
+  for (const [key, val] of Object.entries(test.expected)) {
+    if (result[key] !== val) {
+      failures.push(`${key}: verwacht ${val}, kreeg ${result[key]} (contentBeyondCommand: "${result.contentBeyondCommand}")`);
+    }
+  }
+  const passed = failures.length === 0;
+  console.log(`\n${test.id} — ${test.description}`);
+  console.log(`  ${passed ? 'PASS ✓' : 'FAIL ✗'}`);
+  failures.forEach(f => console.log(`    ✗ ${f}`));
+  if (!passed) {
+    console.log(`  contentBeyondCommand (${result.contentBeyondCommand.length} tekens): "${result.contentBeyondCommand.slice(0, 80)}"`);
+  }
+  if (passed) docPass++; else docFail++;
+}
+console.log(`\nTotaal document-detectie: ${docPass}/${DOC_TESTS.length} geslaagd ${docFail === 0 ? '✓' : '✗'}`);

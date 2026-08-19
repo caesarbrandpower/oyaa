@@ -318,7 +318,26 @@ export async function POST(request) {
         // Vault overslaan als de gebruiker eigen content heeft aangeleverd:
         // analysisConfirmed (wizard/bevestiging) of eigen bestanden (PDF of Word/txt).
         const hasOwnContent = documentAttachments.length > 0 || txtAttachments.length > 0;
-        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery;
+
+        // Kale documentopdracht detectie: heeft de gebruiker inhoud aangeleverd buiten de opdrachtzin?
+        const wantsVaultAsInput = /\b(?:uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|in\s+de\s+kluis|van\s+de\s+kluis|via\s+de\s+kluis)\b/i.test(userOnlyMessage);
+        let contentBeyondCommand = userOnlyMessage;
+        if (hasGenerateIntent) {
+          const intentRe = /\b(?:maak|genereer)\b.{0,60}\b(?:briefing|evaluatie|rapport)\b|\b(?:maak\s+(?:de|hem|het|dit|haar))\b|\bdoe\s+het\s*(?:maar)?\b|\bbrief\w*\s+voor\s+\S/i;
+          const m = userOnlyMessage.match(intentRe);
+          if (m) {
+            contentBeyondCommand = (userOnlyMessage.slice(0, m.index) + ' ' + userOnlyMessage.slice(m.index + m[0].length)).trim();
+          }
+        }
+        const hasSubstantialInput =
+          hasOwnContent
+          || !!recordingTranscript
+          || message.length > userOnlyMessage.length
+          || userOnlyMessage.includes('\n')
+          || contentBeyondCommand.length > 70;
+        const isEmptyDocumentRequest = hasGenerateIntent && !hasSubstantialInput && !wantsVaultAsInput;
+
+        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery || isEmptyDocumentRequest;
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -351,6 +370,26 @@ export async function POST(request) {
           } catch (err) {
             console.error('[VAULT] retrieval mislukt:', err?.message ?? err);
           }
+        }
+
+        // ── Kale documentopdracht: vraag om input in plaats van document genereren ──
+        if (isEmptyDocumentRequest) {
+          const DOC_LABELS = {
+            'account-to-pm':        'PM-briefing',
+            'account-to-creation':  'creatieve briefing',
+            'field-briefing':       'ambassadeursbriefing',
+            'meeting-summary':      'vergadersamenvatting',
+            'evaluation':           'evaluatie',
+            'external-debrief':     'externe debrief',
+            'project-briefing':     'projectbriefing',
+            'account-pm-briefing':  'PM-briefing',
+          };
+          const docLabel = (effectiveOutputType && DOC_LABELS[effectiveOutputType]) ?? 'document';
+          writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument: false, outputType: null });
+          writeEvent(controller, { type: 'chunk', text: `Wat is de input voor deze ${docLabel}? Plak hier de campagnegegevens, een transcript of andere relevante info — dan maak ik het direct.` });
+          writeEvent(controller, { type: 'done', isDocument: false });
+          controller.close();
+          return;
         }
 
         const separator = `\n[---${crypto.randomUUID()}---]\n`;
