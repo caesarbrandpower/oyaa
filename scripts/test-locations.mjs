@@ -1,6 +1,19 @@
 /**
  * Testscript voor search_locations tool-use.
- * Roept Anthropic direct aan — geen HTTP-server nodig.
+ *
+ * T1-T7: roepen Anthropic direct aan — geen HTTP-server nodig.
+ *   BLIND SPOT: route.js wordt nooit geraakt. Bugs in /api/chat-custom
+ *   (ontbrekend done-event, stream die niet sluit, vroege return zonder juiste
+ *   SSE-structuur) zijn voor T1-T7 volledig onzichtbaar. De RUN_TIMEOUT_MS
+ *   guard pakt alleen hangen in de Anthropic API zelf, niet in de route.
+ *
+ * TD1-TD4: pure unit tests voor detectielogica in route.js — geen API-aanroep.
+ *
+ * TS1: raakt /api/chat-custom via HTTP, parst de SSE-stroom event voor event,
+ *   en faalt als het done-event niet binnen de tijdslimiet arriveert of als
+ *   done.content of done.messageId ontbreekt. Vereist OYAA_TEST_COOKIE en
+ *   optioneel OYAA_TEST_BASE_URL in .env.local (zie onderaan dit bestand).
+ *
  * Run: node scripts/test-locations.mjs
  */
 import Anthropic from '@anthropic-ai/sdk';
@@ -357,3 +370,112 @@ for (const test of DOC_TESTS) {
   if (passed) docPass++; else docFail++;
 }
 console.log(`\nTotaal document-detectie: ${docPass}/${DOC_TESTS.length} geslaagd ${docFail === 0 ? '✓' : '✗'}`);
+
+// ── TS: SSE route-integriteit ─────────────────────────────────────────────────
+//
+// T1-T7 raken route.js nooit. TS1 wel: het stuurt een echt HTTP-verzoek naar
+// /api/chat-custom, leest de SSE-stroom, en controleert dat:
+//   1. het done-event arriveert binnen TS_TIMEOUT_MS
+//   2. done.content een niet-lege string is
+//   3. done.messageId aanwezig is
+//
+// De bug die we hebben opgelost (stream hing, done miste content+messageId)
+// had TS1 direct als FAIL gesignaleerd. T1-T7 zagen er niets van.
+//
+// Vereist in .env.local:
+//   OYAA_TEST_COOKIE  — kopieer de volledige Cookie-header van een
+//                       /api/chat-custom aanroep in DevTools (Network-tabblad).
+//   OYAA_TEST_BASE_URL — optioneel, default: http://localhost:3000
+//                        Gebruik bijv. https://oyaa-staging.vercel.app voor staging.
+
+const TS_COOKIE   = env.OYAA_TEST_COOKIE;
+const TS_BASE_URL = (env.OYAA_TEST_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const TS_TIMEOUT  = 15_000;
+
+console.log('\n\n' + '='.repeat(60));
+console.log('TS — SSE route-integriteit');
+console.log('='.repeat(60));
+
+if (!TS_COOKIE) {
+  console.log('  OVERGESLAGEN — stel OYAA_TEST_COOKIE in .env.local in.');
+  console.log('  Stap: open DevTools → Network → filter op chat-custom → kopieer');
+  console.log('  de waarde van de Cookie-header uit een bestaand verzoek.');
+  console.log('  Optioneel: OYAA_TEST_BASE_URL (default: http://localhost:3000)');
+} else {
+  const TS_TESTS = [
+    {
+      id: 'TS1',
+      description: 'Kale documentopdracht — done-event met content en messageId binnen timeout',
+      body: {
+        message: 'Maak een briefing naar de PM voor Coca-Cola',
+        outputType: 'account-to-pm',
+      },
+    },
+  ];
+
+  for (const test of TS_TESTS) {
+    console.log(`\n${test.id} — ${test.description}`);
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), TS_TIMEOUT);
+
+      const res = await fetch(`${TS_BASE_URL}/api/chat-custom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Cookie': TS_COOKIE },
+        body: JSON.stringify(test.body),
+        signal: ac.signal,
+      });
+
+      if (!res.ok) {
+        clearTimeout(timer);
+        console.log(`  FAIL ✗ — HTTP ${res.status}`);
+        continue;
+      }
+
+      // Lees SSE-stroom event voor event
+      const events = [];
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split('\n\n');
+        buf = parts.pop();
+        for (const part of parts) {
+          for (const line of part.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const ev = JSON.parse(line.slice(6));
+              events.push(ev);
+              if (ev.type === 'done' || ev.type === 'error') break outer;
+            } catch { /* ongeldige JSON — sla over */ }
+          }
+        }
+      }
+
+      clearTimeout(timer);
+
+      const doneEvent = events.find(e => e.type === 'done');
+      const failures = [];
+      if (!doneEvent)                        failures.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   failures.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) failures.push('done.messageId ontbreekt');
+
+      const passed = failures.length === 0;
+      console.log(`  ${passed ? 'PASS ✓' : 'FAIL ✗'}`);
+      failures.forEach(f => console.log(`    ✗ ${f}`));
+      console.log(`    events: ${events.map(e => e.type).join(', ') || 'geen'}`);
+      if (doneEvent?.content)   console.log(`    done.content: "${String(doneEvent.content).slice(0, 100)}"`);
+      if (doneEvent?.messageId) console.log(`    done.messageId: ${doneEvent.messageId}`);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log(`  FAIL ✗ — TIMEOUT: geen done-event binnen ${TS_TIMEOUT / 1000}s`);
+      } else {
+        console.log(`  FAIL ✗ — ${err.message}`);
+      }
+    }
+  }
+}
