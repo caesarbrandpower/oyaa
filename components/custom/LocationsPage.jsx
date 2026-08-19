@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 
 const CHANNELS = ['Centrumlocatie', 'Treinstation', 'Winkelcentrum', 'Outdoor', 'Event', 'Markt'];
+const DOELGROEP_OPTIONS = ['Forensen', 'Studenten', 'Gezinnen', 'Shoppers', 'Toeristen', 'Werkenden', 'Breed publiek'];
+const LEEFTIJDSGROEP_OPTIONS = ['18-25', '18-35', '25-45', '30-45', '45+', 'Alle leeftijden'];
 const VERGUNNING_STATUSSEN = ['aanwezig', 'verlopen', 'geen'];
 
 const CHANNEL_ICONS = {
@@ -23,11 +25,11 @@ const CHANNEL_ICONS = {
 const VERGUNNING_CONFIG = {
   aanwezig: { cls: 'bg-green-500/15 text-green-400', label: 'Vergunning aanwezig' },
   verlopen: { cls: 'bg-orange/15 text-orange',        label: 'Vergunning verlopen' },
-  geen:     { cls: 'bg-white/10 text-white/35',       label: 'Geen vergunning' },
 };
 
 function VergunningBadge({ status }) {
-  const c = VERGUNNING_CONFIG[status] ?? VERGUNNING_CONFIG.geen;
+  const c = VERGUNNING_CONFIG[status];
+  if (!c) return null;
   return (
     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${c.cls}`}>
       {c.label}
@@ -53,7 +55,7 @@ const SELECT_CLS = 'w-full h-9 px-3 bg-white/[0.04] border border-white/[0.08] r
 const LABEL_CLS = 'block text-[11px] text-white/40 uppercase tracking-wide mb-1';
 
 const EMPTY_LOCATION = {
-  naam: '', omschrijving: '', stad: '', channel: '', doelgroep: '',
+  naam: '', omschrijving: '', stad: '', channel: '', doelgroep: [], leeftijdsgroep: [],
   telefoon: '', email: '', website: '',
   parkeren: '', laden_lossen: '', vergunning_status: 'geen',
   vergunning_vervaldatum: '', bijzonderheden: '',
@@ -65,6 +67,10 @@ function buildCopyText(loc) {
   sections.push([loc.naam, [loc.channel, loc.stad].filter(Boolean).join(' · ')].filter(Boolean).join('\n'));
 
   if (loc.omschrijving) sections.push(loc.omschrijving);
+
+  const doelgroepLine = Array.isArray(loc.doelgroep) && loc.doelgroep.length ? `Doelgroep: ${loc.doelgroep.join(', ')}` : null;
+  const leeftijdLine = Array.isArray(loc.leeftijdsgroep) && loc.leeftijdsgroep.length ? `Leeftijdsgroep: ${loc.leeftijdsgroep.join(', ')}` : null;
+  if (doelgroepLine || leeftijdLine) sections.push([doelgroepLine, leeftijdLine].filter(Boolean).join('\n'));
 
   const contact = [
     loc.telefoon && `📞 ${loc.telefoon}`,
@@ -95,11 +101,16 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   const [search, setSearch] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
   const [filterDoelgroep, setFilterDoelgroep] = useState('');
+  const [filterLeeftijdsgroep, setFilterLeeftijdsgroep] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingForId, setUploadingForId] = useState(null);
   const [uploadError, setUploadError] = useState({});
   const [editingBijz, setEditingBijz] = useState(null);
   const [savingBijz, setSavingBijz] = useState(null);
+  const [editingDoelgroep, setEditingDoelgroep] = useState(null);
+  const [savingDoelgroep, setSavingDoelgroep] = useState(null);
+  const [editingLeeftijdsgroep, setEditingLeeftijdsgroep] = useState(null);
+  const [savingLeeftijdsgroep, setSavingLeeftijdsgroep] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLocation, setNewLocation] = useState(EMPTY_LOCATION);
   const [creating, setCreating] = useState(false);
@@ -114,11 +125,6 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
     () => [...new Set(locations.map(l => l.channel).filter(Boolean))].sort(),
     [locations]
   );
-  const doelgroepen = useMemo(
-    () => [...new Set(locations.map(l => l.doelgroep).filter(Boolean))].sort(),
-    [locations]
-  );
-
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const matches = locations.filter(l => {
@@ -127,8 +133,9 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
         || l.stad?.toLowerCase().includes(q)
         || l.omschrijving?.toLowerCase().includes(q);
       const matchChannel = !filterChannel || l.channel === filterChannel;
-      const matchDoelgroep = !filterDoelgroep || l.doelgroep === filterDoelgroep;
-      return matchSearch && matchChannel && matchDoelgroep;
+      const matchDoelgroep = !filterDoelgroep || (Array.isArray(l.doelgroep) && l.doelgroep.includes(filterDoelgroep));
+      const matchLeeftijdsgroep = !filterLeeftijdsgroep || (Array.isArray(l.leeftijdsgroep) && l.leeftijdsgroep.includes(filterLeeftijdsgroep));
+      return matchSearch && matchChannel && matchDoelgroep && matchLeeftijdsgroep;
     });
     return [...matches].sort((a, b) => {
       const aFav = favorietIds.has(a.id);
@@ -137,7 +144,7 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
       if (!aFav && bFav) return 1;
       return a.naam.localeCompare(b.naam, 'nl');
     });
-  }, [locations, search, filterChannel, filterDoelgroep, favorietIds]);
+  }, [locations, search, filterChannel, filterDoelgroep, filterLeeftijdsgroep, favorietIds]);
 
   function startUpload(locationId) {
     setUploadError(prev => ({ ...prev, [locationId]: null }));
@@ -179,6 +186,22 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
     if (res.ok) {
       setLocations(prev => prev.map(l => l.id === id ? { ...l, bijzonderheden: json.location.bijzonderheden } : l));
       setEditingBijz(null);
+    }
+  }
+
+  async function saveArrayField(id, veld, value, setEditing, setSaving) {
+    setSaving(id);
+    const payload = value.length ? value : null;
+    const res = await fetch('/api/locations/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: id, [veld]: payload }),
+    });
+    const json = await res.json();
+    setSaving(null);
+    if (res.ok) {
+      setLocations(prev => prev.map(l => l.id === id ? { ...l, [veld]: json.location[veld] } : l));
+      setEditing(null);
     }
   }
 
@@ -245,9 +268,12 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
   }
 
   function exportCSV() {
-    const cols = ['naam', 'omschrijving', 'stad', 'channel', 'doelgroep', 'telefoon', 'email',
+    const cols = ['naam', 'omschrijving', 'stad', 'channel', 'doelgroep', 'leeftijdsgroep', 'telefoon', 'email',
       'website', 'parkeren', 'laden_lossen', 'vergunning_status', 'vergunning_vervaldatum', 'bijzonderheden'];
-    const escape = v => `"${(v ?? '').toString().replace(/"/g, '""')}"`;
+    const escape = v => {
+      const s = Array.isArray(v) ? v.join('; ') : (v ?? '').toString();
+      return `"${s.replace(/"/g, '""')}"`;
+    };
     const rows = filtered.map(l => cols.map(c => escape(l[c])).join(','));
     const csv = [cols.join(','), ...rows].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -330,7 +356,15 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
             className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20"
           >
             <option value="">Alle doelgroepen</option>
-            {doelgroepen.map(d => <option key={d} value={d}>{d}</option>)}
+            {DOELGROEP_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select
+            value={filterLeeftijdsgroep}
+            onChange={e => setFilterLeeftijdsgroep(e.target.value)}
+            className="h-9 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[13px] text-white/70 focus:outline-none focus:border-white/20"
+          >
+            <option value="">Alle leeftijden</option>
+            {LEEFTIJDSGROEP_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
 
@@ -369,11 +403,16 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           {loc.channel}
                         </span>
                       )}
-                      {loc.doelgroep && (
-                        <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/50">
-                          {loc.doelgroep}
+                      {Array.isArray(loc.doelgroep) && loc.doelgroep.map(d => (
+                        <span key={d} className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/50">
+                          {d}
                         </span>
-                      )}
+                      ))}
+                      {Array.isArray(loc.leeftijdsgroep) && loc.leeftijdsgroep.map(l => (
+                        <span key={l} className="text-[11px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300/60">
+                          {l}
+                        </span>
+                      ))}
                     </div>
                     {loc.omschrijving && (
                       <p className="mt-1.5 text-[12px] text-white/45 leading-snug line-clamp-2">
@@ -414,9 +453,28 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                 </div>
 
                 {/* Uitgevouwen detail */}
-                {isExpanded && (
+                {isExpanded && (() => {
+                  const PLATTEGROND_RE = /\nPlattegrond: [^\n]+/g;
+                  const plattegrondRefs = (loc.bijzonderheden?.match(PLATTEGROND_RE) ?? []).map(s => s.replace('\nPlattegrond: ', '').trim());
+                  const bijzClean = loc.bijzonderheden?.replace(PLATTEGROND_RE, '').trim() || null;
+                  const prijsLabel = loc.prijs != null
+                    ? `€${Number(loc.prijs).toLocaleString('nl-NL')}${loc.prijssoort ? ` ${loc.prijssoort}` : ''}`
+                    : null;
+                  return (
                   <div className="px-4 pb-4 border-t border-white/[0.05]">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-3">
+                      {loc.adres && (
+                        <DetailItem label="Adres" wide>{loc.adres}</DetailItem>
+                      )}
+                      {prijsLabel && (
+                        <DetailItem label="Kosten">{prijsLabel}</DetailItem>
+                      )}
+                      {loc.bereik != null && (
+                        <DetailItem label="Bereik/dag">{Number(loc.bereik).toLocaleString('nl-NL')}</DetailItem>
+                      )}
+                      {loc.status && loc.status !== 'onbekend' && (
+                        <DetailItem label="Status">{loc.status}</DetailItem>
+                      )}
                       {loc.telefoon && (
                         <DetailItem label="Telefoon">
                           <a href={`tel:${loc.telefoon}`} className="text-orange underline-offset-2 hover:underline">
@@ -449,6 +507,130 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           {new Date(loc.vergunning_vervaldatum).toLocaleDateString('nl-NL')}
                         </DetailItem>
                       )}
+
+                      {/* Doelgroep — inline bewerkbaar */}
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <DetailLabel>Doelgroep</DetailLabel>
+                          {editingDoelgroep?.id !== loc.id && (
+                            <button
+                              onClick={() => setEditingDoelgroep({ id: loc.id, value: Array.isArray(loc.doelgroep) ? [...loc.doelgroep] : [] })}
+                              className="text-white/25 hover:text-white/60 transition-colors"
+                            >
+                              <Pencil className="w-2.5 h-2.5" strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                        {editingDoelgroep?.id === loc.id ? (
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                              {DOELGROEP_OPTIONS.map(opt => (
+                                <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={editingDoelgroep.value.includes(opt)}
+                                    onChange={e => setEditingDoelgroep(prev => ({
+                                      ...prev,
+                                      value: e.target.checked
+                                        ? [...prev.value, opt]
+                                        : prev.value.filter(v => v !== opt),
+                                    }))}
+                                    className="accent-orange"
+                                  />
+                                  <span className="text-[12px] text-white/70">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => saveArrayField(loc.id, 'doelgroep', editingDoelgroep.value, setEditingDoelgroep, setSavingDoelgroep)}
+                                disabled={savingDoelgroep === loc.id}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] bg-white/[0.08] border border-white/[0.12] rounded-md text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+                              >
+                                {savingDoelgroep === loc.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                                  : <Check className="w-3 h-3" strokeWidth={1.75} />
+                                }
+                                Opslaan
+                              </button>
+                              <button onClick={() => setEditingDoelgroep(null)} className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] text-white/40 hover:text-white/70 transition-colors">
+                                Annuleren
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5 min-h-[20px]">
+                            {Array.isArray(loc.doelgroep) && loc.doelgroep.length
+                              ? loc.doelgroep.map(d => (
+                                <span key={d} className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/60">{d}</span>
+                              ))
+                              : <span className="text-[13px] text-white/25 italic">Niet ingesteld</span>
+                            }
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Leeftijdsgroep — inline bewerkbaar */}
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <DetailLabel>Leeftijdsgroep</DetailLabel>
+                          {editingLeeftijdsgroep?.id !== loc.id && (
+                            <button
+                              onClick={() => setEditingLeeftijdsgroep({ id: loc.id, value: Array.isArray(loc.leeftijdsgroep) ? [...loc.leeftijdsgroep] : [] })}
+                              className="text-white/25 hover:text-white/60 transition-colors"
+                            >
+                              <Pencil className="w-2.5 h-2.5" strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                        {editingLeeftijdsgroep?.id === loc.id ? (
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                              {LEEFTIJDSGROEP_OPTIONS.map(opt => (
+                                <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={editingLeeftijdsgroep.value.includes(opt)}
+                                    onChange={e => setEditingLeeftijdsgroep(prev => ({
+                                      ...prev,
+                                      value: e.target.checked
+                                        ? [...prev.value, opt]
+                                        : prev.value.filter(v => v !== opt),
+                                    }))}
+                                    className="accent-orange"
+                                  />
+                                  <span className="text-[12px] text-white/70">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => saveArrayField(loc.id, 'leeftijdsgroep', editingLeeftijdsgroep.value, setEditingLeeftijdsgroep, setSavingLeeftijdsgroep)}
+                                disabled={savingLeeftijdsgroep === loc.id}
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] bg-white/[0.08] border border-white/[0.12] rounded-md text-white/80 hover:text-white disabled:opacity-40 transition-colors"
+                              >
+                                {savingLeeftijdsgroep === loc.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.75} />
+                                  : <Check className="w-3 h-3" strokeWidth={1.75} />
+                                }
+                                Opslaan
+                              </button>
+                              <button onClick={() => setEditingLeeftijdsgroep(null)} className="inline-flex items-center gap-1.5 h-7 px-3 text-[11px] text-white/40 hover:text-white/70 transition-colors">
+                                Annuleren
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5 min-h-[20px]">
+                            {Array.isArray(loc.leeftijdsgroep) && loc.leeftijdsgroep.length
+                              ? loc.leeftijdsgroep.map(l => (
+                                <span key={l} className="text-[11px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300/60">{l}</span>
+                              ))
+                              : <span className="text-[13px] text-white/25 italic">Niet ingesteld</span>
+                            }
+                          </div>
+                        )}
+                      </div>
 
                       {/* Bijzonderheden — inline bewerkbaar */}
                       <div className="col-span-2">
@@ -493,13 +675,26 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                           </div>
                         ) : (
                           <p className="text-[13px] text-white/80 leading-snug whitespace-pre-line">
-                            {loc.bijzonderheden || (
+                            {bijzClean || (
                               <span className="text-white/25 italic">Geen bijzonderheden</span>
                             )}
                           </p>
                         )}
                       </div>
                     </div>
+
+                    {/* Plattegrond-verwijzingen uit Ninox */}
+                    {plattegrondRefs.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-[11px] text-white/35 uppercase tracking-wide mb-1">Plattegrond</p>
+                        {plattegrondRefs.map((ref, i) => {
+                          const bestandsnaam = ref.replace(/^.*\//, '');
+                          return (
+                            <p key={i} className="text-[12px] text-white/30 italic">Plattegrond nog te uploaden: {bestandsnaam}</p>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Bijlagen */}
                     <div className="mt-4">
@@ -533,7 +728,8 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
                       </div>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
@@ -581,7 +777,41 @@ export default function LocationsPage({ tenant, locations: initialLocations, ini
               </div>
               <div>
                 <label className={LABEL_CLS}>Doelgroep</label>
-                <input type="text" value={newLocation.doelgroep} onChange={e => setNewLocation(p => ({ ...p, doelgroep: e.target.value }))} className={INPUT_CLS} placeholder="bijv. 18-35, Gezinnen" />
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1">
+                  {DOELGROEP_OPTIONS.map(opt => (
+                    <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newLocation.doelgroep.includes(opt)}
+                        onChange={e => setNewLocation(p => ({
+                          ...p,
+                          doelgroep: e.target.checked ? [...p.doelgroep, opt] : p.doelgroep.filter(v => v !== opt),
+                        }))}
+                        className="accent-orange"
+                      />
+                      <span className="text-[12px] text-white/70">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Leeftijdsgroep</label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1">
+                  {LEEFTIJDSGROEP_OPTIONS.map(opt => (
+                    <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newLocation.leeftijdsgroep.includes(opt)}
+                        onChange={e => setNewLocation(p => ({
+                          ...p,
+                          leeftijdsgroep: e.target.checked ? [...p.leeftijdsgroep, opt] : p.leeftijdsgroep.filter(v => v !== opt),
+                        }))}
+                        className="accent-orange"
+                      />
+                      <span className="text-[12px] text-white/70">{opt}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

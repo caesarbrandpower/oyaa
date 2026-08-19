@@ -1,6 +1,10 @@
 // scripts/import-locaties.js
-// Gebruik: node scripts/import-locaties.js           (dry-run, toont wat er zou gebeuren)
-//          node scripts/import-locaties.js --write   (voert de import uit)
+// Gebruik: IMPORT_TENANT_ID=<uuid> node scripts/import-locaties.js           (dry-run)
+//          IMPORT_TENANT_ID=<uuid> node scripts/import-locaties.js --write   (schrijft naar DB)
+//
+// Bekende tenant-IDs:
+//   Chase productie : 873b6e3d-8e3c-48c4-a74c-00512029c3d6
+//   Chase staging   : bcee1045-2006-4f1a-8a29-838eb2b6fca5
 
 'use strict';
 
@@ -12,12 +16,15 @@ const path = require('path');
 const WRITE_MODE = process.argv.includes('--write');
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const TENANT_ID    = process.env.CHASE_TENANT_ID;
+const TENANT_ID    = process.env.IMPORT_TENANT_ID;
 
 // ─── Env-vars valideren ───────────────────────────────────────────────────────
 
 if (!SUPABASE_URL || !SERVICE_KEY || !TENANT_ID) {
-  console.error('Vereist: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CHASE_TENANT_ID');
+  console.error('Vereist: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, IMPORT_TENANT_ID');
+  console.error('Bekende tenant-IDs:');
+  console.error('  Chase productie : 873b6e3d-8e3c-48c4-a74c-00512029c3d6');
+  console.error('  Chase staging   : bcee1045-2006-4f1a-8a29-838eb2b6fca5');
   process.exit(1);
 }
 
@@ -50,11 +57,12 @@ function mapRecord(r) {
   const prijsRaw = r.prijs ? parseFloat(r.prijs.replace(/[^\d,.-]/g, '').replace(',', '.')) : null;
   const prijs = prijsRaw !== null && !isNaN(prijsRaw) ? prijsRaw : null;
 
-  const bereikRaw = r.bereik ? parseInt(r.bereik.replace(/\D/g, ''), 10) : null;
+  const bereikRaw = r.bereik ? Math.round(parseFloat(r.bereik)) : null;
   const bereik = bereikRaw !== null && !isNaN(bereikRaw) ? bereikRaw : null;
 
   const geldPrijssoort = ['huurprijs', 'vergunningskosten'];
-  const prijssoort = geldPrijssoort.includes(r.prijssoort?.trim()) ? r.prijssoort.trim() : null;
+  const prijssoortNorm = r.prijssoort?.trim().toLowerCase() ?? '';
+  const prijssoort = geldPrijssoort.includes(prijssoortNorm) ? prijssoortNorm : null;
 
   return {
     tenant_id:    TENANT_ID,
@@ -66,7 +74,7 @@ function mapRecord(r) {
     bereik,
     bereik_note:  r.bereik_note?.trim() || null,
     bijzonderheden,
-    // telefoon wordt bewust NIET opgeslagen in de DB (AVG)
+    telefoon:     r.contact_telefoon?.trim() || null,
     status:       'onbekend',
     bron:         'Ninox-import augustus 2026',
   };

@@ -12,7 +12,7 @@ import { ingestDocument } from '@/lib/vault/ingest';
 import { extractFileText } from '@/lib/extract-file-text';
 import { vaultEnabled } from '@/lib/vault/access';
 import { looksLikeDocument } from '@/lib/document-utils';
-import { buildDatabaseContext } from '@/lib/locations-retrieval';
+import { LOCATION_TOOL_SCHEMA, executeLocationTool, buildLocationNameContext } from '@/lib/locations-retrieval';
 import { hasWriteIntent, parseWriteIntent } from '@/lib/locations-write';
 export const maxDuration = 120;
 
@@ -318,7 +318,35 @@ export async function POST(request) {
         // Vault overslaan als de gebruiker eigen content heeft aangeleverd:
         // analysisConfirmed (wizard/bevestiging) of eigen bestanden (PDF of Word/txt).
         const hasOwnContent = documentAttachments.length > 0 || txtAttachments.length > 0;
-        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery;
+
+        // Kale documentopdracht detectie: heeft de gebruiker inhoud aangeleverd buiten de opdrachtzin?
+        const wantsVaultAsInput = /\b(?:uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|in\s+de\s+kluis|van\s+de\s+kluis|via\s+de\s+kluis)\b/i.test(userOnlyMessage);
+
+        // Versie van het bericht zonder kluis-frases, voor client-detectie.
+        // Voorkomt dat "voor Coca-Cola op basis van wat in de kluis staat" → "Coca-Cola op basis".
+        const VAULT_PHRASE_RE = /\b(?:op\s+basis\s+van\s+(?:wat\s+)?(?:er\s+)?in\s+de\s+kluis(?:\s+staat)?|op\s+basis\s+van\s+de\s+kluis|uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|(?:in|van|via)\s+de\s+kluis)\b/gi;
+        const msgForClientDetection = userOnlyMessage.replace(VAULT_PHRASE_RE, '').replace(/\s+/g, ' ').trim();
+
+        let contentBeyondCommand = userOnlyMessage;
+        if (hasGenerateIntent) {
+          const intentRe = /\b(?:maak|genereer)\b.{0,60}\b(?:briefing|evaluatie|rapport)\b|\b(?:maak\s+(?:de|hem|het|dit|haar))\b|\bdoe\s+het\s*(?:maar)?\b|\bbrief\w*\s+voor\s+\S/i;
+          const m = userOnlyMessage.match(intentRe);
+          if (m) {
+            contentBeyondCommand = (userOnlyMessage.slice(0, m.index) + ' ' + userOnlyMessage.slice(m.index + m[0].length)).trim();
+          }
+        }
+        const hasSubstantialInput =
+          hasOwnContent
+          || !!recordingTranscript
+          || message.length > userOnlyMessage.length
+          || userOnlyMessage.includes('\n')
+          || contentBeyondCommand.length > 70;
+        const isEmptyDocumentRequest = hasGenerateIntent && !hasSubstantialInput && !wantsVaultAsInput;
+
+        // Bij documentgeneratie nooit de kluis gebruiken als bron, tenzij de gebruiker dat expliciet vraagt.
+        // Reden: kluisinhoud wordt dan input voor de briefing terwijl de gebruiker geen input heeft geleverd.
+        const isDocumentGeneration = hasGenerateIntent || isEvaluationType || (!!effectiveOutputType && DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType));
+        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery || (isDocumentGeneration && !wantsVaultAsInput);
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -351,6 +379,33 @@ export async function POST(request) {
           } catch (err) {
             console.error('[VAULT] retrieval mislukt:', err?.message ?? err);
           }
+        }
+
+        // ── Kale documentopdracht: vraag om input in plaats van document genereren ──
+        if (isEmptyDocumentRequest) {
+          const DOC_LABELS = {
+            'account-to-pm':        'PM-briefing',
+            'account-to-creation':  'creatieve briefing',
+            'field-briefing':       'ambassadeursbriefing',
+            'meeting-summary':      'vergadersamenvatting',
+            'evaluation':           'evaluatie',
+            'external-debrief':     'externe debrief',
+            'project-briefing':     'projectbriefing',
+            'account-pm-briefing':  'PM-briefing',
+          };
+          const docLabel = (effectiveOutputType && DOC_LABELS[effectiveOutputType]) ?? 'document';
+          const questionText = `Wat is de input voor deze ${docLabel}? Plak hier de campagnegegevens, een transcript of andere relevante info — dan maak ik het direct.`;
+          const { data: savedQuestion } = await supabase.from('messages').insert({
+            thread_id: activeThreadId,
+            role: 'assistant',
+            content: questionText,
+          }).select('id').single();
+          const questionId = savedQuestion?.id ?? crypto.randomUUID();
+          writeEvent(controller, { type: 'meta', threadId: activeThreadId, isDocument: false, outputType: null });
+          writeEvent(controller, { type: 'chunk', text: questionText });
+          writeEvent(controller, { type: 'done', isDocument: false, content: questionText, messageId: questionId });
+          controller.close();
+          return;
         }
 
         const separator = `\n[---${crypto.randomUUID()}---]\n`;
@@ -497,8 +552,8 @@ export async function POST(request) {
               analysisDetectedClient = threadClientFromDb;
             } else {
               const clientMatch =
-                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
-                userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
+                msgForClientDetection.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
+                msgForClientDetection.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
               if (clientMatch) {
                 const existingForAnalysis = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
                 analysisDetectedClient = normalizeClientName(clientMatch[1], existingForAnalysis);
@@ -584,8 +639,8 @@ Elke markering staat op een eigen regel. Nooit achter een zin. Nooit meerdere ma
           }
         }
 
-        // ── Database-context (locaties + leveranciers) — tweelaags retrieval ───
-        const { contextText: databaseContextSuffix, mentionedLocations } = await buildDatabaseContext(tenant, supabase, userOnlyMessage);
+        // ── Database-context (locaties) — namen-index als system-suffix ─────────
+        const locationNameContext = locationsOn ? await buildLocationNameContext(tenant, supabase) : '';
 
         // Verbetermodus: index en ID van het bestaande document-bericht alvast opzoeken
         // zodat Stap 4 het kan overschrijven in plaats van een nieuw bericht aan te maken.
@@ -693,33 +748,128 @@ ${userTextOnly}`;
 
 
         let fullText = '';
+        const locationTools = locationsOn && !isDocument ? [LOCATION_TOOL_SCHEMA] : [];
+
         const streamParams = {
           model: 'claude-sonnet-4-6',
           max_tokens: effectiveOutputType === 'evaluation' ? 8192 : 4096,
           system: [
             { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
             ...(vaultSystemSuffix ? [{ type: 'text', text: vaultSystemSuffix }] : []),
-            ...(databaseContextSuffix ? [{ type: 'text', text: databaseContextSuffix }] : []),
+            ...(locationNameContext ? [{ type: 'text', text: locationNameContext }] : []),
           ],
           messages: claudeMessages,
           ...(isDocument ? { temperature: 0 } : isFreeChat ? { temperature: 0.7 } : {}),
           ...(isFreeChat ? {
-            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+            tools: [
+              { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+              ...locationTools,
+            ],
             betas: ['web-search-2025-03-05'],
+          } : locationTools.length > 0 ? {
+            tools: locationTools,
           } : {}),
         };
         const claudeStream = isFreeChat
           ? client.beta.messages.stream(streamParams)
           : client.messages.stream(streamParams);
 
+        // Verzamelen van tool-calls tijdens de eerste stream
+        const pendingToolCalls = [];
+        let currentToolCall = null;
+
         for await (const chunk of claudeStream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          if (chunk.type === 'content_block_start' && chunk.content_block?.type === 'tool_use') {
+            currentToolCall = { id: chunk.content_block.id, name: chunk.content_block.name, inputStr: '' };
+            pendingToolCalls.push(currentToolCall);
+          } else if (chunk.type === 'content_block_delta' && chunk.delta.type === 'input_json_delta' && currentToolCall) {
+            currentToolCall.inputStr += chunk.delta.partial_json;
+          } else if (chunk.type === 'content_block_stop') {
+            currentToolCall = null;
+          } else if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             fullText += chunk.delta.text;
             writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
           }
         }
 
-        const finalMsg = await claudeStream.finalMessage();
+        let firstStreamMsg = await claudeStream.finalMessage();
+        let finalMsg = firstStreamMsg;
+
+        const toolCallNames = pendingToolCalls.map(tc => tc.name);
+        const toolCallInputs = pendingToolCalls.map(tc => {
+          try { return { name: tc.name, input: JSON.parse(tc.inputStr) }; } catch { return { name: tc.name, input: null }; }
+        });
+        console.log('[TOOLS_SENT]', streamParams.tools?.map(t => t.name ?? t.type) ?? []);
+        console.log('[STOP_REASON]', firstStreamMsg.stop_reason, '| called:', toolCallNames);
+        writeEvent(controller, { type: 'debug_tools', tools_sent: streamParams.tools?.map(t => t.name ?? t.type) ?? [], stop_reason: firstStreamMsg.stop_reason, tools_called: toolCallNames, tools: toolCallInputs });
+
+        // Tool-use round-trip: als het model een tool aanroept, uitvoeren en tweede stream starten
+        const allLocationSources = [];
+
+        if (firstStreamMsg.stop_reason === 'tool_use' && pendingToolCalls.length > 0) {
+          const toolResults = await Promise.all(
+            pendingToolCalls.map(async (tc) => {
+              let resultText;
+              try {
+                const input = JSON.parse(tc.inputStr);
+                if (tc.name === 'search_locations') {
+                  const result = await executeLocationTool(input, supabase, tenant.id);
+                  resultText = result.text;
+                  allLocationSources.push(...result.locations);
+                } else {
+                  resultText = 'Onbekende tool.';
+                }
+              } catch (err) {
+                console.error('[TOOL] fout bij uitvoeren:', tc.name, err?.message);
+                resultText = 'Tool-uitvoering mislukt.';
+              }
+              return { tool_use_id: tc.id, content: resultText };
+            })
+          );
+
+          const messagesWithToolResult = [
+            ...claudeMessages,
+            { role: 'assistant', content: firstStreamMsg.content },
+            {
+              role: 'user',
+              content: toolResults.map(r => ({
+                type: 'tool_result',
+                tool_use_id: r.tool_use_id,
+                content: r.content,
+              })),
+            },
+          ];
+
+          // Tweede stream: geen web_search meer (resultaten zitten al in de history),
+          // wel betas wanneer de eerste stream beta was (server_tool_use blocks in history).
+          const claudeStream2 = (isFreeChat ? client.beta.messages : client.messages).stream({
+            model: streamParams.model,
+            max_tokens: streamParams.max_tokens,
+            system: streamParams.system,
+            messages: messagesWithToolResult,
+            ...(locationTools.length > 0 ? { tools: locationTools } : {}),
+            ...(isFreeChat ? { betas: ['web-search-2025-03-05'] } : {}),
+          });
+
+          for await (const chunk of claudeStream2) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              fullText += chunk.delta.text;
+              writeEvent(controller, { type: 'chunk', text: chunk.delta.text });
+            }
+          }
+
+          finalMsg = await claudeStream2.finalMessage();
+
+          // Log tokens van de eerste stream (tool-beslissing) apart
+          insertTokenUsage({
+            tenantId: tenant?.id ?? null,
+            userId: user.id,
+            threadId: activeThreadId,
+            requestType: 'chat-custom-tool-decision',
+            model: 'claude-sonnet-4-6',
+            usage: firstStreamMsg.usage,
+          });
+        }
         if (isFreeChat) {
           // Input is pas volledig na finalMessage() — niet tijdens content_block_start
           const searchBlocks = (finalMsg.content ?? []).filter(b => b.type === 'server_tool_use' && b.name === 'web_search');
@@ -822,19 +972,20 @@ ${userTextOnly}`;
         if (clientName) {
           detectedClient = clientName;
           if (isFirstTurn && wizardProject?.trim()) detectedProject = wizardProject.trim();
-        } else if (threadClientFromDb) {
-          detectedClient = threadClientFromDb;
-          detectedProject = threadProjectFromDb;
         } else if (recordingClient) {
           // Recording-split: gebruik de client van de recording-thread direct — sla regex over
           detectedClient = recordingClient;
         } else {
           const clientMatch =
-            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
-            userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
+            msgForClientDetection.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
+            msgForClientDetection.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
           if (clientMatch) {
             const existingForGen = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             detectedClient = normalizeClientName(clientMatch[1], existingForGen);
+          }
+          if (!detectedClient && threadClientFromDb) {
+            detectedClient = threadClientFromDb;
+            detectedProject = threadProjectFromDb;
           }
         }
 
@@ -967,15 +1118,24 @@ ${userTextOnly}`;
           }
         }
 
-        if (mentionedLocations?.length > 0) {
-          writeEvent(controller, {
-            type: 'location_sources',
-            locations: mentionedLocations.map(l => ({
-              naam: l.naam,
-              stad: l.stad,
-              channel: l.channel,
-            })),
+        // Emit location_sources op basis van daadwerkelijk teruggegeven records (niet parameters).
+        // Bij > 4 unieke locaties: één samengevatte chip in plaats van losse badges.
+        if (allLocationSources.length > 0) {
+          const seenNamen = new Set();
+          const dedupedSources = allLocationSources.filter(l => {
+            if (seenNamen.has(l.naam)) return false;
+            seenNamen.add(l.naam);
+            return true;
           });
+          let locationSourcesPayload;
+          if (dedupedSources.length > 4) {
+            const channels = [...new Set(dedupedSources.map(l => l.channel).filter(Boolean))];
+            const channelLabel = channels.length === 1 ? ` (${channels[0]})` : '';
+            locationSourcesPayload = [{ naam: `${dedupedSources.length} locaties${channelLabel}`, stad: null, channel: null }];
+          } else {
+            locationSourcesPayload = dedupedSources;
+          }
+          writeEvent(controller, { type: 'location_sources', locations: locationSourcesPayload });
         }
 
         if (locationsOn && !locationWriteConfirmSent) {
