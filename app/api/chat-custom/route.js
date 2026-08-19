@@ -321,6 +321,12 @@ export async function POST(request) {
 
         // Kale documentopdracht detectie: heeft de gebruiker inhoud aangeleverd buiten de opdrachtzin?
         const wantsVaultAsInput = /\b(?:uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|in\s+de\s+kluis|van\s+de\s+kluis|via\s+de\s+kluis)\b/i.test(userOnlyMessage);
+
+        // Versie van het bericht zonder kluis-frases, voor client-detectie.
+        // Voorkomt dat "voor Coca-Cola op basis van wat in de kluis staat" → "Coca-Cola op basis".
+        const VAULT_PHRASE_RE = /\b(?:op\s+basis\s+van\s+(?:wat\s+)?(?:er\s+)?in\s+de\s+kluis(?:\s+staat)?|op\s+basis\s+van\s+de\s+kluis|uit\s+de\s+kluis|vanuit\s+de\s+kluis|gebruik\s+de\s+kluis|(?:in|van|via)\s+de\s+kluis)\b/gi;
+        const msgForClientDetection = userOnlyMessage.replace(VAULT_PHRASE_RE, '').replace(/\s+/g, ' ').trim();
+
         let contentBeyondCommand = userOnlyMessage;
         if (hasGenerateIntent) {
           const intentRe = /\b(?:maak|genereer)\b.{0,60}\b(?:briefing|evaluatie|rapport)\b|\b(?:maak\s+(?:de|hem|het|dit|haar))\b|\bdoe\s+het\s*(?:maar)?\b|\bbrief\w*\s+voor\s+\S/i;
@@ -337,7 +343,10 @@ export async function POST(request) {
           || contentBeyondCommand.length > 70;
         const isEmptyDocumentRequest = hasGenerateIntent && !hasSubstantialInput && !wantsVaultAsInput;
 
-        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery || isEmptyDocumentRequest;
+        // Bij documentgeneratie nooit de kluis gebruiken als bron, tenzij de gebruiker dat expliciet vraagt.
+        // Reden: kluisinhoud wordt dan input voor de briefing terwijl de gebruiker geen input heeft geleverd.
+        const isDocumentGeneration = hasGenerateIntent || isEvaluationType || (!!effectiveOutputType && DOCUMENT_OUTPUT_TYPES.has(effectiveOutputType));
+        const skipVaultRetrieval = analysisConfirmed || hasOwnContent || !hasUserContent || isEvaluationType || isExternalQuery || (isDocumentGeneration && !wantsVaultAsInput);
         const vaultOn = vaultEnabled(tenant);
 
         const FULL_SUMMARY_KEYWORDS = ['volledige samenvatting', 'compleet overzicht', 'alle resultaten', 'hele document', 'volledig rapport'];
@@ -543,8 +552,8 @@ export async function POST(request) {
               analysisDetectedClient = threadClientFromDb;
             } else {
               const clientMatch =
-                userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
-                userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
+                msgForClientDetection.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
+                msgForClientDetection.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
               if (clientMatch) {
                 const existingForAnalysis = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
                 analysisDetectedClient = normalizeClientName(clientMatch[1], existingForAnalysis);
@@ -965,8 +974,8 @@ ${userTextOnly}`;
           detectedClient = recordingClient;
         } else {
           const clientMatch =
-            userOnlyMessage.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
-            userOnlyMessage.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
+            msgForClientDetection.match(/\bvoor\s+(?:klant\s+)?(?!de\b|het\b|een\b|naar\b|van\b|bij\b|uit\b|met\b|ons\b|PM\b|AM\b)([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i) ??
+            msgForClientDetection.match(/\bklant[:\s]+([A-Za-z][A-Za-z0-9&'\-]{1,30}(?:\s+(?!voor\b|naar\b)[A-Za-z0-9][A-Za-z0-9&'\-]{0,30}){0,2})\b/i);
           if (clientMatch) {
             const existingForGen = await fetchExistingClients(supabase, user.id, tenant?.id ?? null);
             detectedClient = normalizeClientName(clientMatch[1], existingForGen);

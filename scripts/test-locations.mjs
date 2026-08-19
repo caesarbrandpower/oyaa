@@ -373,109 +373,227 @@ console.log(`\nTotaal document-detectie: ${docPass}/${DOC_TESTS.length} geslaagd
 
 // ── TS: SSE route-integriteit ─────────────────────────────────────────────────
 //
-// T1-T7 raken route.js nooit. TS1 wel: het stuurt een echt HTTP-verzoek naar
-// /api/chat-custom, leest de SSE-stroom, en controleert dat:
-//   1. het done-event arriveert binnen TS_TIMEOUT_MS
-//   2. done.content een niet-lege string is
-//   3. done.messageId aanwezig is
+// T1-T7 raken route.js nooit — ze bellen Anthropic direct. Bugs in route.js
+// (ontbrekend done-event, kluis als input, klantnaam-extractie) zijn daarvoor
+// volledig onzichtbaar.
 //
-// De bug die we hebben opgelost (stream hing, done miste content+messageId)
-// had TS1 direct als FAIL gesignaleerd. T1-T7 zagen er niets van.
+// TS-tests sturen een echt HTTP-verzoek naar /api/chat-custom, lezen de SSE-
+// stroom event voor event, en controleren done-event én inhoud.
 //
-// Vereist in .env.local:
-//   OYAA_TEST_COOKIE  — kopieer de volledige Cookie-header van een
-//                       /api/chat-custom aanroep in DevTools (Network-tabblad).
-//   OYAA_TEST_BASE_URL — optioneel, default: http://localhost:3000
-//                        Gebruik bijv. https://oyaa-staging.vercel.app voor staging.
+// Auth wordt automatisch gegenereerd via auth.admin.generateLink + verifyOtp.
+// Geen cookie uit DevTools nodig.
+//
+// Optioneel in .env.local:
+//   OYAA_TEST_BASE_URL — default: http://localhost:3000
+//   OYAA_TEST_EMAIL    — default: ruben@chase.amsterdam
 
-const TS_COOKIE   = env.OYAA_TEST_COOKIE;
 const TS_BASE_URL = (env.OYAA_TEST_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-const TS_TIMEOUT  = 15_000;
+const TS_TIMEOUT  = 90_000;
+// Testgebruiker: eerste gebruiker van het chase-staging tenant
+const TS_EMAIL    = env.OYAA_TEST_EMAIL ?? 'ruben@chase.amsterdam';
 
 console.log('\n\n' + '='.repeat(60));
 console.log('TS — SSE route-integriteit');
 console.log('='.repeat(60));
+console.log(`  Base URL: ${TS_BASE_URL}`);
 
-if (!TS_COOKIE) {
-  console.log('  OVERGESLAGEN — stel OYAA_TEST_COOKIE in .env.local in.');
-  console.log('  Stap: open DevTools → Network → filter op chat-custom → kopieer');
-  console.log('  de waarde van de Cookie-header uit een bestaand verzoek.');
-  console.log('  Optioneel: OYAA_TEST_BASE_URL (default: http://localhost:3000)');
-} else {
-  const TS_TESTS = [
-    {
-      id: 'TS1',
-      description: 'Kale documentopdracht — done-event met content en messageId binnen timeout',
-      body: {
-        message: 'Maak een briefing naar de PM voor Coca-Cola',
-        outputType: 'account-to-pm',
-      },
-    },
-  ];
+// Genereer programmatisch een sessie via de admin API (geen cookie uit DevTools nodig).
+// Patroon: generateLink(magiclink) → email_otp → verifyOtp → access_token → cookie.
+async function generateSessionCookie() {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'magiclink', email: TS_EMAIL,
+  });
+  if (linkErr) throw new Error('generateLink: ' + linkErr.message);
 
-  for (const test of TS_TESTS) {
-    console.log(`\n${test.id} — ${test.description}`);
-    try {
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), TS_TIMEOUT);
+  const { createClient: cc } = await import('@supabase/supabase-js');
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anon = cc(SUPABASE_URL, anonKey);
+  const { data: sess, error: sessErr } = await anon.auth.verifyOtp({
+    email: TS_EMAIL,
+    token: link.properties.email_otp,
+    type: 'email',
+  });
+  if (sessErr || !sess?.session) throw new Error('verifyOtp: ' + (sessErr?.message ?? 'geen sessie'));
 
-      const res = await fetch(`${TS_BASE_URL}/api/chat-custom`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Cookie': TS_COOKIE },
-        body: JSON.stringify(test.body),
-        signal: ac.signal,
-      });
+  // @supabase/ssr leest de sessie uit een cookie met naam sb-<project-ref>-auth-token.
+  // De waarde wordt opgeslagen als "base64-<base64url(sessionJson)>".
+  const ref = new URL(SUPABASE_URL).hostname.split('.')[0];
+  const cookieName = `sb-${ref}-auth-token`;
+  const encoded = 'base64-' + Buffer.from(JSON.stringify(sess.session)).toString('base64url');
+  return `${cookieName}=${encoded}`;
+}
 
-      if (!res.ok) {
-        clearTimeout(timer);
-        console.log(`  FAIL ✗ — HTTP ${res.status}`);
-        continue;
-      }
-
-      // Lees SSE-stroom event voor event
-      const events = [];
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-
-      outer: while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const parts = buf.split('\n\n');
-        buf = parts.pop();
-        for (const part of parts) {
-          for (const line of part.split('\n')) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const ev = JSON.parse(line.slice(6));
-              events.push(ev);
-              if (ev.type === 'done' || ev.type === 'error') break outer;
-            } catch { /* ongeldige JSON — sla over */ }
-          }
+// Stuurt één SSE-verzoek naar de route en verzamelt alle events tot done/error/timeout.
+async function runSSERequest(cookieHeader, body) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), TS_TIMEOUT);
+  try {
+    const res = await fetch(`${TS_BASE_URL}/api/chat-custom`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookieHeader },
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    });
+    if (!res.ok) {
+      clearTimeout(timer);
+      return { httpStatus: res.status, events: [] };
+    }
+    const events = [];
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    outer: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const part of parts) {
+        for (const line of part.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            events.push(ev);
+            if (ev.type === 'done' || ev.type === 'error') break outer;
+          } catch { /* ongeldige JSON — sla over */ }
         }
       }
-
-      clearTimeout(timer);
-
-      const doneEvent = events.find(e => e.type === 'done');
-      const failures = [];
-      if (!doneEvent)                        failures.push('geen done-event ontvangen');
-      if (doneEvent && !doneEvent.content)   failures.push('done.content ontbreekt of leeg');
-      if (doneEvent && !doneEvent.messageId) failures.push('done.messageId ontbreekt');
-
-      const passed = failures.length === 0;
-      console.log(`  ${passed ? 'PASS ✓' : 'FAIL ✗'}`);
-      failures.forEach(f => console.log(`    ✗ ${f}`));
-      console.log(`    events: ${events.map(e => e.type).join(', ') || 'geen'}`);
-      if (doneEvent?.content)   console.log(`    done.content: "${String(doneEvent.content).slice(0, 100)}"`);
-      if (doneEvent?.messageId) console.log(`    done.messageId: ${doneEvent.messageId}`);
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        console.log(`  FAIL ✗ — TIMEOUT: geen done-event binnen ${TS_TIMEOUT / 1000}s`);
-      } else {
-        console.log(`  FAIL ✗ — ${err.message}`);
-      }
     }
+    clearTimeout(timer);
+    return { httpStatus: 200, events };
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') return { httpStatus: 0, events: [], timeout: true };
+    return { httpStatus: 0, events: [], error: err.message };
+  }
+}
+
+const TS_TESTS = [
+  {
+    // Geval 1: kale opdracht → vraag om input, geen kluis, geen document
+    id: 'TS1',
+    description: 'Kale opdracht → vraag om input (geen kluis, geen document)',
+    body: { message: 'Maak een briefing naar de PM voor Coca-Cola', outputType: 'account-to-pm' },
+    checks: (events) => {
+      const doneEvent = events.find(e => e.type === 'done');
+      const f = [];
+      if (!doneEvent)                        f.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      const content = doneEvent?.content ?? '';
+      if (!content.match(/input|campagne|plak|transcript/i)) {
+        f.push('geen vraag om input gevonden: ' + content.slice(0, 100));
+      }
+      if (content.length > 500) {
+        f.push('response te lang — vermoedelijk gegenereerde briefing i.p.v. vraag (' + content.length + ' tekens)');
+      }
+      return { failures: f, doneEvent };
+    },
+  },
+  {
+    // Geval 2: opdracht met input → document op uitsluitend die input, geen kluisbronnen
+    id: 'TS2',
+    description: 'Opdracht + input → document zonder kluisbronnen, gemarkeerde gaten',
+    body: {
+      message: 'Maak een briefing naar de PM voor Coca-Cola. Sampling op Utrecht Centraal in september, budget 15k, doelgroep studenten 18-25.',
+      outputType: 'account-to-pm',
+    },
+    checks: (events) => {
+      const doneEvent = events.find(e => e.type === 'done');
+      const f = [];
+      if (!doneEvent)                        f.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      const content = doneEvent?.content ?? '';
+      if (content.length < 200) {
+        f.push('response te kort voor een document (' + content.length + ' tekens) — vermoedelijk fout of vraag');
+      }
+      if (!/utrecht centraal|15\.?000|studenten/i.test(content)) {
+        f.push('input-gegevens niet terug in document — kluis heeft mogelijk de input overschreven');
+      }
+      return { failures: f, doneEvent };
+    },
+  },
+  {
+    // Geval 3: expliciete kluis-aanroep → kluis wordt gebruikt, klantnaam is "Coca-Cola" en niet "Coca-Cola Op Basis"
+    id: 'TS3',
+    description: 'Expliciete kluis-aanroep → kluis wordt gebruikt, klantnaam is Coca-Cola',
+    body: {
+      message: 'Maak een briefing op basis van wat in de kluis staat over Coca-Cola',
+      outputType: 'account-to-pm',
+    },
+    checks: (events) => {
+      const doneEvent = events.find(e => e.type === 'done');
+      const f = [];
+      if (!doneEvent)                        f.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      const content = doneEvent?.content ?? '';
+      if (content.length < 50) {
+        f.push('response te kort (' + content.length + ' tekens)');
+      }
+      // Klantnaam-bug: "Coca-Cola Op Basis" mag niet in content als klantnaam verschijnen
+      if (/coca.cola\s+op\s+basis/i.test(content)) {
+        f.push('klantnaam bevat "Op Basis" — kluis-frase niet gestript voor client-detectie');
+      }
+      return { failures: f, doneEvent };
+    },
+  },
+  {
+    // Geval 4: locatievraag → onveranderd (regressietest)
+    id: 'TS4',
+    description: 'Locatievraag → search_locations wordt gebruikt (regressie)',
+    body: { message: 'Wat is een goedkoper alternatief voor Utrecht Centraal?' },
+    checks: (events) => {
+      const doneEvent = events.find(e => e.type === 'done');
+      const f = [];
+      if (!doneEvent)                        f.push('geen done-event ontvangen');
+      if (doneEvent && !doneEvent.content)   f.push('done.content ontbreekt of leeg');
+      if (doneEvent && !doneEvent.messageId) f.push('done.messageId ontbreekt');
+      const content = doneEvent?.content ?? '';
+      if (!content.match(/bereik|cpm|€|\d+/i)) {
+        f.push('geen locatiedata gevonden in response — tool mogelijk niet aangeroepen');
+      }
+      return { failures: f, doneEvent };
+    },
+  },
+];
+
+let tsCookie;
+try {
+  process.stdout.write('  Sessie genereren... ');
+  tsCookie = await generateSessionCookie();
+  console.log('OK');
+} catch (err) {
+  console.log('FAIL ✗ — sessie genereren mislukt: ' + err.message);
+  tsCookie = null;
+}
+
+if (tsCookie) {
+  for (const test of TS_TESTS) {
+    console.log(`\n${test.id} — ${test.description}`);
+    const { httpStatus, events, timeout, error: fetchErr } = await runSSERequest(tsCookie, test.body);
+
+    if (timeout) {
+      console.log(`  FAIL ✗ — TIMEOUT: geen done-event binnen ${TS_TIMEOUT / 1000}s`);
+      continue;
+    }
+    if (fetchErr) {
+      console.log(`  FAIL ✗ — ${fetchErr}`);
+      continue;
+    }
+    if (httpStatus !== 200) {
+      console.log(`  FAIL ✗ — HTTP ${httpStatus}`);
+      continue;
+    }
+
+    const { failures, doneEvent } = test.checks(events);
+    const passed = failures.length === 0;
+    console.log(`  ${passed ? 'PASS ✓' : 'FAIL ✗'}`);
+    failures.forEach(f => console.log(`    ✗ ${f}`));
+    console.log(`    events: ${events.map(e => e.type).join(', ') || 'geen'}`);
+    if (doneEvent?.content)   console.log(`    done.content: "${String(doneEvent.content).slice(0, 120)}"`);
+    if (doneEvent?.messageId) console.log(`    done.messageId: ${doneEvent.messageId}`);
   }
 }
