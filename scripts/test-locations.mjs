@@ -43,6 +43,7 @@ const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
 
 // Importeer tool-schema en uitvoerfunctie
 const { LOCATION_TOOL_SCHEMA, executeLocationTool, buildLocationNameContext } = await import(`${root}/lib/locations-retrieval.js`);
+const { hasWriteIntent, isQuestion } = await import(`${root}/lib/locations-write.js`);
 
 // Haal tenant op en bouw locatiecontext
 const { data: tenant } = await sb.from('tenants').select('*').eq('id', CHASE_STAGING).single();
@@ -370,6 +371,68 @@ for (const test of DOC_TESTS) {
   if (passed) docPass++; else docFail++;
 }
 console.log(`\nTotaal document-detectie: ${docPass}/${DOC_TESTS.length} geslaagd ${docFail === 0 ? '✓' : '✗'}`);
+
+// ── TW: schrijfintentie-detectie (unit tests) ────────────────────────────────
+// Vraagvormen mogen nooit een schrijfbevestiging opleveren.
+// isQuestion() is de eerste verdedigingslinie; hasWriteIntent() als extra check.
+
+console.log('\n\n' + '='.repeat(60));
+console.log('TW — schrijfintentie unit-tests (vraagvormen)');
+console.log('='.repeat(60));
+
+const WRITE_TESTS = [
+  {
+    id: 'TW1',
+    description: 'Adresvraag — isQuestion = true, hasWriteIntent = false',
+    message: 'Wat is het adres van Almere - Braderie/Markt?',
+    expected: { isQuestion: true, hasWriteIntent: false },
+  },
+  {
+    id: 'TW2',
+    description: 'Kostenvraag — isQuestion = true, hasWriteIntent = false',
+    message: 'Wat kost Rotterdam Centraal?',
+    expected: { isQuestion: true, hasWriteIntent: false },
+  },
+  {
+    id: 'TW3',
+    description: 'Doelgroepvraag — isQuestion = true, hasWriteIntent = false',
+    message: 'Welke doelgroep heeft Amsterdam Centraal?',
+    expected: { isQuestion: true, hasWriteIntent: false },
+  },
+  {
+    id: 'TW4',
+    description: 'Vergunningsvraag — isQuestion = true, hasWriteIntent = false',
+    message: 'Wanneer verloopt de vergunning van Utrecht Centraal?',
+    expected: { isQuestion: true, hasWriteIntent: false },
+  },
+  {
+    id: 'TW5',
+    description: 'Schrijfverzoek — isQuestion = false, hasWriteIntent = true',
+    message: 'Zet bij Rotterdam Centraal dat laden en lossen alleen voor 08:00 kan.',
+    expected: { isQuestion: false, hasWriteIntent: true },
+  },
+  {
+    id: 'TW6',
+    description: 'Vraag zonder vraagteken maar met vraagtaalpatroon — isQuestion = true',
+    message: 'Hoeveel bereik heeft Coolsingel',
+    expected: { isQuestion: true, hasWriteIntent: false },
+  },
+];
+
+let twPass = 0, twFail = 0;
+for (const test of WRITE_TESTS) {
+  const resultIsQ = isQuestion(test.message);
+  const resultHasW = hasWriteIntent(test.message);
+  const failures = [];
+  if (resultIsQ !== test.expected.isQuestion)      failures.push(`isQuestion: verwacht ${test.expected.isQuestion}, got ${resultIsQ}`);
+  if (resultHasW !== test.expected.hasWriteIntent) failures.push(`hasWriteIntent: verwacht ${test.expected.hasWriteIntent}, got ${resultHasW}`);
+  const passed = failures.length === 0;
+  console.log(`\n${test.id} — ${test.description}`);
+  console.log(`  ${passed ? 'PASS ✓' : 'FAIL ✗'}`);
+  failures.forEach(f => console.log(`    ✗ ${f}`));
+  if (passed) twPass++; else twFail++;
+}
+console.log(`\nTotaal schrijfintentie: ${twPass}/${WRITE_TESTS.length} geslaagd ${twFail === 0 ? '✓' : '✗'}`);
 
 // ── TS: SSE route-integriteit ─────────────────────────────────────────────────
 //
