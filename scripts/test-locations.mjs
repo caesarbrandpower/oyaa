@@ -178,13 +178,14 @@ const TESTS = [
     },
   },
   {
-    // Bijzonderheden Amsterdam Centraal: veld is gevuld ("Oranje hesjes + Contact met logistiek").
+    // Bijzonderheden bij single locatie: Alkmaar heeft bijzonderheden gevuld.
+    // Bij 1 resultaat worden detail-velden meegegeven (incl. bijzonderheden).
     // Regressiontest voor formatLocationTable die bijzonderheden weggooide.
     id: 'T11',
-    q: 'Wat zijn de bijzonderheden bij Amsterdam Centraal?',
+    q: 'Wat zijn de bijzonderheden bij Alkmaar?',
     checks: {
       must_call:  'search_locations',
-      must_have:  [/hesjes|logistiek/i],
+      must_have:  [/hesjes|plattegrond/i],
       must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
@@ -197,6 +198,29 @@ const TESTS = [
       must_call:  'search_locations',
       must_have:  [/stationssingel/i],
       must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Lijstvraag met meerdere resultaten — regressiontest voor leeg antwoord bij multi-row tool-output.
+    // Amsterdam Centraal heeft 4 locaties; elk met adres + bijzonderheden.
+    id: 'T13',
+    q: 'Wat kost Amsterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/2\.100|2100/i],
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Lijstvraag stadsfilter — regressiontest voor leeg antwoord bij multi-row tool-output.
+    id: 'T14',
+    q: 'Welke locaties hebben we in Rotterdam?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/rotterdam centraal/i],
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
       stop_reason_first: 'tool_use',
     },
   },
@@ -288,6 +312,11 @@ function check(testDef, result) {
   const { checks } = testDef;
   const text = result.finalText;
 
+  // Leeg antwoord is altijd een fout — vangt gevallen op waar model tool opnieuw aanroept
+  // in de tweede stream in plaats van tekst te produceren.
+  if (!text?.trim()) {
+    failures.push('leeg antwoord — finalText is leeg na tool-uitvoering');
+  }
   if (checks.must_call && !result.calledTools.includes(checks.must_call)) {
     failures.push(`tool niet aangeroepen: ${checks.must_call} (wel: ${result.calledTools.join(', ') || 'geen'})`);
   }

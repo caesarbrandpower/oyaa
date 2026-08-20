@@ -840,14 +840,17 @@ ${userTextOnly}`;
             },
           ];
 
-          // Tweede stream: geen web_search meer (resultaten zitten al in de history),
-          // wel betas wanneer de eerste stream beta was (server_tool_use blocks in history).
+          // Tweede stream: model heeft het tool-resultaat al en moet nu tekst produceren.
+          // Geen tools meegeven: als search_locations beschikbaar blijft kan het model
+          // de tool opnieuw aanroepen, wat fullText leeg laat (route.js verwerkt geen
+          // geneste tool-call). Betas wel behouden wanneer de eerste stream web_search
+          // heeft gebruikt — dan staan er server_tool_use blocks in de history die
+          // het API-endpoint niet accepteert zonder de bijbehorende beta-flag.
           const claudeStream2 = (isFreeChat ? client.beta.messages : client.messages).stream({
             model: streamParams.model,
             max_tokens: streamParams.max_tokens,
             system: streamParams.system,
             messages: messagesWithToolResult,
-            ...(locationTools.length > 0 ? { tools: locationTools } : {}),
             ...(isFreeChat ? { betas: ['web-search-2025-03-05'] } : {}),
           });
 
