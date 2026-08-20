@@ -25,13 +25,22 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 
-// Laad env vars uit .env.local
-const envRaw = readFileSync(resolve(root, '.env.local'), 'utf8');
-const env = {};
-for (const line of envRaw.split('\n')) {
-  const m = line.match(/^([A-Z_]+)=["']?(.+?)["']?\s*$/);
-  if (m) env[m[1]] = m[2];
+// Laad env vars uit .env.local en .env.vercel (later overschrijft eerder)
+function parseEnvFile(path) {
+  try {
+    const raw = readFileSync(path, 'utf8');
+    const result = {};
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^([A-Z0-9_]+)=["']?(.+?)["']?\s*$/);
+      if (m) result[m[1]] = m[2];
+    }
+    return result;
+  } catch { return {}; }
 }
+const env = {
+  ...parseEnvFile(resolve(root, '.env.vercel')),
+  ...parseEnvFile(resolve(root, '.env.local')),
+};
 
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE  = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -134,6 +143,87 @@ const TESTS = [
       stop_reason_first: 'tool_use',
     },
   },
+  {
+    // Adresvraag: moet search_locations aanroepen EN het juiste adres teruggeven.
+    // Regressiontest (1) voor isQuestion() die de leesflow blokkeerde.
+    // Regressiontest (2) voor formatLocationTable die het adresveld weggooide.
+    id: 'T8',
+    q: 'Wat is het adres van Almere - Braderie/Markt?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/schutterstraat/i],
+      must_not:   [/stadhuisplein/i, /geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Parkeren: veld is nergens gevuld op staging — model mag correct "niet beschikbaar" zeggen.
+    // Test garandeert alleen dat search_locations wordt aangeroepen (niet websearch).
+    id: 'T9',
+    q: 'Hoe is het parkeren bij Rotterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Vergunning: veld is nergens gevuld op staging — model mag correct "niet beschikbaar" zeggen.
+    id: 'T10',
+    q: 'Wanneer verloopt de vergunning van Utrecht Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Bijzonderheden bij single locatie: Alkmaar heeft bijzonderheden gevuld.
+    // Bij 1 resultaat worden detail-velden meegegeven (incl. bijzonderheden).
+    // Regressiontest voor formatLocationTable die bijzonderheden weggooide.
+    id: 'T11',
+    q: 'Wat zijn de bijzonderheden bij Alkmaar?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/hesjes|plattegrond/i],
+      must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Adres Rotterdam Centraal: veld is gevuld ("Stationssingel 10, 3013HA Rotterdam").
+    id: 'T12',
+    q: 'Wat is het adres van Rotterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/stationssingel/i],
+      must_not:   [/geen toegang/i, /niet.*beschikbaar|niet.*opgenomen|niet.*bekend/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Lijstvraag met meerdere resultaten — regressiontest voor leeg antwoord bij multi-row tool-output.
+    // Amsterdam Centraal heeft 4 locaties; elk met adres + bijzonderheden.
+    id: 'T13',
+    q: 'Wat kost Amsterdam Centraal?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/2\.100|2100/i],
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
+  {
+    // Lijstvraag stadsfilter — regressiontest voor leeg antwoord bij multi-row tool-output.
+    id: 'T14',
+    q: 'Welke locaties hebben we in Rotterdam?',
+    checks: {
+      must_call:  'search_locations',
+      must_have:  [/rotterdam centraal/i],
+      must_not:   [/geen toegang/i, ...NO_TIME_UNIT],
+      stop_reason_first: 'tool_use',
+    },
+  },
 ];
 
 const RUN_TIMEOUT_MS = 45_000;
@@ -222,6 +312,11 @@ function check(testDef, result) {
   const { checks } = testDef;
   const text = result.finalText;
 
+  // Leeg antwoord is altijd een fout — vangt gevallen op waar model tool opnieuw aanroept
+  // in de tweede stream in plaats van tekst te produceren.
+  if (!text?.trim()) {
+    failures.push('leeg antwoord — finalText is leeg na tool-uitvoering');
+  }
   if (checks.must_call && !result.calledTools.includes(checks.must_call)) {
     failures.push(`tool niet aangeroepen: ${checks.must_call} (wel: ${result.calledTools.join(', ') || 'geen'})`);
   }
