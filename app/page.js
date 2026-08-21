@@ -12,7 +12,7 @@ const CTA_HREF = process.env.NEXT_PUBLIC_CTA_HREF || 'mailto:hello@waybetter.nl'
 
 export const metadata = {
   title: 'Waybetter. Made for agency people',
-  description: 'Waybetter brengt klantcontext, documenten en je bestaande tools samen op één plek. Begin met betere briefings, groei door naar een bureau-agent die met jullie werkwijze meedenkt.',
+  description: 'Gemaakt om het werk van bureaumensen makkelijker te maken. Documenten, klantkennis en tools op één plek, met betere briefings en je eigen bureau-agent.',
 }
 
 export const viewport = {
@@ -77,7 +77,7 @@ export default async function HomePage() {
             naar&#160;&#233;&#233;n <span className="text-orange">werkomgeving.</span>
           </h1>
           <p className="animate-hero-3 text-text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed">
-            E&#233;n werkomgeving voor je hele bureau, waar documenten, klantkennis en tools samenkomen. Voor betere briefings binnen minuten en je eigen bureau-agent waar je alles aan kunt vragen.
+            Gemaakt om het werk van bureaumensen makkelijker te maken. Zodat er tijd overblijft voor het werk dat ertoe doet. Documenten, klantkennis en tools op &#233;&#233;n plek, voor betere briefings binnen minuten en je eigen bureau-agent waar je alles aan kunt vragen.
           </p>
           <div className="animate-hero-4 flex flex-col sm:flex-row gap-3">
             <a
@@ -137,7 +137,7 @@ export default async function HomePage() {
                       Te veel losse tools, geen overzicht
                     </h3>
                     <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                      Drive, Word, Notion, een AI-tab, een ander systeem. Mensen kopi&#235;ren en plakken, verliezen context. Wat &#233;&#233;n plek had moeten zijn, zijn tien losse eilandjes.
+                      Drive, Word, Notion, ChatGPT, een planningstool, een database met leveranciers. Alles staat ergens, maar nergens bij elkaar.
                     </p>
                   </div>
                 </div>
@@ -152,7 +152,7 @@ export default async function HomePage() {
                       Bureau-kennis die niet vastligt
                     </h3>
                     <p className="text-text-sec text-base md:text-lg leading-relaxed max-w-2xl">
-                      Wat was de tone of voice voor die klant? Welke leverancier past het beste bij dit vraagstuk? Bureau-kennis zit in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
+                      Welke partij past het beste bij dit vraagstuk? Hoe hebben we dit vorig jaar ook alweer aangepakt? Wat werkte wel en wat niet? Bureau-kennis zit vaak in hoofden, niet in systemen. Iedere nieuwe medewerker begint vanaf nul.
                     </p>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export default async function HomePage() {
                 {
                   Icon: TrendingUp,
                   title: 'Werkt vandaag, groeit mee',
-                  body: 'Integraties en uitbreidingen erbij zonder extra kosten.',
+                  body: 'Koppelingen met jullie eigen tools en uitbreidingen die passen bij hoe jullie werken.',
                 },
               ].map(({ Icon, title, body }) => (
                 <div key={title} className="flex flex-col gap-4 border border-dark-border rounded-xl p-6 bg-dark-card hover:border-orange/40 transition-colors duration-200">

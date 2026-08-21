@@ -3,7 +3,7 @@
 // en slaat het transcript op als gebruikersbericht.
 export const maxDuration = 120;
 
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
 
 function pad(n) {
@@ -19,10 +19,24 @@ function recordingTitle(client) {
 }
 
 export async function POST(request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+  // Web app: cookie-based session. Desktop app: Authorization: Bearer header.
+  let user;
+  const authHeader = request.headers.get('authorization') || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
+  if (bearerToken) {
+    const { data: { user: tokenUser }, error } = await createServiceClient().auth.getUser(bearerToken);
+    if (error || !tokenUser) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+    user = tokenUser;
+  } else {
+    const supabase = await createClient();
+    const { data: { user: cookieUser } } = await supabase.auth.getUser();
+    if (!cookieUser) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+    user = cookieUser;
+  }
+
+  // Service client bypasses RLS — safe because user_id is set explicitly from validated token.
+  const db = createServiceClient();
   const tenant = await getTenant();
 
   let formData;
@@ -59,7 +73,7 @@ export async function POST(request) {
 
   // Maak thread aan
   const title = recordingTitle(client);
-  const { data: thread, error: threadError } = await supabase
+  const { data: thread, error: threadError } = await db
     .from('threads')
     .insert({
       user_id: user.id,
@@ -77,7 +91,7 @@ export async function POST(request) {
   }
 
   // Sla transcript op als gebruikersbericht
-  await supabase.from('messages').insert({
+  await db.from('messages').insert({
     thread_id: thread.id,
     role: 'user',
     content: transcript,
@@ -91,7 +105,7 @@ export async function POST(request) {
     const storagePath = `${user.id}/${thread.id}/${Date.now()}.${ext}`;
     const audioBuffer = await audioFile.arrayBuffer();
 
-    const { data: storageData, error: storageError } = await supabase.storage
+    const { data: storageData, error: storageError } = await db.storage
       .from('recordings')
       .upload(storagePath, audioBuffer, {
         contentType: audioFile.type || 'audio/webm',
@@ -99,11 +113,11 @@ export async function POST(request) {
       });
 
     if (!storageError && storageData) {
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = db.storage
         .from('recordings')
         .getPublicUrl(storagePath);
       audioUrl = publicUrl;
-      await supabase.from('threads').update({ audio_url: audioUrl }).eq('id', thread.id);
+      await db.from('threads').update({ audio_url: audioUrl }).eq('id', thread.id);
     }
   } catch {
     // Audio upload mislukt — thread en transcript zijn al opgeslagen, doorgaan
