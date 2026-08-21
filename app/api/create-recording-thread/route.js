@@ -100,6 +100,7 @@ export async function POST(request) {
 
   // Upload audio naar Supabase Storage
   let audioUrl = null;
+  let audioWarning = null;
   try {
     const ext = audioFile.name?.split('.').pop() || 'webm';
     const storagePath = `${user.id}/${thread.id}/${Date.now()}.${ext}`;
@@ -112,16 +113,18 @@ export async function POST(request) {
         upsert: false,
       });
 
-    if (!storageError && storageData) {
+    if (storageError) {
+      audioWarning = `Audio niet opgeslagen in cloud: ${storageError.message}`;
+    } else if (storageData) {
       const { data: { publicUrl } } = db.storage
         .from('recordings')
         .getPublicUrl(storagePath);
       audioUrl = publicUrl;
       await db.from('threads').update({ audio_url: audioUrl }).eq('id', thread.id);
     }
-  } catch {
-    // Audio upload mislukt — thread en transcript zijn al opgeslagen, doorgaan
+  } catch (e) {
+    audioWarning = `Audio niet opgeslagen in cloud: ${e?.message ?? 'onbekende fout'}`;
   }
 
-  return Response.json({ threadId: thread.id, title, transcript, audioUrl });
+  return Response.json({ threadId: thread.id, title, transcript, audioUrl, audioWarning });
 }
