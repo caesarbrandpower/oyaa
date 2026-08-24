@@ -208,7 +208,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, field_briefing_extras')
+        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, audio_storage_path, transcript_status, transcript_error, field_briefing_extras')
         .eq('id', threadParam)
         .single();
       if (!thread) return;
@@ -1114,6 +1114,47 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [recordingPending, setRecordingPending] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
 
+  // --- Transcript pending / failed --- (async transcriptie)
+  const isTranscriptPending = !!(
+    activeThread?.output_type === 'recording' &&
+    ['queued', 'processing'].includes(activeThread?.transcript_status) &&
+    messages.length === 0 &&
+    !recordingPending
+  );
+  const isTranscriptFailed = !!(
+    activeThread?.output_type === 'recording' &&
+    activeThread?.transcript_status === 'failed' &&
+    messages.length === 0
+  );
+
+  // Poll elke 5 seconden zolang het transcript nog verwerkt wordt
+  useEffect(() => {
+    if (!isTranscriptPending || !activeThread?.id) return;
+    const id = setInterval(async () => {
+      try {
+        const { createClient: cb } = await import('@/lib/supabase-browser');
+        const sb = cb();
+        const { data: t } = await sb.from('threads')
+          .select('transcript_status, transcript_error')
+          .eq('id', activeThread.id)
+          .single();
+        if (!t) return;
+        if (t.transcript_status === 'done') {
+          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'done' }));
+          const { data: msgs } = await sb.from('messages')
+            .select('id, role, content, created_at')
+            .eq('thread_id', activeThread.id)
+            .order('created_at', { ascending: true });
+          setMessages((msgs ?? []).map(m => ({ ...m, attachments: [] })));
+        } else if (t.transcript_status === 'failed') {
+          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: t.transcript_error }));
+        }
+      } catch { /* netwerk-fout — volgende interval probeert het opnieuw */ }
+    }, 5000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, isTranscriptPending]);
+
   // --- Getrapt verschijnen opname-thread (0 = niets, 1 = transcript, 2 = card, 3 = tekst) ---
   const [recordingRevealStep, setRecordingRevealStep] = useState(0);
   useEffect(() => {
@@ -1152,12 +1193,10 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }, 1000);
   }
 
-  async function handleRecordingComplete({ threadId, title, transcript, audioUrl, client }) {
+  async function handleRecordingComplete({ threadId, title, audioUrl, client }) {
     clearInterval(recordingProgressRef.current);
-    setRecordingProgress(100);
 
-    // Bouw thread-object direct uit callback-data zodat audiospeler en sidebar
-    // meteen updaten — geen wachten op aparte Supabase-fetch
+    // Transcript wordt async aangemaakt — direct thread tonen met 'processing'-status
     const now = new Date().toISOString();
     const optimisticThread = {
       id: threadId,
@@ -1169,25 +1208,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       created_at: now,
       updated_at: now,
       audio_url: audioUrl,
+      transcript_status: 'processing',
+      transcript_error: null,
     };
     setActiveThreadBoth(optimisticThread);
     setBriefingExtras({});
     setThreads(prev => prev.some(t => t.id === threadId) ? prev : [optimisticThread, ...prev]);
+    setMessages([]);
 
-    // Toon transcript als user-bericht (direct uit response, niet streaming)
-    setMessages([{
-      id: 'recording-' + threadId,
-      role: 'user',
-      content: transcript,
-      created_at: now,
-      attachments: [],
-      isRecordingTranscript: true,
-    }]);
-
-    setTimeout(() => {
-      setRecordingPending(false);
-      setRecordingProgress(0);
-    }, 300);
+    setRecordingPending(false);
+    setRecordingProgress(0);
 
     // Haal volledige thread op als fallback (client, project, etc.)
     try {
@@ -1195,7 +1225,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const supabase = createClient();
       const { data: thread } = await supabase
         .from('threads')
-        .select('id, title, output_type, client, project, created_at, updated_at, audio_url')
+        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, transcript_status, transcript_error')
         .eq('id', threadId)
         .single();
       if (thread) {
@@ -1406,18 +1436,59 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {/* Chat content */}
         <div className="flex-1 overflow-y-auto">
           {recordingPending ? (
-            /* Opname wordt verwerkt — laadscherm */
+            /* Opname wordt geüpload — laadscherm */
             <div className="flex items-center justify-center min-h-full">
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
-                <p className="text-[15px] font-medium text-white/70 mb-2">Transcript wordt gemaakt...</p>
-                <p className="text-[12px] text-white/30 mb-6">Dit duurt gewoonlijk 20 tot 60 seconden.</p>
+                <p className="text-[15px] font-medium text-white/70 mb-2">Opname wordt verstuurd...</p>
+                <p className="text-[12px] text-white/30 mb-6">Even geduld.</p>
                 <div className="w-full bg-white/[0.08] rounded-full h-1.5 overflow-hidden">
                   <div
                     className="h-1.5 rounded-full bg-orange transition-all duration-1000"
                     style={{ width: `${recordingProgress}%` }}
                   />
                 </div>
+              </div>
+            </div>
+          ) : isTranscriptPending ? (
+            /* Transcript wordt op de achtergrond aangemaakt */
+            <div className="flex items-center justify-center min-h-full">
+              <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
+                <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
+                <p className="text-[15px] font-medium text-white/70 mb-2">Bezig met verwerken...</p>
+                <p className="text-[12px] text-white/30">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
+              </div>
+            </div>
+          ) : isTranscriptFailed ? (
+            /* Transcriptie mislukt — opnieuw proberen knop */
+            <div className="flex items-center justify-center min-h-full">
+              <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
+                <p className="text-[15px] font-medium text-white/70 mb-2">Transcriptie mislukt</p>
+                {activeThread?.transcript_error && (
+                  <p className="text-[12px] text-white/30 mb-6">{activeThread.transcript_error}</p>
+                )}
+                <p className="text-[12px] text-white/30 mb-6">De opname is bewaard. Je kunt het opnieuw proberen.</p>
+                <button
+                  className="px-4 py-2 rounded-lg bg-orange/90 hover:bg-orange text-white text-[13px] font-medium"
+                  onClick={async () => {
+                    setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'queued', transcript_error: null }));
+                    try {
+                      const res = await fetch('/api/retry-transcription', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ threadId: activeThread.id }),
+                      });
+                      if (!res.ok) {
+                        const { error } = await res.json();
+                        setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: error }));
+                      }
+                    } catch {
+                      setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: 'Netwerkfout.' }));
+                    }
+                  }}
+                >
+                  Opnieuw proberen
+                </button>
               </div>
             </div>
           ) : isEmptyState ? (
