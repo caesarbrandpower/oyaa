@@ -10,17 +10,27 @@ export const maxDuration = 30;
 export const fetchCache = 'force-no-store';
 
 export async function POST(request) {
-  // ── Verificeer webhook-authenticatie ────────────────────────────────────
-  const auth = request.headers.get('authorization') ?? '';
-  const expected = `Bearer ${process.env.SPEECHMATICS_WEBHOOK_SECRET}`;
-  if (!process.env.SPEECHMATICS_WEBHOOK_SECRET || auth !== expected) {
-    console.warn('[transcription-callback] ongeautoriseerd verzoek afgewezen');
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // ── Haal thread_id op uit de URL ─────────────────────────────────────────
   const { searchParams } = new URL(request.url);
   const threadId = searchParams.get('thread_id');
+
+  // ── Log elke binnenkomende aanroep voor diagnose ──────────────────────────
+  const auth = request.headers.get('authorization') ?? '(geen)';
+  console.log(`[transcription-callback] POST ontvangen — thread_id=${threadId}, auth-header=${auth.slice(0, 40)}...`);
+
+  // ── Verificeer webhook-authenticatie ─────────────────────────────────────
+  const webhookSecret = process.env.SPEECHMATICS_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const expected = `Bearer ${webhookSecret}`;
+    if (auth !== expected) {
+      console.warn('[transcription-callback] auth-header klopt niet — verzoek afgewezen');
+      console.warn(`  ontvangen: ${auth.slice(0, 60)}`);
+      console.warn(`  verwacht:  Bearer ${webhookSecret.slice(0, 8)}...`);
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } else {
+    console.warn('[transcription-callback] SPEECHMATICS_WEBHOOK_SECRET niet ingesteld — auth overgeslagen');
+  }
+
   if (!threadId) {
     return Response.json({ error: 'thread_id ontbreekt' }, { status: 400 });
   }
@@ -30,8 +40,13 @@ export async function POST(request) {
   try {
     transcriptJson = await request.json();
   } catch {
+    console.error('[transcription-callback] JSON parseren mislukt');
     return Response.json({ error: 'Ongeldig JSON-body' }, { status: 400 });
   }
+
+  // Log de top-level sleutels zodat we de body-structuur kunnen zien
+  console.log('[transcription-callback] body sleutels:', Object.keys(transcriptJson ?? {}));
+  console.log('[transcription-callback] results.length:', transcriptJson?.results?.length ?? 'geen results-sleutel');
 
   const transcript = processTranscriptJson(transcriptJson);
 
