@@ -78,10 +78,8 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   }
 
   async function handleSignOut() {
-    const { createClient } = await import('@/lib/supabase-browser');
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
+    const { signOut } = await import('@/lib/sign-out');
+    await signOut();
   }
 
   function openPasswordMode() {
