@@ -20,10 +20,24 @@ function recordingTitle(client) {
 }
 
 export async function POST(request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+  // Web app: cookie-based session. Desktop app: Authorization: Bearer header.
+  let user;
+  const authHeader = request.headers.get('authorization') || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
+  if (bearerToken) {
+    const { data: { user: tokenUser }, error } = await createServiceClient().auth.getUser(bearerToken);
+    if (error || !tokenUser) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+    user = tokenUser;
+  } else {
+    const supabase = await createClient();
+    const { data: { user: cookieUser } } = await supabase.auth.getUser();
+    if (!cookieUser) return Response.json({ error: 'Niet ingelogd.' }, { status: 401 });
+    user = cookieUser;
+  }
+
+  // Service client bypasses RLS — safe because user_id is set explicitly from validated token.
+  const db = createServiceClient();
   const tenant = await getTenant();
 
   let formData;
@@ -44,8 +58,10 @@ export async function POST(request) {
   const storagePath = `${user.id}/${Date.now()}.${ext}`;
   const audioBuffer = await audioFile.arrayBuffer();
 
-  const serviceClient = createServiceClient();
-  const { data: storageData, error: storageError } = await serviceClient.storage
+  let audioUrl = null;
+  let audioWarning = null;
+
+  const { data: storageData, error: storageError } = await db.storage
     .from('recordings')
     .upload(storagePath, audioBuffer, {
       contentType: audioFile.type || 'audio/m4a',
@@ -54,16 +70,15 @@ export async function POST(request) {
 
   if (storageError || !storageData) {
     console.error('[create-recording-thread] storage upload mislukt:', storageError);
-    return Response.json({ error: 'Audio opslaan mislukt.' }, { status: 500 });
+    audioWarning = `Audio niet opgeslagen in cloud: ${storageError?.message ?? 'onbekende fout'}`;
+  } else {
+    const { data: { publicUrl } } = db.storage.from('recordings').getPublicUrl(storagePath);
+    audioUrl = publicUrl;
   }
-
-  const { data: { publicUrl: audioUrl } } = serviceClient.storage
-    .from('recordings')
-    .getPublicUrl(storagePath);
 
   // ── 2. Thread aanmaken met status 'queued' ────────────────────────────────
   const title = recordingTitle(clientName);
-  const { data: thread, error: threadError } = await supabase
+  const { data: thread, error: threadError } = await db
     .from('threads')
     .insert({
       user_id: user.id,
@@ -73,7 +88,7 @@ export async function POST(request) {
       client: clientName || null,
       project: project || null,
       audio_url: audioUrl,
-      audio_storage_path: storagePath,
+      audio_storage_path: storageData ? storagePath : null,
       transcript_status: 'queued',
     })
     .select('id')
@@ -96,16 +111,16 @@ export async function POST(request) {
       callbackUrl,
     );
 
-    await supabase
+    await db
       .from('threads')
       .update({ speechmatics_job_id: jobId, transcript_status: 'processing' })
       .eq('id', thread.id);
 
     console.log(`[create-recording-thread] job ${jobId} ingediend voor thread ${thread.id}`);
   } catch (err) {
-    // Job indienen mislukt — status blijft 'queued', cron kan opnieuw proberen
+    // Job indienen mislukt — status blijft 'queued', cron pakt het op
     console.error('[create-recording-thread] Speechmatics job mislukt:', err?.message ?? err);
   }
 
-  return Response.json({ threadId: thread.id, title, audioUrl });
+  return Response.json({ threadId: thread.id, title, audioUrl, audioWarning });
 }
