@@ -78,6 +78,9 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     }
   }
 
+  // Tauri-detectie — alleen true in de desktop-app, onzichtbaar voor gewone browsers
+  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
+
   // --- Microfoon opname ---
   const micRecorderRef = useRef(null);
   const micChunksRef = useRef([]);
@@ -90,6 +93,19 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   const screenAudioCtxRef = useRef(null);
 
   async function startMicRecording() {
+    if (isTauri) {
+      // Delegeer naar native sidecar — werkt ook als het venster later gesloten wordt
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('start_recording');
+        setUiState('recording');
+      } catch (e) {
+        setStatusMsg('Opname starten mislukt: ' + e);
+        setTimeout(() => { setUiState('idle'); setStatusMsg(''); }, 3000);
+      }
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       micStreamRef.current = stream;
@@ -116,7 +132,26 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     }
   }
 
-  function stopMicRecording() {
+  async function stopMicRecording() {
+    if (isTauri) {
+      // stop_recording geeft { status: 'stopped', output: '<pad>' } terug
+      // Upload verloopt via handleClientConfirm — sla het pad op als pending
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const result = await invoke('stop_recording');
+        pendingBlobRef.current = { tauriFilePath: result.output };
+        setClientPickerValue('');
+        setShowNewClientInput(false);
+        setNewClientInput('');
+        setUiState('client-selection');
+      } catch (e) {
+        setStatusMsg('Opname stoppen mislukt: ' + e);
+        setTimeout(() => setStatusMsg(''), 4000);
+        setUiState('idle');
+      }
+      return;
+    }
+
     if (micRecorderRef.current?.state === 'recording') {
       micRecorderRef.current.stop();
     }
@@ -208,13 +243,32 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     }
   }
 
-  function handleClientConfirm(skip = false) {
-    const { blob, mimeType, filename } = pendingBlobRef.current || {};
-    if (!blob) return;
+  async function handleClientConfirm(skip = false) {
+    const pending = pendingBlobRef.current || {};
     const useTextInput = showNewClientInput || knownClients.length === 0;
-  const client = skip ? null : (useTextInput ? newClientInput.trim() || null : clientPickerValue || null);
+    const client = skip ? null : (useTextInput ? newClientInput.trim() || null : clientPickerValue || null);
+
     setUiState('idle');
     onRecordingStart?.();
+
+    if (isTauri && pending.tauriFilePath) {
+      // Upload via native Rust — loopt door ook als het venster dicht is
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const result = await invoke('upload_recording', {
+          filePath: pending.tauriFilePath,
+          client: client ?? undefined,
+        });
+        onRecordingComplete?.({ threadId: result.threadId, title: result.title, transcript: result.transcript, audioUrl: result.audioUrl ?? null, client: client ?? null });
+      } catch (e) {
+        setStatusMsg('Upload mislukt: ' + e);
+        setTimeout(() => setStatusMsg(''), 5000);
+      }
+      return;
+    }
+
+    const { blob, mimeType, filename } = pending;
+    if (!blob) return;
     uploadAndTranscribe(blob, mimeType, filename, client);
   }
 
