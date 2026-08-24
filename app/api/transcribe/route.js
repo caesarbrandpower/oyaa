@@ -23,10 +23,11 @@ export async function POST(request) {
 // ── Storage path (chunked file uploads) ────────────────────────────────────
 
 async function handleStoragePath(request) {
-  let storagePath;
+  let storagePath, tenantId;
   try {
     const body = await request.json();
     storagePath = body.storagePath;
+    tenantId = body.tenantId ?? null;
   } catch {
     return Response.json({ error: 'Ongeldig verzoek.' }, { status: 400 });
   }
@@ -57,7 +58,7 @@ async function handleStoragePath(request) {
   let transcript;
   try {
     const file = new File([fileBlob], 'chunk.wav', { type: 'audio/wav' });
-    transcript = await transcribeAudio(file);
+    transcript = await transcribeAudio(file, { tenantId });
     console.log('[whisper/storage] filtered length:', transcript?.length ?? 'null', '| preview:', transcript?.slice(0, 120));
   } catch (err) {
     console.error('Whisper error:', err);
@@ -79,10 +80,11 @@ async function handleStoragePath(request) {
 // ── Direct upload (fast path for live recordings) ──────────────────────────
 
 async function handleDirectUpload(request) {
-  let file;
+  let file, tenantId;
   try {
     const formData = await request.formData();
     file = formData.get('file');
+    tenantId = formData.get('tenantId') ?? null;
   } catch {
     return Response.json({ error: 'Ongeldig verzoek.' }, { status: 400 });
   }
@@ -109,7 +111,7 @@ async function handleDirectUpload(request) {
   }
 
   try {
-    const transcript = await transcribeAudio(file);
+    const transcript = await transcribeAudio(file, { tenantId });
     console.log('[whisper/direct] filtered length:', transcript?.length ?? 'null', '| preview:', transcript?.slice(0, 120));
     return Response.json({ transcript });
   } catch (err) {
