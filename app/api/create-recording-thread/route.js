@@ -1,7 +1,7 @@
 // app/api/create-recording-thread/route.js
 // Accepteert een audio-blob, transcribeert via Whisper, maakt een thread aan
 // en slaat het transcript op als gebruikersbericht.
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
@@ -55,6 +55,7 @@ export async function POST(request) {
   // Transcribeer direct via Whisper API
   const whisperFormData = new FormData();
   whisperFormData.append('file', audioFile);
+  if (tenant?.id) whisperFormData.append('tenantId', tenant.id);
 
   const transcribeRes = await fetch(new URL('/api/transcribe', request.url).toString(), {
     method: 'POST',
@@ -63,6 +64,9 @@ export async function POST(request) {
   });
 
   if (!transcribeRes.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await transcribeRes.json()); } catch {}
+    console.error('[create-recording-thread] transcribe mislukt:', transcribeRes.status, detail);
     return Response.json({ error: 'Transcriptie mislukt.' }, { status: 500 });
   }
 

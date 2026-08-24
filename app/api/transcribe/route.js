@@ -61,7 +61,7 @@ async function handleStoragePath(request) {
     transcript = await transcribeAudio(file, { tenantId });
     console.log('[whisper/storage] filtered length:', transcript?.length ?? 'null', '| preview:', transcript?.slice(0, 120));
   } catch (err) {
-    console.error('Whisper error:', err);
+    console.error('[transcribe/storage] Speechmatics fout:', err?.message ?? err, err?.status, err?.body ?? '');
     await supabase.storage.from('audio-temp').remove([storagePath]).catch(() => {});
     return Response.json(
       { error: 'Er is een fout bij de transcriptiedienst. Probeer het opnieuw.' },
@@ -115,7 +115,7 @@ async function handleDirectUpload(request) {
     console.log('[whisper/direct] filtered length:', transcript?.length ?? 'null', '| preview:', transcript?.slice(0, 120));
     return Response.json({ transcript });
   } catch (err) {
-    console.error('Whisper error (direct upload):', err);
+    console.error('[transcribe/direct] Speechmatics fout:', err?.message ?? err, err?.status, err?.body ?? '');
     return Response.json(
       { error: 'Er is een fout bij de transcriptiedienst. Probeer het opnieuw.' },
       { status: 502 }
