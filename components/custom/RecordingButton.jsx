@@ -96,8 +96,7 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     if (isTauri) {
       // Delegeer naar native sidecar — werkt ook als het venster later gesloten wordt
       try {
-        const { invoke } = await import('@tauri-apps/api/core');
-        await invoke('start_recording');
+        await window.__TAURI__.core.invoke('start_recording');
         setUiState('recording');
       } catch (e) {
         setStatusMsg('Opname starten mislukt: ' + e);
@@ -137,8 +136,7 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
       // stop_recording geeft { status: 'stopped', output: '<pad>' } terug
       // Upload verloopt via handleClientConfirm — sla het pad op als pending
       try {
-        const { invoke } = await import('@tauri-apps/api/core');
-        const result = await invoke('stop_recording');
+        const result = await window.__TAURI__.core.invoke('stop_recording');
         pendingBlobRef.current = { tauriFilePath: result.output };
         setClientPickerValue('');
         setShowNewClientInput(false);
@@ -254,8 +252,7 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     if (isTauri && pending.tauriFilePath) {
       // Upload via native Rust — loopt door ook als het venster dicht is
       try {
-        const { invoke } = await import('@tauri-apps/api/core');
-        const result = await invoke('upload_recording', {
+        const result = await window.__TAURI__.core.invoke('upload_recording', {
           filePath: pending.tauriFilePath,
           client: client ?? undefined,
         });
