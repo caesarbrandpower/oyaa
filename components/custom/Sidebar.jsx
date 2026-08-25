@@ -72,9 +72,17 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   }
 
   async function handleDeleteThread(threadId) {
-    await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+    // Optimistisch: direct uit de lijst, dan opruimen op de achtergrond
     closeContextMenu();
     onDeleteThread?.(threadId);
+    try {
+      const res = await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      // Terugzetten wordt gedaan door de parent via onDeleteThread-terugdraai;
+      // hier alleen loggen — we hebben geen thread-object meer om terug te zetten
+      console.error('[Sidebar] thread verwijderen mislukt:', e);
+    }
   }
 
   async function handleSignOut() {
