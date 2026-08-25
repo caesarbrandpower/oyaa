@@ -69,8 +69,9 @@ export async function POST(request) {
     });
 
   if (storageError || !storageData) {
-    console.error('[create-recording-thread] storage upload mislukt:', storageError);
-    audioWarning = `Audio niet opgeslagen in cloud: ${storageError?.message ?? 'onbekende fout'}`;
+    console.error('[create-recording-thread] storage upload mislukt:', JSON.stringify(storageError));
+    const errDetail = storageError?.message || storageError?.error || JSON.stringify(storageError) || 'onbekende fout';
+    audioWarning = `Audio niet opgeslagen in cloud: ${errDetail}`;
   } else {
     const { data: { publicUrl } } = db.storage.from('recordings').getPublicUrl(storagePath);
     audioUrl = publicUrl;
