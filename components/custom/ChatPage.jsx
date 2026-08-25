@@ -1173,6 +1173,38 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [recordingPending, setRecordingPending] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
 
+  // --- Annuleren lopende opname / upload / transcriptie ---
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function cancelActiveRecording() {
+    setCancelling(true);
+    try {
+      // Lopende upload: threadId nog niet bekend — alleen UI resetten
+      if (recordingPending && !activeThread?.id) {
+        setRecordingPending(false);
+        setRecordingProgress(0);
+        setCancelConfirm(false);
+        return;
+      }
+      // Thread bestaat al (upload klaar of transcriptie loopt)
+      if (activeThread?.id) {
+        const res = await fetch(`/api/threads/${activeThread.id}`, { method: 'DELETE' });
+        const json = await res.json().catch(() => ({}));
+        if (json.warnings?.length) {
+          console.warn('[cancel] waarschuwingen:', json.warnings.join('; '));
+        }
+        setThreads(prev => prev.filter(t => t.id !== activeThread.id));
+        handleNewThread();
+      }
+    } catch (e) {
+      console.error('[cancel] fout:', e);
+    } finally {
+      setCancelling(false);
+      setCancelConfirm(false);
+    }
+  }
+
   // --- Transcript pending / failed --- (async transcriptie)
   const isTranscriptPending = !!(
     activeThread?.output_type === 'recording' &&
@@ -1537,12 +1569,30 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
                 <p className="text-[15px] font-medium text-white/70 mb-2">Opname wordt verstuurd...</p>
                 <p className="text-[12px] text-white/30 mb-6">Even geduld.</p>
-                <div className="w-full bg-white/[0.08] rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-white/[0.08] rounded-full h-1.5 overflow-hidden mb-6">
                   <div
                     className="h-1.5 rounded-full bg-orange transition-all duration-1000"
                     style={{ width: `${recordingProgress}%` }}
                   />
                 </div>
+                {cancelConfirm ? (
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-[13px] font-medium disabled:opacity-40"
+                      disabled={cancelling}
+                      onClick={cancelActiveRecording}
+                    >{cancelling ? 'Bezig...' : 'Ja, annuleer'}</button>
+                    <button
+                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-[13px]"
+                      onClick={() => setCancelConfirm(false)}
+                    >Nee, doorgaan</button>
+                  </div>
+                ) : (
+                  <button
+                    className="text-[12px] text-white/30 hover:text-white/60 underline underline-offset-2"
+                    onClick={() => setCancelConfirm(true)}
+                  >Annuleer upload</button>
+                )}
               </div>
             </div>
           ) : isTranscriptPending ? (
@@ -1551,7 +1601,25 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
                 <p className="text-[15px] font-medium text-white/70 mb-2">Bezig met verwerken...</p>
-                <p className="text-[12px] text-white/30">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
+                <p className="text-[12px] text-white/30 mb-6">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
+                {cancelConfirm ? (
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-[13px] font-medium disabled:opacity-40"
+                      disabled={cancelling}
+                      onClick={cancelActiveRecording}
+                    >{cancelling ? 'Bezig...' : 'Ja, verwijder alles'}</button>
+                    <button
+                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-[13px]"
+                      onClick={() => setCancelConfirm(false)}
+                    >Nee, doorgaan</button>
+                  </div>
+                ) : (
+                  <button
+                    className="text-[12px] text-white/30 hover:text-white/60 underline underline-offset-2"
+                    onClick={() => setCancelConfirm(true)}
+                  >Annuleer en verwijder opname</button>
+                )}
               </div>
             </div>
           ) : isTranscriptFailed ? (
