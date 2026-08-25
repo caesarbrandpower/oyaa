@@ -137,9 +137,9 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
 
   async function stopMicRecording() {
     if (isTauri) {
-      // Meteen naar 'stopping' zodat de knop direct visueel reageert
-      // vóór de invoke — de sidecar doet audio-merging en dat duurt 1-2 seconden.
-      setUiState('idle');
+      // Direct naar 'stopping' — popup blijft zichtbaar met spinner terwijl
+      // de sidecar audio merget. Gebruiker ziet app die reageert, geen systeemspinner.
+      setUiState('stopping');
       // stop_recording geeft { status: 'stopped', output: '<pad>' } terug
       // Upload verloopt via handleClientConfirm — sla het pad op als pending
       try {
@@ -364,6 +364,17 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
           <p className="text-[11px] text-white/30 text-center mt-2">
             Opname loopt, stop wanneer je klaar bent.
           </p>
+        </div>
+      )}
+
+      {/* Stopping: sidecar is bezig met audio mergen */}
+      {uiState === 'stopping' && (
+        <div
+          ref={popupRef}
+          className="absolute top-12 right-0 z-[200] w-56 bg-[#1a1a1a] border border-white/[0.10] rounded-2xl shadow-2xl p-4 flex flex-col items-center gap-3"
+        >
+          <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
+          <p className="text-[13px] text-white/60">Verwerken...</p>
         </div>
       )}
 
