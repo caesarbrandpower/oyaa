@@ -142,7 +142,11 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
     <div className="flex flex-col h-full">
       {/* Sleepzone voor vensterbeheer in Tauri — 44px hoog, volle breedte, geen inhoud */}
       {isTauri && (
-        <div className="shrink-0" style={{ height: 44, WebkitAppRegion: 'drag' }} />
+        <div
+          className="shrink-0"
+          style={{ height: 44 }}
+          ref={el => { if (el) el.style.setProperty('-webkit-app-region', 'drag'); }}
+        />
       )}
       {/* Logo */}
       <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${isTauri ? 'h-12' : 'h-16'}`}>
