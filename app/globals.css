@@ -291,3 +291,15 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Tauri desktop: sleepzone bovenin de sidebar — onzichtbaar in browser */
+.tauri-drag-zone {
+  display: none;
+  height: 44px;
+  flex-shrink: 0;
+  width: 100%;
+}
+[data-tauri] .tauri-drag-zone {
+  display: block;
+  -webkit-app-region: drag;
+}
