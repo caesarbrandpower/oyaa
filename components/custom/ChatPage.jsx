@@ -46,6 +46,7 @@ import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
 export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, initialImprove = false, projects = [] }) {
+  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -1417,7 +1418,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }}
       />
     )}
-    <div className="flex h-full overflow-hidden">
+    <div className={`flex h-full overflow-hidden${isTauri ? ' pt-[44px]' : ''}`}>
       {/* Desktop linkerkolom — logo + sidebar, één border-r */}
       <div
         className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-[#111111]"
