@@ -1130,30 +1130,49 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // Poll elke 5 seconden zolang het transcript nog verwerkt wordt
   useEffect(() => {
     if (!isTranscriptPending || !activeThread?.id) return;
+    const threadId = activeThread.id;
     const id = setInterval(async () => {
       try {
         const { createClient: cb } = await import('@/lib/supabase-browser');
         const sb = cb();
-        const { data: t } = await sb.from('threads')
+        const { data: t, error } = await sb.from('threads')
           .select('transcript_status, transcript_error')
-          .eq('id', activeThread.id)
+          .eq('id', threadId)
           .single();
+        if (error) { console.error('[poll] supabase-fout:', error.message); return; }
         if (!t) return;
         if (t.transcript_status === 'done') {
           setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'done' }));
-          const { data: msgs } = await sb.from('messages')
-            .select('id, role, content, created_at')
-            .eq('thread_id', activeThread.id)
-            .order('created_at', { ascending: true });
-          setMessages((msgs ?? []).map(m => ({ ...m, attachments: [] })));
         } else if (t.transcript_status === 'failed') {
           setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: t.transcript_error }));
         }
-      } catch { /* netwerk-fout — volgende interval probeert het opnieuw */ }
+      } catch (e) { console.error('[poll] netwerk-fout:', e); }
     }, 5000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeThread?.id, isTranscriptPending]);
+
+  // Laad berichten zodra transcript_status 'done' is en berichten nog leeg zijn.
+  // Werkt als fallback naast de poll: ook als de poll de status mist of stopt.
+  useEffect(() => {
+    if (activeThread?.output_type !== 'recording') return;
+    if (activeThread?.transcript_status !== 'done') return;
+    if (messages.length > 0) return;
+    const threadId = activeThread.id;
+    (async () => {
+      try {
+        const { createClient: cb } = await import('@/lib/supabase-browser');
+        const sb = cb();
+        const { data: msgs, error } = await sb.from('messages')
+          .select('id, role, content, created_at')
+          .eq('thread_id', threadId)
+          .order('created_at', { ascending: true });
+        if (error) { console.error('[transcript-load] supabase-fout:', error.message); return; }
+        if (msgs?.length > 0) setMessages(msgs.map(m => ({ ...m, attachments: [] })));
+      } catch (e) { console.error('[transcript-load] netwerk-fout:', e); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, activeThread?.transcript_status, messages.length]);
 
   // --- Getrapt verschijnen opname-thread (0 = niets, 1 = transcript, 2 = card, 3 = tekst) ---
   const [recordingRevealStep, setRecordingRevealStep] = useState(0);
