@@ -11,6 +11,28 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
+async function uploadAudioWithRetry(db, storagePath, audioBuffer, contentType) {
+  const attempts = [
+    { delay: 0,    upsert: false },
+    { delay: 500,  upsert: true  },
+    { delay: 1500, upsert: true  },
+  ];
+  let lastError = null;
+  for (const { delay, upsert } of attempts) {
+    if (delay > 0) await new Promise(r => setTimeout(r, delay));
+    const { data, error } = await db.storage
+      .from('recordings')
+      .upload(storagePath, audioBuffer, { contentType, upsert });
+    if (!error) return { data, error: null };
+    lastError = error;
+    console.error(
+      `[create-recording-thread] storage upload mislukt (poging na ${delay}ms):`,
+      JSON.stringify(error),
+    );
+  }
+  return { data: null, error: lastError };
+}
+
 function recordingTitle(client) {
   const now = new Date();
   const date = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
@@ -61,17 +83,13 @@ export async function POST(request) {
   let audioUrl = null;
   let audioWarning = null;
 
-  const { data: storageData, error: storageError } = await db.storage
-    .from('recordings')
-    .upload(storagePath, audioBuffer, {
-      contentType: audioFile.type || 'audio/m4a',
-      upsert: false,
-    });
+  const { data: storageData, error: storageError } = await uploadAudioWithRetry(
+    db, storagePath, audioBuffer, audioFile.type || 'audio/m4a',
+  );
 
   if (storageError || !storageData) {
-    console.error('[create-recording-thread] storage upload mislukt:', JSON.stringify(storageError));
     const errDetail = storageError?.message || storageError?.error || JSON.stringify(storageError) || 'onbekende fout';
-    audioWarning = `Audio niet opgeslagen in cloud: ${errDetail}`;
+    audioWarning = `Audio niet opgeslagen in cloud na 3 pogingen: ${errDetail}`;
   } else {
     const { data: { publicUrl } } = db.storage.from('recordings').getPublicUrl(storagePath);
     audioUrl = publicUrl;
