@@ -41,6 +41,10 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const [contextMenu, setContextMenu] = useState(null); // { threadId, x, y } | null
   const [deleteConfirmId, setDeleteConfirmId] = useState(null); // thread.id | null
   const contextMenuRef = useRef(null);
+  const [isTauri, setIsTauri] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.__TAURI__) setIsTauri(true);
+  }, []);
 
   const initials = user.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
@@ -136,8 +140,12 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
+      {/* Sleepzone voor vensterbeheer in Tauri — 44px hoog, volle breedte, geen inhoud */}
+      {isTauri && (
+        <div className="shrink-0" style={{ height: 44, WebkitAppRegion: 'drag' }} />
+      )}
       {/* Logo */}
-      <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
+      <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${isTauri ? 'h-12' : 'h-16'}`}>
         {tenant?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
