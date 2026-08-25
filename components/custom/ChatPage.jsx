@@ -50,6 +50,65 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
   const activeThreadRef = useRef(null);
+
+  // Realtime: nieuwe threads verschijnen automatisch in de zijbalk.
+  // RLS op de threads-tabel zorgt dat alleen eigen rijen binnenkomen (user_id = auth.uid()).
+  // visibilitychange herlaadt de threadlijst als de Realtime-verbinding weg was
+  // terwijl het venster verborgen was (WebKit pauzeert WebSockets).
+  useEffect(() => {
+    let channel;
+    let realtimeMissed = false;
+
+    async function subscribe() {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const sb = createClient();
+
+      channel = sb
+        .channel('sidebar-threads')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'threads', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const t = payload.new;
+            setThreads((prev) => prev.some((x) => x.id === t.id) ? prev : [t, ...prev]);
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'CLOSED') realtimeMissed = true;
+        });
+    }
+
+    async function refreshThreads() {
+      try {
+        const { createClient } = await import('@/lib/supabase-browser');
+        const sb = createClient();
+        const { data } = await sb
+          .from('threads')
+          .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
+          .eq('user_id', user.id)
+          .eq('tenant_id', tenant.id)
+          .order('updated_at', { ascending: false })
+          .limit(20);
+        if (data) setThreads(data);
+      } catch { /* netwerk-fout, stil laten passeren */ }
+    }
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (realtimeMissed) {
+        realtimeMissed = false;
+        refreshThreads();
+      }
+    }
+
+    subscribe();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (channel) channel.unsubscribe();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, tenant.id]);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
