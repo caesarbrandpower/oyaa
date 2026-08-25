@@ -95,12 +95,16 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   async function startMicRecording() {
     if (isTauri) {
       // Delegeer naar native sidecar — werkt ook als het venster later gesloten wordt
+      console.log('[RecordingButton] start_recording aanroepen via Tauri, isTauri=', isTauri);
       try {
         await window.__TAURI__.core.invoke('start_recording');
+        console.log('[RecordingButton] start_recording geslaagd');
         setUiState('recording');
       } catch (e) {
-        setStatusMsg('Opname starten mislukt: ' + e);
-        setTimeout(() => { setUiState('idle'); setStatusMsg(''); }, 3000);
+        console.error('[RecordingButton] start_recording FOUT:', e);
+        // Geen auto-dismiss — fout blijft zichtbaar
+        setStatusMsg('Opname starten mislukt: ' + String(e));
+        setUiState('idle');
       }
       return;
     }
@@ -137,14 +141,23 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
       // Upload verloopt via handleClientConfirm — sla het pad op als pending
       try {
         const result = await window.__TAURI__.core.invoke('stop_recording');
+        console.log('[RecordingButton] stop_recording resultaat:', JSON.stringify(result));
+        // Vang het geval af waarbij de sidecar een error-JSON stuurt zonder output-veld
+        if (!result?.output) {
+          const errMsg = result?.message || `Onverwacht sidecar-resultaat: ${JSON.stringify(result)}`;
+          console.error('[RecordingButton] stop_recording: geen output-pad —', errMsg);
+          setStatusMsg('Opname stoppen mislukt: ' + errMsg);
+          setUiState('idle');
+          return;
+        }
         pendingBlobRef.current = { tauriFilePath: result.output };
         setClientPickerValue('');
         setShowNewClientInput(false);
         setNewClientInput('');
         setUiState('client-selection');
       } catch (e) {
+        console.error('[RecordingButton] stop_recording FOUT:', e);
         setStatusMsg('Opname stoppen mislukt: ' + e);
-        setTimeout(() => setStatusMsg(''), 4000);
         setUiState('idle');
       }
       return;
@@ -246,20 +259,25 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     const useTextInput = showNewClientInput || knownClients.length === 0;
     const client = skip ? null : (useTextInput ? newClientInput.trim() || null : clientPickerValue || null);
 
+    console.log('[RecordingButton] handleClientConfirm — isTauri:', isTauri, 'tauriFilePath:', pending.tauriFilePath, 'hasBlob:', !!pending.blob);
+
     setUiState('idle');
     onRecordingStart?.();
 
     if (isTauri && pending.tauriFilePath) {
       // Upload via native Rust — loopt door ook als het venster dicht is
+      console.log('[RecordingButton] upload_recording aanroepen, bestand:', pending.tauriFilePath, 'client:', client);
       try {
         const result = await window.__TAURI__.core.invoke('upload_recording', {
           filePath: pending.tauriFilePath,
           client: client ?? undefined,
         });
+        console.log('[RecordingButton] upload_recording resultaat:', result);
         onRecordingComplete?.({ threadId: result.threadId, title: result.title, transcript: result.transcript, audioUrl: result.audioUrl ?? null, client: client ?? null });
       } catch (e) {
+        console.error('[RecordingButton] upload_recording FOUT:', e);
+        // Fout blijft zichtbaar tot de gebruiker hem wegklikt (geen auto-dismiss)
         setStatusMsg('Upload mislukt: ' + e);
-        setTimeout(() => setStatusMsg(''), 5000);
       }
       return;
     }
