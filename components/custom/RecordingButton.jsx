@@ -137,6 +137,9 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
 
   async function stopMicRecording() {
     if (isTauri) {
+      // Meteen naar 'stopping' zodat de knop direct visueel reageert
+      // vóór de invoke — de sidecar doet audio-merging en dat duurt 1-2 seconden.
+      setUiState('idle');
       // stop_recording geeft { status: 'stopped', output: '<pad>' } terug
       // Upload verloopt via handleClientConfirm — sla het pad op als pending
       try {
