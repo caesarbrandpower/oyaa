@@ -35,6 +35,35 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     fetchClients();
   }, []);
 
+  // Luister naar 'recording-stopped' event van de Tauri sidecar.
+  // stop_recording keert meteen terug; dit event arriveert als de audio-merge klaar is.
+  useEffect(() => {
+    if (!isTauri) return;
+    let unlisten;
+    window.__TAURI__.event.listen('recording-stopped', (ev) => {
+      const result = ev.payload;
+      console.log('[RecordingButton] recording-stopped event:', JSON.stringify(result));
+      if (result?.error) {
+        console.error('[RecordingButton] recording-stopped fout:', result.error);
+        setStatusMsg('Opname stoppen mislukt: ' + result.error);
+        setUiState('idle');
+        return;
+      }
+      if (!result?.output) {
+        setStatusMsg('Opname stoppen mislukt: geen output-pad');
+        setUiState('idle');
+        return;
+      }
+      pendingBlobRef.current = { tauriFilePath: result.output };
+      setClientPickerValue('');
+      setShowNewClientInput(false);
+      setNewClientInput('');
+      setUiState('client-selection');
+    }).then(fn => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTauri]);
+
   // Timer tick — gedeeld door mic en screen recording
   useEffect(() => {
     if (uiState === 'recording' || uiState === 'screen-recording') {
@@ -137,32 +166,17 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
 
   async function stopMicRecording() {
     if (isTauri) {
-      // Direct naar 'stopping' — popup blijft zichtbaar met spinner terwijl
-      // de sidecar audio merget. Gebruiker ziet app die reageert, geen systeemspinner.
+      // Direct naar 'stopping' — spinner is zichtbaar terwijl sidecar audio merget.
+      // stop_recording keert meteen terug; resultaat komt via 'recording-stopped' event.
       setUiState('stopping');
-      // stop_recording geeft { status: 'stopped', output: '<pad>' } terug
-      // Upload verloopt via handleClientConfirm — sla het pad op als pending
       try {
-        const result = await window.__TAURI__.core.invoke('stop_recording');
-        console.log('[RecordingButton] stop_recording resultaat:', JSON.stringify(result));
-        // Vang het geval af waarbij de sidecar een error-JSON stuurt zonder output-veld
-        if (!result?.output) {
-          const errMsg = result?.message || `Onverwacht sidecar-resultaat: ${JSON.stringify(result)}`;
-          console.error('[RecordingButton] stop_recording: geen output-pad —', errMsg);
-          setStatusMsg('Opname stoppen mislukt: ' + errMsg);
-          setUiState('idle');
-          return;
-        }
-        pendingBlobRef.current = { tauriFilePath: result.output };
-        setClientPickerValue('');
-        setShowNewClientInput(false);
-        setNewClientInput('');
-        setUiState('client-selection');
+        await window.__TAURI__.core.invoke('stop_recording');
       } catch (e) {
         console.error('[RecordingButton] stop_recording FOUT:', e);
         setStatusMsg('Opname stoppen mislukt: ' + e);
         setUiState('idle');
       }
+      // Resultaat wordt afgehandeld in de 'recording-stopped' listener hieronder
       return;
     }
 
