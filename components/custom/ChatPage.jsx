@@ -1127,11 +1127,16 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     messages.length === 0
   );
 
-  // Poll elke 5 seconden zolang het transcript nog verwerkt wordt
+  // Poll elke 5 seconden zolang het transcript nog verwerkt wordt.
+  // Controleert ook direct bij elke keer dat het venster zichtbaar wordt:
+  // WebKit (macOS/iOS) pauzeert JS-timers voor verborgen vensters, waardoor
+  // de poll stopt als de gebruiker het venster sluit. visibilitychange vangt
+  // dat op en zorgt voor een directe controle bij heropenen.
   useEffect(() => {
     if (!isTranscriptPending || !activeThread?.id) return;
     const threadId = activeThread.id;
-    const id = setInterval(async () => {
+
+    async function checkTranscriptStatus() {
       try {
         const { createClient: cb } = await import('@/lib/supabase-browser');
         const sb = cb();
@@ -1147,8 +1152,20 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: t.transcript_error }));
         }
       } catch (e) { console.error('[poll] netwerk-fout:', e); }
-    }, 5000);
-    return () => clearInterval(id);
+    }
+
+    const id = setInterval(checkTranscriptStatus, 5000);
+
+    // Direct controleren bij venster zichtbaar worden (herstel na WebKit-throttle)
+    function onVisible() {
+      if (document.visibilityState === 'visible') checkTranscriptStatus();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeThread?.id, isTranscriptPending]);
 
