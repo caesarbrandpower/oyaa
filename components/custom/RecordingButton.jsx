@@ -294,8 +294,16 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
         onRecordingComplete?.({ threadId: result.threadId, title: result.title, transcript: result.transcript, audioUrl: result.audioUrl ?? null, client: client ?? null });
       } catch (e) {
         console.error('[RecordingButton] upload_recording FOUT:', e);
-        // Fout blijft zichtbaar tot de gebruiker hem wegklikt (geen auto-dismiss)
-        setStatusMsg('Upload mislukt: ' + e);
+        try {
+          await window.__TAURI__.core.invoke('queue_add', {
+            filePath: pending.tauriFilePath,
+            client: client ?? null,
+          });
+          setStatusMsg('Opname in wachtrij — wordt automatisch opnieuw geprobeerd.');
+        } catch (qe) {
+          console.error('[RecordingButton] queue_add FOUT:', qe);
+          setStatusMsg('Upload mislukt: ' + e);
+        }
       }
       return;
     }
