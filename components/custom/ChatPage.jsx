@@ -1394,6 +1394,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   return (
     <>
+    {showDragZone && (
+      <div
+        data-tauri-drag-region
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '40px', zIndex: 50 }}
+      />
+    )}
     {activeTask && (
       <TaskSidePanel
         task={activeTask}
@@ -1421,7 +1427,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }}
       />
     )}
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden" style={showDragZone ? { paddingTop: '40px' } : undefined}>
       {/* Desktop linkerkolom — logo + sidebar, één border-r */}
       <div
         className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-[#111111]"
@@ -1480,21 +1486,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       {/* Rechterkolom — header + content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="relative flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
-          {showDragZone && (
-            <div
-              data-tauri-drag-region
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '44px', zIndex: 10 }}
-            />
-          )}
+        <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="relative z-[20] lg:hidden text-white/40 hover:text-white/70 transition-colors"
+            className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
             aria-label="Menu openen"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="relative z-[20] flex-1 flex items-center min-w-0">
+          <div className="flex-1 flex items-center min-w-0">
             {activeThread && (
               titleEditing ? (
                 <input
@@ -1519,9 +1519,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               )
             )}
           </div>
-          <div className="relative z-[20]">
-            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
-          </div>
+          <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 

@@ -24,11 +24,6 @@ function getThreadIcon(thread) {
 }
 
 export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [] }) {
-  // Tauri-detectie: staat vóór alle andere hooks zodat er geen TDZ-risico is.
-  // Begint als false (SSR + eerste render), wordt true na hydration als window.__TAURI__ aanwezig is.
-  const [showDragZone, setShowDragZone] = useState(false);
-  useEffect(() => { setShowDragZone(!!window.__TAURI__); }, []);
-
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
@@ -141,12 +136,6 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
-      {/* Sleepzone voor Tauri overlay-titelbalk: 44px boven het logo, sleepbaar.
-          Alleen gerenderd als window.__TAURI__ aanwezig is (na hydration). */}
-      {showDragZone && (
-        <div style={{ height: '44px', flexShrink: 0 }} data-tauri-drag-region />
-      )}
-
       {/* Logo */}
       <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
         {tenant?.logo_url ? (
