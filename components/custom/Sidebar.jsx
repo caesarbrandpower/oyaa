@@ -136,8 +136,10 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
-      {/* Sleepzone voor Tauri overlay-titelbalk — verborgen in browser, zichtbaar in desktop-app */}
-      <div className="tauri-drag-zone" />
+      {/* Sleepzone voor Tauri overlay-titelbalk — verborgen in browser, zichtbaar in desktop-app.
+          data-tauri-drag-region: Tauri's eigen mechanisme voor venstersleepgebieden.
+          CSS display:none in browser, display:block in Tauri via [data-tauri] selector. */}
+      <div className="tauri-drag-zone" data-tauri-drag-region />
 
       {/* Logo */}
       <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
