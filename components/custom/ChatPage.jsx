@@ -1427,7 +1427,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         }}
       />
     )}
-    <div className="flex h-full overflow-hidden" style={showDragZone ? { paddingTop: '40px' } : undefined}>
+    <div className="flex h-full overflow-hidden">
       {/* Desktop linkerkolom — logo + sidebar, één border-r */}
       <div
         className="hidden lg:flex flex-col shrink-0 border-r border-white/[0.06] bg-[#111111]"
@@ -1494,7 +1494,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1 flex items-center min-w-0">
+          <div className="relative z-[51] flex-1 flex items-center min-w-0">
             {activeThread && (
               titleEditing ? (
                 <input
@@ -1519,7 +1519,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               )
             )}
           </div>
-          <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          <div className="relative z-[51]">
+            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
