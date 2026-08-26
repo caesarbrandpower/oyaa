@@ -25,6 +25,9 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   const [newClientInput, setNewClientInput] = useState('');
   const [knownClients, setKnownClients] = useState([]);
 
+  // Tauri-detectie — moet vóór alle useEffects staan die isTauri gebruiken
+  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
+
   useEffect(() => {
     async function fetchClients() {
       const { createClient } = await import('@/lib/supabase-browser');
@@ -107,8 +110,6 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     }
   }
 
-  // Tauri-detectie — alleen true in de desktop-app, onzichtbaar voor gewone browsers
-  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
 
   // --- Microfoon opname ---
   const micRecorderRef = useRef(null);
