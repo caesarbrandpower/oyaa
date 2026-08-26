@@ -137,7 +137,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${tauriMode ? 'h-20' : 'h-16'}`}>
+      <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${tauriMode ? 'h-24' : 'h-16'}`}>
         {tenant?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={tenant.logo_url} alt={tenant.name} className={`h-6 w-auto object-contain object-left${tauriMode ? ' relative top-5' : ''}`} />
