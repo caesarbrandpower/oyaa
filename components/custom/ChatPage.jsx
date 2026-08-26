@@ -1443,6 +1443,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           onRenameThread={handleRenameThread}
           onDeleteThread={handleDeleteThread}
           projects={projects}
+          tauriMode={showDragZone}
         />
       </div>
 
@@ -1452,7 +1453,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
         title="Sleep om sidebar te resizen"
       >
-        <div className="h-16 border-b border-white/[0.06]" />
+        <div className={`${showDragZone ? 'h-20' : 'h-16'} border-b border-white/[0.06]`} />
         <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
@@ -1473,6 +1474,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           onRenameThread={handleRenameThread}
           onDeleteThread={handleDeleteThread}
           projects={projects}
+          tauriMode={showDragZone}
         />
       </aside>
 
@@ -1486,7 +1488,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       {/* Rechterkolom — header + content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
+        <div className={`flex items-center gap-3 px-4 shrink-0 border-b border-white/[0.06] ${showDragZone ? 'h-20' : 'h-16'}`}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
@@ -1494,7 +1496,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="relative z-[51] flex-1 flex items-center min-w-0">
+          <div className="relative z-[51] flex-1 flex items-center min-w-0" style={showDragZone ? { top: '20px' } : undefined}>
             {activeThread && (
               titleEditing ? (
                 <input
@@ -1519,7 +1521,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               )
             )}
           </div>
-          <div className="relative z-[51]">
+          <div className="relative z-[51]" style={showDragZone ? { top: '20px' } : undefined}>
             <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
           </div>
         </div>

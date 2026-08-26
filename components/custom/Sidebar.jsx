@@ -23,7 +23,7 @@ function getThreadIcon(thread) {
   }
 }
 
-export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [] }) {
+export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [], tauriMode = false }) {
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
@@ -137,12 +137,12 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
+      <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${tauriMode ? 'h-20' : 'h-16'}`}>
         {tenant?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={tenant.logo_url} alt={tenant.name} className="relative top-4 h-6 w-auto object-contain object-left" />
+          <img src={tenant.logo_url} alt={tenant.name} className={`h-6 w-auto object-contain object-left${tauriMode ? ' relative top-5' : ''}`} />
         ) : (
-          <span className="relative top-4 font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+          <span className={`font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange${tauriMode ? ' relative top-5' : ''}`}>
             {tenant?.name ?? 'Waybetter'}
           </span>
         )}
