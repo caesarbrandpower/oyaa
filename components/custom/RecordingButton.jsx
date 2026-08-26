@@ -67,6 +67,24 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTauri]);
 
+  // queue-entry-uploaded — achtergrond-upload via wachtrij is gelukt
+  useEffect(() => {
+    if (!isTauri) return;
+    let unlisten;
+    window.__TAURI__.event.listen('queue-entry-uploaded', (ev) => {
+      const data = ev.payload;
+      onRecordingComplete?.({
+        threadId: data.threadId,
+        title: data.title,
+        transcript: data.transcript,
+        audioUrl: data.audioUrl ?? null,
+        client: data.client ?? null,
+      });
+    }).then(fn => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTauri]);
+
   // Timer tick — gedeeld door mic en screen recording
   useEffect(() => {
     if (uiState === 'recording' || uiState === 'screen-recording') {
