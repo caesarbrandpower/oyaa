@@ -46,6 +46,10 @@ import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
 export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, initialImprove = false, projects = [] }) {
+  // Tauri-detectie: vóór alle andere hooks zodat er geen TDZ-risico is.
+  const [showDragZone, setShowDragZone] = useState(false);
+  useEffect(() => { setShowDragZone(!!window.__TAURI__); }, []);
+
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -1476,15 +1480,21 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       {/* Rechterkolom — header + content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
+        <div className="relative flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
+          {showDragZone && (
+            <div
+              data-tauri-drag-region
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '44px', zIndex: 10 }}
+            />
+          )}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
+            className="relative z-[20] lg:hidden text-white/40 hover:text-white/70 transition-colors"
             aria-label="Menu openen"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1 flex items-center min-w-0">
+          <div className="relative z-[20] flex-1 flex items-center min-w-0">
             {activeThread && (
               titleEditing ? (
                 <input
@@ -1509,7 +1519,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               )
             )}
           </div>
-          <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          <div className="relative z-[20]">
+            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
