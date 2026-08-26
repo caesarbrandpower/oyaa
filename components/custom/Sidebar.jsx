@@ -140,9 +140,9 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
       <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
         {tenant?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
+          <img src={tenant.logo_url} alt={tenant.name} className="relative top-2 h-6 w-auto object-contain object-left" />
         ) : (
-          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+          <span className="relative top-2 font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
             {tenant?.name ?? 'Waybetter'}
           </span>
         )}
