@@ -136,6 +136,9 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
 
   return (
     <div className="flex flex-col h-full">
+      {/* Sleepzone voor Tauri overlay-titelbalk — verborgen in browser, zichtbaar in desktop-app */}
+      <div className="tauri-drag-zone" />
+
       {/* Logo */}
       <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
         {tenant?.logo_url ? (
