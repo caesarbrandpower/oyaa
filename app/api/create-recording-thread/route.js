@@ -1,13 +1,36 @@
-// app/api/create-recording-thread/route.js
-// Accepteert een audio-blob, transcribeert via Whisper, maakt een thread aan
-// en slaat het transcript op als gebruikersbericht.
-export const maxDuration = 300;
+// Accepteert een audio-blob, upload naar Storage, maakt een thread aan met
+// transcript_status='queued', en dient een Speechmatics-job in op de achtergrond.
+// Geeft direct { threadId, title, audioUrl } terug — geen wachten op transcript.
+export const maxDuration = 120;
 
 import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { getTenant } from '@/lib/get-tenant';
+import { submitTranscriptionJob } from '@/lib/whisper';
 
 function pad(n) {
   return String(n).padStart(2, '0');
+}
+
+async function uploadAudioWithRetry(db, storagePath, audioBuffer, contentType) {
+  const attempts = [
+    { delay: 0,    upsert: false },
+    { delay: 500,  upsert: true  },
+    { delay: 1500, upsert: true  },
+  ];
+  let lastError = null;
+  for (const { delay, upsert } of attempts) {
+    if (delay > 0) await new Promise(r => setTimeout(r, delay));
+    const { data, error } = await db.storage
+      .from('recordings')
+      .upload(storagePath, audioBuffer, { contentType, upsert });
+    if (!error) return { data, error: null };
+    lastError = error;
+    console.error(
+      `[create-recording-thread] storage upload mislukt (poging na ${delay}ms):`,
+      JSON.stringify(error),
+    );
+  }
+  return { data: null, error: lastError };
 }
 
 function recordingTitle(client) {
@@ -49,34 +72,31 @@ export async function POST(request) {
   const audioFile = formData.get('audio');
   if (!audioFile) return Response.json({ error: 'Geen audiobestand.' }, { status: 400 });
 
-  const client = formData.get('client') || null;
+  const clientName = formData.get('client') || null;
   const project = formData.get('project') || null;
 
-  // Transcribeer direct via Whisper API
-  const whisperFormData = new FormData();
-  whisperFormData.append('file', audioFile);
-  if (tenant?.id) whisperFormData.append('tenantId', tenant.id);
+  // ── 1. Upload audio naar Storage ──────────────────────────────────────────
+  const ext = audioFile.name?.split('.').pop() || 'm4a';
+  const storagePath = `${user.id}/${Date.now()}.${ext}`;
+  const audioBuffer = await audioFile.arrayBuffer();
 
-  const transcribeRes = await fetch(new URL('/api/transcribe', request.url).toString(), {
-    method: 'POST',
-    body: whisperFormData,
-    headers: { cookie: request.headers.get('cookie') || '' },
-  });
+  let audioUrl = null;
+  let audioWarning = null;
 
-  if (!transcribeRes.ok) {
-    let detail = '';
-    try { detail = JSON.stringify(await transcribeRes.json()); } catch {}
-    console.error('[create-recording-thread] transcribe mislukt:', transcribeRes.status, detail);
-    return Response.json({ error: 'Transcriptie mislukt.' }, { status: 500 });
+  const { data: storageData, error: storageError } = await uploadAudioWithRetry(
+    db, storagePath, audioBuffer, audioFile.type || 'audio/m4a',
+  );
+
+  if (storageError || !storageData) {
+    const errDetail = storageError?.message || storageError?.error || JSON.stringify(storageError) || 'onbekende fout';
+    audioWarning = `Audio niet opgeslagen in cloud na 3 pogingen: ${errDetail}`;
+  } else {
+    const { data: { publicUrl } } = db.storage.from('recordings').getPublicUrl(storagePath);
+    audioUrl = publicUrl;
   }
 
-  const { transcript, error: transcribeError } = await transcribeRes.json();
-  if (transcribeError || !transcript) {
-    return Response.json({ error: transcribeError || 'Leeg transcript.' }, { status: 500 });
-  }
-
-  // Maak thread aan
-  const title = recordingTitle(client);
+  // ── 2. Thread aanmaken met status 'queued' ────────────────────────────────
+  const title = recordingTitle(clientName);
   const { data: thread, error: threadError } = await db
     .from('threads')
     .insert({
@@ -84,51 +104,42 @@ export async function POST(request) {
       tenant_id: tenant?.id ?? null,
       title,
       output_type: 'recording',
-      client: client || null,
+      client: clientName || null,
       project: project || null,
+      audio_url: audioUrl,
+      audio_storage_path: storageData ? storagePath : null,
+      transcript_status: 'queued',
     })
     .select('id')
     .single();
 
   if (threadError) {
+    console.error('[create-recording-thread] thread aanmaken mislukt:', threadError);
     return Response.json({ error: 'Thread aanmaken mislukt.' }, { status: 500 });
   }
 
-  // Sla transcript op als gebruikersbericht
-  await db.from('messages').insert({
-    thread_id: thread.id,
-    role: 'user',
-    content: transcript,
-    attachments: [],
-  });
+  // ── 3. Speechmatics-job indienen ──────────────────────────────────────────
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
+  const callbackUrl = `${appUrl}/api/transcription-callback?thread_id=${thread.id}`;
 
-  // Upload audio naar Supabase Storage
-  let audioUrl = null;
-  let audioWarning = null;
   try {
-    const ext = audioFile.name?.split('.').pop() || 'webm';
-    const storagePath = `${user.id}/${thread.id}/${Date.now()}.${ext}`;
-    const audioBuffer = await audioFile.arrayBuffer();
+    const jobId = await submitTranscriptionJob(
+      audioBuffer,
+      audioFile.name || `recording.${ext}`,
+      tenant?.id ?? null,
+      callbackUrl,
+    );
 
-    const { data: storageData, error: storageError } = await db.storage
-      .from('recordings')
-      .upload(storagePath, audioBuffer, {
-        contentType: audioFile.type || 'audio/webm',
-        upsert: false,
-      });
+    await db
+      .from('threads')
+      .update({ speechmatics_job_id: jobId, transcript_status: 'processing' })
+      .eq('id', thread.id);
 
-    if (storageError) {
-      audioWarning = `Audio niet opgeslagen in cloud: ${storageError.message}`;
-    } else if (storageData) {
-      const { data: { publicUrl } } = db.storage
-        .from('recordings')
-        .getPublicUrl(storagePath);
-      audioUrl = publicUrl;
-      await db.from('threads').update({ audio_url: audioUrl }).eq('id', thread.id);
-    }
-  } catch (e) {
-    audioWarning = `Audio niet opgeslagen in cloud: ${e?.message ?? 'onbekende fout'}`;
+    console.log(`[create-recording-thread] job ${jobId} ingediend voor thread ${thread.id}`);
+  } catch (err) {
+    // Job indienen mislukt — status blijft 'queued', cron pakt het op
+    console.error('[create-recording-thread] Speechmatics job mislukt:', err?.message ?? err);
   }
 
-  return Response.json({ threadId: thread.id, title, transcript, audioUrl, audioWarning });
+  return Response.json({ threadId: thread.id, title, audioUrl, audioWarning });
 }

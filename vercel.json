@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/token-budget-check",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/poll-transcriptions",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
