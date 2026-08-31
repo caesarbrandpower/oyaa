@@ -1527,8 +1527,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
-        {/* Custom audio player — zichtbaar als de thread een opname heeft */}
-        {!isEmptyState && activeThread?.audio_url && (
+        {/* Custom audio player — zichtbaar als de thread een opname heeft, ook terwijl het transcript nog verwerkt wordt */}
+        {(!isEmptyState || isTranscriptPending || isTranscriptFailed) && activeThread?.audio_url && (
           <div className="shrink-0 px-4 md:px-8 py-3 border-b border-white/[0.06]">
             <div className="max-w-3xl mx-auto">
               <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
@@ -1614,71 +1614,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             <div className="flex items-center justify-center min-h-full">
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
-                <p className="text-[15px] font-medium text-white/70 mb-2">Bezig met verwerken...</p>
-                <p className="text-[12px] text-white/30 mb-6">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
-                {cancelConfirm ? (
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-[13px] font-medium disabled:opacity-40"
-                      disabled={cancelling}
-                      onClick={cancelActiveRecording}
-                    >{cancelling ? 'Bezig...' : 'Ja, verwijder alles'}</button>
-                    <button
-                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-[13px]"
-                      onClick={() => setCancelConfirm(false)}
-                    >Nee, doorgaan</button>
-                  </div>
-                ) : (
-                  <button
-                    className="text-[12px] text-white/30 hover:text-white/60 underline underline-offset-2"
-                    onClick={() => setCancelConfirm(true)}
-                  >Annuleer en verwijder opname</button>
-                )}
+                <p className="text-[15px] font-medium text-white/70 mb-2">Opname ontvangen</p>
+                <p className="text-[12px] text-white/30">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
               </div>
             </div>
           ) : isTranscriptFailed ? (
             /* Transcriptie mislukt — opnieuw proberen knop */
-            <div className="flex items-center justify-center min-h-full">
-              <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
-                <p className="text-[15px] font-medium text-white/70 mb-2">Transcriptie mislukt</p>
-                {activeThread?.transcript_error && (
-                  <p className="text-[12px] text-white/30 mb-6">{activeThread.transcript_error}</p>
-                )}
-                <p className="text-[12px] text-white/30 mb-6">De opname is bewaard. Je kunt het opnieuw proberen.</p>
-                <button
-                  className="px-4 py-2 rounded-lg bg-orange/90 hover:bg-orange text-white text-[13px] font-medium"
-                  onClick={async () => {
-                    setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'queued', transcript_error: null }));
-                    try {
-                      const res = await fetch('/api/retry-transcription', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ threadId: activeThread.id }),
-                      });
-                      if (!res.ok) {
-                        const { error } = await res.json();
-                        setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: error }));
-                      }
-                    } catch {
-                      setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: 'Netwerkfout.' }));
-                    }
-                  }}
-                >
-                  Opnieuw proberen
-                </button>
-              </div>
-            </div>
-          ) : isTranscriptPending ? (
-            /* Transcript wordt op de achtergrond aangemaakt */
-            <div className="flex items-center justify-center min-h-full">
-              <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
-                <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
-                <p className="text-[15px] font-medium text-white/70 mb-2">Bezig met verwerken...</p>
-                <p className="text-[12px] text-white/30 mb-6">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
-              </div>
-            </div>
-          ) : isTranscriptFailed ? (
-            /* Transcriptie mislukt — opnieuw proberen */
             <div className="flex items-center justify-center min-h-full">
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <p className="text-[15px] font-medium text-white/70 mb-2">Transcriptie mislukt</p>
