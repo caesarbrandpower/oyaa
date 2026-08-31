@@ -1418,8 +1418,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
-        {/* Custom audio player — zichtbaar als de thread een opname heeft */}
-        {!isEmptyState && activeThread?.audio_url && (
+        {/* Custom audio player — zichtbaar als de thread een opname heeft, ook terwijl het transcript nog verwerkt wordt */}
+        {(!isEmptyState || isTranscriptPending || isTranscriptFailed) && activeThread?.audio_url && (
           <div className="shrink-0 px-4 md:px-8 py-3 border-b border-white/[0.06]">
             <div className="max-w-3xl mx-auto">
               <p className="text-[10px] font-semibold tracking-[0.10em] uppercase text-white/25 mb-2">Opname</p>
@@ -1487,8 +1487,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             <div className="flex items-center justify-center min-h-full">
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-orange/70 animate-spin mx-auto mb-6" />
-                <p className="text-[15px] font-medium text-white/70 mb-2">Bezig met verwerken...</p>
-                <p className="text-[12px] text-white/30 mb-6">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
+                <p className="text-[15px] font-medium text-white/70 mb-2">Opname ontvangen</p>
+                <p className="text-[12px] text-white/30">Het transcript wordt op de achtergrond aangemaakt. Dit kan een paar minuten duren.</p>
               </div>
             </div>
           ) : isTranscriptFailed ? (
