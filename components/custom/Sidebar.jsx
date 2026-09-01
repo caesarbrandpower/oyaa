@@ -27,6 +27,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
+  const isOpnamesActive = pathname === '/app/opnames';
   /* const isKluisActive = pathname === '/app/kluis'; */
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -256,6 +257,17 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
         >
           <LayoutGrid className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
           Mijn klanten
+        </Link>
+        <Link
+          href="/app/opnames"
+          className={`flex items-center gap-2 w-full px-2.5 py-2 mt-1.5 text-[12px] font-medium rounded-lg border transition-colors ${
+            isOpnamesActive
+              ? 'bg-white/[0.08] text-white border-white/[0.12]'
+              : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border-white/[0.07]'
+          }`}
+        >
+          <Mic className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+          Opnames
         </Link>
         {tenant?.tenant_config?.features?.locations === true && (
           <Link
