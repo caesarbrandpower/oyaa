@@ -261,7 +261,7 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
           }`}
         >
           <Mic className="w-3.5 h-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
-          Opnames
+          Mijn opnames
         </Link>
         {tenant?.tenant_config?.features?.locations === true && (
           <Link
