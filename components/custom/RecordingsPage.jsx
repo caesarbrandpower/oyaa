@@ -36,11 +36,6 @@ export default function RecordingsPage({ initialRecordings }) {
   const [editTitle, setEditTitle] = useState('');
   const audioRefs = useRef({});
 
-  function getAudioRef(id) {
-    if (!audioRefs.current[id]) audioRefs.current[id] = { current: null };
-    return audioRefs.current[id];
-  }
-
   function togglePlay(rec) {
     const el = audioRefs.current[rec.id]?.current;
     if (!el) return;
@@ -107,8 +102,6 @@ export default function RecordingsPage({ initialRecordings }) {
       <h1 className="text-[18px] font-semibold text-white/80 mb-6">Opnames</h1>
       <div className="flex flex-col gap-3">
         {recordings.map(rec => {
-          const ref = { current: null };
-          audioRefs.current[rec.id] = ref;
           const dur = audioDuration[rec.id] ?? rec.duration_seconds;
           const cur = audioTime[rec.id] ?? 0;
           const isPlaying = playingId === rec.id;
