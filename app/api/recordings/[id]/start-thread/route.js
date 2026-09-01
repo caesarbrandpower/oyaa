@@ -24,6 +24,7 @@ export async function POST(request, { params }) {
       user_id: user.id,
       tenant_id: tenant?.id ?? null,
       title: rec.title || 'Opname',
+      client: rec.client || null,
       output_type: 'recording',
       audio_url: rec.audio_url,
       audio_storage_path: rec.storage_path,
