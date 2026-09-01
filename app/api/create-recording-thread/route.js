@@ -95,6 +95,31 @@ export async function POST(request) {
     audioUrl = publicUrl;
   }
 
+  // ── 1b. Recording-rij aanmaken ──────────────────────────────────────────────
+  let recordingId = null;
+  try {
+    const { data: rec, error: recErr } = await db
+      .from('recordings')
+      .insert({
+        user_id: user.id,
+        tenant_id: tenant?.id ?? null,
+        storage_path: storageData ? storagePath : null,
+        audio_url: audioUrl,
+        client: clientName || null,
+        title: recordingTitle(clientName),
+        transcript_status: 'queued',
+      })
+      .select('id')
+      .single();
+    if (recErr) {
+      console.error('[create-recording-thread] recording insert mislukt:', recErr.message, recErr.code);
+    } else {
+      recordingId = rec.id;
+    }
+  } catch (e) {
+    console.error('[create-recording-thread] recording insert exception:', e);
+  }
+
   // ── 2. Thread aanmaken met status 'queued' ────────────────────────────────
   const title = recordingTitle(clientName);
   const { data: thread, error: threadError } = await db
@@ -109,6 +134,7 @@ export async function POST(request) {
       audio_url: audioUrl,
       audio_storage_path: storageData ? storagePath : null,
       transcript_status: 'queued',
+      recording_id: recordingId,
     })
     .select('id')
     .single();
