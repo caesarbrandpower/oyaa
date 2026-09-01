@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Mic, Play, Pause, Trash2, ExternalLink, MessageSquarePlus, Download, Pencil, Check, X } from 'lucide-react';
+import Link from 'next/link';
+import { Mic, Play, Pause, Trash2, ExternalLink, MessageSquarePlus, Download, Pencil, Check, X, ArrowLeft } from 'lucide-react';
 
 function formatTime(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -99,7 +100,16 @@ export default function RecordingsPage({ initialRecordings }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
-      <h1 className="text-[18px] font-semibold text-white/80 mb-6">Opnames</h1>
+      <div className="mb-6">
+        <Link
+          href="/app"
+          className="inline-flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/70 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+          Terug naar chat
+        </Link>
+      </div>
+      <h1 className="text-[18px] font-semibold text-white/80 mb-6">Mijn opnames</h1>
       <div className="flex flex-col gap-3">
         {recordings.map(rec => {
           const dur = audioDuration[rec.id] ?? rec.duration_seconds;
