@@ -624,7 +624,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           body: JSON.stringify({
             threadId: isRecordingSplit ? null : (activeThreadRef.current?.id ?? null),
             message: messageText,
-            outputType: isRecordingSplit ? null : (outputType ?? activeThreadRef.current?.output_type ?? null),
+            outputType: isRecordingSplit ? (outputType ?? null) : (outputType ?? activeThreadRef.current?.output_type ?? null),
             taskLabel,
             client,
             clientConfirmed,

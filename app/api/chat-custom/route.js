@@ -282,7 +282,7 @@ export async function POST(request) {
         // effectiveOutputType: request → DB → auto-detectie → null
         // Vroeg berekend zodat isEvaluationType en skipVaultRetrieval kloppen vóór vault-retrieval
         let effectiveOutputType = outputType || threadOutputTypeFromDb;
-        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
+        const hasGenerateIntent = /\b(maak|genereer)\b.{0,60}\b(briefing|document|samenvatting|evaluatie|rapport)\b|\b(maak\s+(de|hem|het|dit|haar))\b|\bdoe\s+het\s*(maar)?\b|\bbrief\w*\s+voor\s+\S/i.test(userOnlyMessage);
         if (effectiveOutputType === 'recording' && hasGenerateIntent) {
           effectiveOutputType = null;
         }
