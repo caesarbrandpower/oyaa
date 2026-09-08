@@ -1344,6 +1344,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }, 1000);
   }
 
+  function handleRecordingError() {
+    clearInterval(recordingProgressRef.current);
+    setRecordingPending(false);
+    setRecordingProgress(0);
+  }
+
   async function handleRecordingComplete({ threadId, title, audioUrl, client }) {
     clearInterval(recordingProgressRef.current);
 
@@ -1542,7 +1548,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             )}
           </div>
           <div className="relative z-[51]" style={showDragZone ? { top: '20px' } : undefined}>
-            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} onRecordingError={handleRecordingError} />
           </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
