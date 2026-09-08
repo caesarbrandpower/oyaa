@@ -24,6 +24,11 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   const [showNewClientInput, setShowNewClientInput] = useState(false);
   const [newClientInput, setNewClientInput] = useState('');
   const [knownClients, setKnownClients] = useState([]);
+  // Persistente uploadfout — null of { message, blob, mimeType, filename, client }
+  const [uploadError, setUploadError] = useState(null);
+
+  // Tauri-detectie — moet vóór alle useEffects staan die isTauri gebruiken
+  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
 
   // Tauri-detectie — moet vóór alle useEffects staan die isTauri gebruiken
   const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
@@ -99,30 +104,62 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   async function uploadAndTranscribe(blob, mimeType, filename, client = null) {
     if (transcribingRef.current) return;
     transcribingRef.current = true;
+    setUploadError(null);
 
     try {
-      const audioFile = new File([blob], filename, { type: mimeType });
-      const formData = new FormData();
-      formData.append('audio', audioFile);
-      if (client) formData.append('client', client);
-      formData.append('project', 'Transcripts');
-
-      const res = await fetch('/api/create-recording-thread', {
+      // Stap 1: vraag pre-signed upload URL op (kleine JSON-request naar Vercel)
+      setStatusMsg('Upload voorbereiden...');
+      const ext = filename.split('.').pop() || 'm4a';
+      const urlRes = await fetch('/api/recordings/request-upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ext }),
       });
-      const data = await res.json();
-
-      if (data.error) {
-        setStatusMsg('Fout: ' + data.error);
-        setTimeout(() => setStatusMsg(''), 4000);
-        return;
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({}));
+        throw new Error(err.error || `Upload voorbereiden mislukt (HTTP ${urlRes.status})`);
       }
+      const { signedUrl, path: storagePath } = await urlRes.json();
 
-      onRecordingComplete?.({ threadId: data.threadId, title: data.title, transcript: data.transcript, audioUrl: data.audioUrl ?? null, client: client ?? null });
-    } catch {
-      setStatusMsg('Netwerkfout bij transcriptie.');
-      setTimeout(() => setStatusMsg(''), 4000);
+      // Stap 2: upload audio rechtstreeks naar Supabase Storage via signed URL
+      // Vercel ziet deze bytes niet — geen 4,5 MB-limiet
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setStatusMsg(`Opname uploaden... ${pct}%`);
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Opslaan in cloud mislukt (HTTP ${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error('Netwerkfout tijdens uploaden. Controleer je verbinding.'));
+        xhr.open('PUT', signedUrl);
+        xhr.setRequestHeader('Content-Type', mimeType || 'audio/m4a');
+        xhr.send(blob);
+      });
+
+      // Stap 3: maak thread aan met alleen de storage path (geen audio-bytes naar Vercel)
+      setStatusMsg('Transcriptie aanmaken...');
+      const threadRes = await fetch('/api/create-recording-thread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath, client, project: 'Transcripts' }),
+      });
+      if (!threadRes.ok) {
+        const err = await threadRes.json().catch(() => ({}));
+        throw new Error(err.error || `Thread aanmaken mislukt (HTTP ${threadRes.status})`);
+      }
+      const data = await threadRes.json();
+
+      setStatusMsg('');
+      onRecordingComplete?.({ threadId: data.threadId, title: data.title, audioUrl: data.audioUrl ?? null, client: client ?? null });
+    } catch (err) {
+      // Fout opslaan met blob zodat de gebruiker opnieuw kan proberen zonder opname te verliezen
+      setUploadError({ message: err.message || 'Onbekende fout bij uploaden.', blob, mimeType, filename, client });
+      setStatusMsg('');
     } finally {
       transcribingRef.current = false;
     }
@@ -494,13 +531,34 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
         </div>
       )}
 
-      {/* Foutmelding */}
-      {statusMsg && (
+      {/* Uploadfout — persistent, verdwijnt niet vanzelf, opname blijft bewaard voor retry */}
+      {uploadError && (
+        <div className="absolute top-12 right-0 z-[200] w-80 bg-[#1a1a1a] border border-red-500/40 rounded-xl shadow-xl px-4 py-3 space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[12px] text-red-400 font-semibold leading-snug">Upload mislukt</p>
+            <button onClick={() => setUploadError(null)} className="text-white/25 hover:text-white/60 shrink-0 mt-0.5">
+              <X className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          </div>
+          <p className="text-[11px] text-white/50 leading-snug">{uploadError.message}</p>
+          <p className="text-[11px] text-white/35 leading-snug">Je opname is bewaard. Probeer het opnieuw of controleer je verbinding.</p>
+          <button
+            onClick={() => {
+              const { blob, mimeType, filename, client } = uploadError;
+              setUploadError(null);
+              uploadAndTranscribe(blob, mimeType, filename, client);
+            }}
+            className="w-full h-8 rounded-lg bg-orange text-white text-[12px] font-semibold hover:bg-[#e03d00] transition-colors"
+          >
+            Opnieuw proberen
+          </button>
+        </div>
+      )}
+
+      {/* Status tijdens upload (voortgang) */}
+      {statusMsg && !uploadError && (
         <div className="absolute top-12 right-0 z-[200] w-72 bg-[#1a1a1a] border border-white/[0.10] rounded-xl shadow-xl px-4 py-3 text-[12px] text-white/60">
           {statusMsg}
-          <button onClick={() => setStatusMsg('')} className="absolute top-2 right-2 text-white/25 hover:text-white/60">
-            <X className="w-3.5 h-3.5" strokeWidth={2} />
-          </button>
         </div>
       )}
     </div>
