@@ -36,8 +36,8 @@ export default function AuthNav({ inline = false }) {
         </span>
         <button
           onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.reload();
+            const { signOut } = await import('@/lib/sign-out');
+            await signOut();
           }}
           className="text-[13px] text-white/40 hover:text-orange transition-colors font-[family-name:var(--font-outfit)] cursor-pointer"
         >

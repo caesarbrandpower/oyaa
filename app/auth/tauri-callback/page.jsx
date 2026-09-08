@@ -7,11 +7,9 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
 
 export default function TauriCallbackPage() {
   const router = useRouter();
-  const supabase = createClient();
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -28,15 +26,18 @@ export default function TauriCallbackPage() {
       return;
     }
 
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
-        if (error) {
-          router.replace('/login?error=session_failed');
-        } else {
-          router.replace('/app');
-        }
-      });
+    import('@/lib/supabase-browser').then(({ createClient }) => {
+      const supabase = createClient();
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) {
+            router.replace('/login?error=session_failed');
+          } else {
+            router.replace('/app');
+          }
+        });
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

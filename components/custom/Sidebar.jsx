@@ -23,7 +23,7 @@ function getThreadIcon(thread) {
   }
 }
 
-export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [] }) {
+export default function Sidebar({ tenant, user, threads, activeThreadId, onNewThread, onSelectThread, onRenameThread, onDeleteThread, projects = [], tauriMode = false }) {
   const pathname = usePathname();
   const router = useRouter();
   const isDocsActive = pathname === '/app/docs';
@@ -73,16 +73,22 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   }
 
   async function handleDeleteThread(threadId) {
-    await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+    // Optimistisch: direct uit de lijst, dan opruimen op de achtergrond
     closeContextMenu();
     onDeleteThread?.(threadId);
+    try {
+      const res = await fetch(`/api/threads/${threadId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      // Terugzetten wordt gedaan door de parent via onDeleteThread-terugdraai;
+      // hier alleen loggen — we hebben geen thread-object meer om terug te zetten
+      console.error('[Sidebar] thread verwijderen mislukt:', e);
+    }
   }
 
   async function handleSignOut() {
-    const { createClient } = await import('@/lib/supabase-browser');
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
+    const { signOut } = await import('@/lib/sign-out');
+    await signOut();
   }
 
   function openPasswordMode() {
@@ -132,12 +138,12 @@ export default function Sidebar({ tenant, user, threads, activeThreadId, onNewTh
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center px-4 h-16 shrink-0 border-b border-white/[0.06]">
+      <div className={`flex items-center px-4 shrink-0 border-b border-white/[0.06] ${tauriMode ? 'h-24' : 'h-16'}`}>
         {tenant?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={tenant.logo_url} alt={tenant.name} className="h-6 w-auto object-contain object-left" />
+          <img src={tenant.logo_url} alt={tenant.name} className={`h-6 w-auto object-contain object-left${tauriMode ? ' relative top-5' : ''}`} />
         ) : (
-          <span className="font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange">
+          <span className={`font-[family-name:var(--font-lexend)] text-[11px] font-bold tracking-[0.2em] uppercase text-orange${tauriMode ? ' relative top-5' : ''}`}>
             {tenant?.name ?? 'Waybetter'}
           </span>
         )}

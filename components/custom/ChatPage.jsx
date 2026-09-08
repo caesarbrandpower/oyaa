@@ -46,10 +46,73 @@ import TaskSidePanel from './TaskSidePanel';
 import RecordingButton from './RecordingButton';
 
 export default function ChatPage({ user, tenant, initialThreads, initialPrefill, initialThreadId = null, initialImprove = false, projects = [] }) {
+  // Tauri-detectie: vóór alle andere hooks zodat er geen TDZ-risico is.
+  const [showDragZone, setShowDragZone] = useState(false);
+  useEffect(() => { setShowDragZone(!!window.__TAURI__); }, []);
+
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
   const activeThreadRef = useRef(null);
+
+  // Realtime: nieuwe threads verschijnen automatisch in de zijbalk.
+  // RLS op de threads-tabel zorgt dat alleen eigen rijen binnenkomen (user_id = auth.uid()).
+  // visibilitychange herlaadt de threadlijst als de Realtime-verbinding weg was
+  // terwijl het venster verborgen was (WebKit pauzeert WebSockets).
+  useEffect(() => {
+    let channel;
+    let realtimeMissed = false;
+
+    async function subscribe() {
+      const { createClient } = await import('@/lib/supabase-browser');
+      const sb = createClient();
+
+      channel = sb
+        .channel('sidebar-threads')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'threads', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const t = payload.new;
+            setThreads((prev) => prev.some((x) => x.id === t.id) ? prev : [t, ...prev]);
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'CLOSED') realtimeMissed = true;
+        });
+    }
+
+    async function refreshThreads() {
+      try {
+        const { createClient } = await import('@/lib/supabase-browser');
+        const sb = createClient();
+        const { data } = await sb
+          .from('threads')
+          .select('id, title, output_type, created_at, updated_at, client, project, audio_url')
+          .eq('user_id', user.id)
+          .eq('tenant_id', tenant.id)
+          .order('updated_at', { ascending: false })
+          .limit(20);
+        if (data) setThreads(data);
+      } catch { /* netwerk-fout, stil laten passeren */ }
+    }
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (realtimeMissed) {
+        realtimeMissed = false;
+        refreshThreads();
+      }
+    }
+
+    subscribe();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (channel) channel.unsubscribe();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, tenant.id]);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
@@ -1114,6 +1177,115 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [recordingPending, setRecordingPending] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
 
+  // --- Annuleren lopende opname / upload / transcriptie ---
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function cancelActiveRecording() {
+    setCancelling(true);
+    try {
+      // Lopende upload: threadId nog niet bekend — alleen UI resetten
+      if (recordingPending && !activeThread?.id) {
+        setRecordingPending(false);
+        setRecordingProgress(0);
+        setCancelConfirm(false);
+        return;
+      }
+      // Thread bestaat al (upload klaar of transcriptie loopt)
+      if (activeThread?.id) {
+        const res = await fetch(`/api/threads/${activeThread.id}`, { method: 'DELETE' });
+        const json = await res.json().catch(() => ({}));
+        if (json.warnings?.length) {
+          console.warn('[cancel] waarschuwingen:', json.warnings.join('; '));
+        }
+        setThreads(prev => prev.filter(t => t.id !== activeThread.id));
+        handleNewThread();
+      }
+    } catch (e) {
+      console.error('[cancel] fout:', e);
+    } finally {
+      setCancelling(false);
+      setCancelConfirm(false);
+    }
+  }
+
+  // --- Transcript pending / failed --- (async transcriptie)
+  const isTranscriptPending = !!(
+    activeThread?.output_type === 'recording' &&
+    ['queued', 'processing'].includes(activeThread?.transcript_status) &&
+    messages.length === 0 &&
+    !recordingPending
+  );
+  const isTranscriptFailed = !!(
+    activeThread?.output_type === 'recording' &&
+    activeThread?.transcript_status === 'failed' &&
+    messages.length === 0
+  );
+
+  // Poll elke 5 seconden zolang het transcript nog verwerkt wordt.
+  // Controleert ook direct bij elke keer dat het venster zichtbaar wordt:
+  // WebKit (macOS/iOS) pauzeert JS-timers voor verborgen vensters, waardoor
+  // de poll stopt als de gebruiker het venster sluit. visibilitychange vangt
+  // dat op en zorgt voor een directe controle bij heropenen.
+  useEffect(() => {
+    if (!isTranscriptPending || !activeThread?.id) return;
+    const threadId = activeThread.id;
+
+    async function checkTranscriptStatus() {
+      try {
+        const { createClient: cb } = await import('@/lib/supabase-browser');
+        const sb = cb();
+        const { data: t, error } = await sb.from('threads')
+          .select('transcript_status, transcript_error')
+          .eq('id', threadId)
+          .single();
+        if (error) { console.error('[poll] supabase-fout:', error.message); return; }
+        if (!t) return;
+        if (t.transcript_status === 'done') {
+          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'done' }));
+        } else if (t.transcript_status === 'failed') {
+          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: t.transcript_error }));
+        }
+      } catch (e) { console.error('[poll] netwerk-fout:', e); }
+    }
+
+    const id = setInterval(checkTranscriptStatus, 5000);
+
+    // Direct controleren bij venster zichtbaar worden (herstel na WebKit-throttle)
+    function onVisible() {
+      if (document.visibilityState === 'visible') checkTranscriptStatus();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, isTranscriptPending]);
+
+  // Laad berichten zodra transcript_status 'done' is en berichten nog leeg zijn.
+  // Werkt als fallback naast de poll: ook als de poll de status mist of stopt.
+  useEffect(() => {
+    if (activeThread?.output_type !== 'recording') return;
+    if (activeThread?.transcript_status !== 'done') return;
+    if (messages.length > 0) return;
+    const threadId = activeThread.id;
+    (async () => {
+      try {
+        const { createClient: cb } = await import('@/lib/supabase-browser');
+        const sb = cb();
+        const { data: msgs, error } = await sb.from('messages')
+          .select('id, role, content, created_at')
+          .eq('thread_id', threadId)
+          .order('created_at', { ascending: true });
+        if (error) { console.error('[transcript-load] supabase-fout:', error.message); return; }
+        if (msgs?.length > 0) setMessages(msgs.map(m => ({ ...m, attachments: [] })));
+      } catch (e) { console.error('[transcript-load] netwerk-fout:', e); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, activeThread?.transcript_status, messages.length]);
+
   // --- Getrapt verschijnen opname-thread (0 = niets, 1 = transcript, 2 = card, 3 = tekst) ---
   const [recordingRevealStep, setRecordingRevealStep] = useState(0);
   useEffect(() => {
@@ -1174,6 +1346,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     setBriefingExtras({});
     setThreads(prev => prev.some(t => t.id === threadId) ? prev : [optimisticThread, ...prev]);
     setMessages([]);
+
     setRecordingPending(false);
     setRecordingProgress(0);
 
@@ -1195,80 +1368,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       // Optimistic data blijft staan
     }
   }
-
-  // --- Transcript pending / failed --- (async transcriptie)
-  const isTranscriptPending = !!(
-    activeThread?.output_type === 'recording' &&
-    ['queued', 'processing'].includes(activeThread?.transcript_status) &&
-    messages.length === 0 &&
-    !recordingPending
-  );
-  const isTranscriptFailed = !!(
-    activeThread?.output_type === 'recording' &&
-    activeThread?.transcript_status === 'failed' &&
-    messages.length === 0
-  );
-
-  // Poll elke 5 seconden zolang het transcript nog verwerkt wordt.
-  // WebKit pauzeert JS-timers voor verborgen vensters; visibilitychange vangt
-  // dat op en zorgt voor een directe controle bij heropenen.
-  useEffect(() => {
-    if (!isTranscriptPending || !activeThread?.id) return;
-    const threadId = activeThread.id;
-
-    async function checkTranscriptStatus() {
-      try {
-        const { createClient: cb } = await import('@/lib/supabase-browser');
-        const sb = cb();
-        const { data: t, error } = await sb.from('threads')
-          .select('transcript_status, transcript_error')
-          .eq('id', threadId)
-          .single();
-        if (error) { console.error('[poll] supabase-fout:', error.message); return; }
-        if (!t) return;
-        if (t.transcript_status === 'done') {
-          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'done' }));
-        } else if (t.transcript_status === 'failed') {
-          setActiveThreadBoth(prev => ({ ...prev, transcript_status: 'failed', transcript_error: t.transcript_error }));
-        }
-      } catch (e) { console.error('[poll] netwerk-fout:', e); }
-    }
-
-    const id = setInterval(checkTranscriptStatus, 5000);
-
-    function onVisible() {
-      if (document.visibilityState === 'visible') checkTranscriptStatus();
-    }
-    document.addEventListener('visibilitychange', onVisible);
-
-    return () => {
-      clearInterval(id);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeThread?.id, isTranscriptPending]);
-
-  // Laad berichten zodra transcript_status 'done' is en berichten nog leeg zijn.
-  useEffect(() => {
-    if (activeThread?.output_type !== 'recording') return;
-    if (activeThread?.transcript_status !== 'done') return;
-    if (messages.length > 0) return;
-    const threadId = activeThread.id;
-    (async () => {
-      try {
-        const { createClient: cb } = await import('@/lib/supabase-browser');
-        const sb = cb();
-        const { data: msgs, error } = await sb.from('messages')
-          .select('id, role, content, created_at')
-          .eq('thread_id', threadId)
-          .order('created_at', { ascending: true });
-        if (error) { console.error('[transcript-load] supabase-fout:', error.message); return; }
-        if (msgs?.length > 0) setMessages(msgs.map(m => ({ ...m, attachments: [] })));
-      } catch (e) { console.error('[transcript-load] netwerk-fout:', e); }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeThread?.id, activeThread?.transcript_status, messages.length]);
-
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window === 'undefined') return 200;
@@ -1295,6 +1394,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   return (
     <>
+    {showDragZone && (
+      <div
+        data-tauri-drag-region
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '40px', zIndex: 50 }}
+      />
+    )}
     {activeTask && (
       <TaskSidePanel
         task={activeTask}
@@ -1338,6 +1443,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           onRenameThread={handleRenameThread}
           onDeleteThread={handleDeleteThread}
           projects={projects}
+          tauriMode={showDragZone}
         />
       </div>
 
@@ -1347,7 +1453,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         className="hidden lg:block w-1.5 shrink-0 cursor-col-resize group/resize relative"
         title="Sleep om sidebar te resizen"
       >
-        <div className="h-16 border-b border-white/[0.06]" />
+        <div className={`${showDragZone ? 'h-24' : 'h-16'} border-b border-white/[0.06]`} />
         <div className="absolute inset-y-0 left-0 w-px bg-transparent group-hover/resize:bg-orange/40 transition-colors" />
       </div>
 
@@ -1368,6 +1474,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           onRenameThread={handleRenameThread}
           onDeleteThread={handleDeleteThread}
           projects={projects}
+          tauriMode={showDragZone}
         />
       </aside>
 
@@ -1381,7 +1488,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
       {/* Rechterkolom — header + content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-white/[0.06]">
+        <div className={`flex items-center gap-3 px-4 shrink-0 border-b border-white/[0.06] ${showDragZone ? 'h-24' : 'h-16'}`}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-white/40 hover:text-white/70 transition-colors"
@@ -1389,7 +1496,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1 flex items-center min-w-0">
+          <div className="relative z-[51] flex-1 flex items-center min-w-0" style={showDragZone ? { top: '20px' } : undefined}>
             {activeThread && (
               titleEditing ? (
                 <input
@@ -1414,7 +1521,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               )
             )}
           </div>
-          <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          <div className="relative z-[51]" style={showDragZone ? { top: '20px' } : undefined}>
+            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+          </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>
 
@@ -1480,6 +1589,24 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                     style={{ width: `${recordingProgress}%` }}
                   />
                 </div>
+                {cancelConfirm ? (
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-[13px] font-medium disabled:opacity-40"
+                      disabled={cancelling}
+                      onClick={cancelActiveRecording}
+                    >{cancelling ? 'Bezig...' : 'Ja, annuleer'}</button>
+                    <button
+                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-[13px]"
+                      onClick={() => setCancelConfirm(false)}
+                    >Nee, doorgaan</button>
+                  </div>
+                ) : (
+                  <button
+                    className="text-[12px] text-white/30 hover:text-white/60 underline underline-offset-2"
+                    onClick={() => setCancelConfirm(true)}
+                  >Annuleer upload</button>
+                )}
               </div>
             </div>
           ) : isTranscriptPending ? (
@@ -1492,7 +1619,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               </div>
             </div>
           ) : isTranscriptFailed ? (
-            /* Transcriptie mislukt — opnieuw proberen */
+            /* Transcriptie mislukt — opnieuw proberen knop */
             <div className="flex items-center justify-center min-h-full">
               <div className="w-full max-w-md px-4 md:px-8 py-12 text-center">
                 <p className="text-[15px] font-medium text-white/70 mb-2">Transcriptie mislukt</p>
