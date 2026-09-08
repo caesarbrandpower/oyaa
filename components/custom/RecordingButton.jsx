@@ -12,7 +12,7 @@ function formatTime(seconds) {
 }
 
 // state: idle | recording | screen-recording | client-selection | done
-export default function RecordingButton({ onRecordingStart, onRecordingComplete }) {
+export default function RecordingButton({ onRecordingStart, onRecordingComplete, onRecordingError }) {
   const [uiState, setUiState] = useState('idle');
   const [timer, setTimer] = useState(0);
   const [statusMsg, setStatusMsg] = useState('');
@@ -26,9 +26,8 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
   const [knownClients, setKnownClients] = useState([]);
   // Persistente uploadfout — null of { message, blob, mimeType, filename, client }
   const [uploadError, setUploadError] = useState(null);
-
-  // Tauri-detectie — moet vóór alle useEffects staan die isTauri gebruiken
-  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
+  const [isTauri, setIsTauri] = useState(false);
+  useEffect(() => { setIsTauri(!!window.__TAURI__); }, []);
 
   useEffect(() => {
     async function fetchClients() {
@@ -104,47 +103,79 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
     setUploadError(null);
 
     try {
-      // Stap 1: vraag pre-signed upload URL op (kleine JSON-request naar Vercel)
+      // Stap 1: vraag pre-signed upload URL op (30s time-out — kleine JSON-request)
       setStatusMsg('Upload voorbereiden...');
       const ext = filename.split('.').pop() || 'm4a';
-      const urlRes = await fetch('/api/recordings/request-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ext }),
-      });
+      const ctrl1 = new AbortController();
+      const t1 = setTimeout(() => ctrl1.abort(), 30_000);
+      let urlRes;
+      try {
+        urlRes = await fetch('/api/recordings/request-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ext }),
+          signal: ctrl1.signal,
+        });
+      } finally {
+        clearTimeout(t1);
+      }
       if (!urlRes.ok) {
         const err = await urlRes.json().catch(() => ({}));
         throw new Error(err.error || `Upload voorbereiden mislukt (HTTP ${urlRes.status})`);
       }
       const { signedUrl, path: storagePath } = await urlRes.json();
 
-      // Stap 2: upload audio rechtstreeks naar Supabase Storage via signed URL
-      // Vercel ziet deze bytes niet — geen 4,5 MB-limiet
+      // Stap 2: upload audio rechtstreeks naar Supabase Storage via signed URL.
+      // Vercel ziet deze bytes niet — geen 4,5 MB-limiet.
+      // Stall-detectie: als er 90 seconden geen voortgang is, wordt afgebroken.
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        let stallTimer = setTimeout(() => {
+          xhr.abort();
+          reject(new Error('Upload vastgelopen — geen voortgang na 90 seconden. Controleer je verbinding en probeer het opnieuw.'));
+        }, 90_000);
+
         xhr.upload.onprogress = (e) => {
+          clearTimeout(stallTimer);
+          stallTimer = setTimeout(() => {
+            xhr.abort();
+            reject(new Error('Upload vastgelopen — geen voortgang na 90 seconden. Controleer je verbinding en probeer het opnieuw.'));
+          }, 90_000);
           if (e.lengthComputable) {
             const pct = Math.round((e.loaded / e.total) * 100);
             setStatusMsg(`Opname uploaden... ${pct}%`);
           }
         };
         xhr.onload = () => {
+          clearTimeout(stallTimer);
           if (xhr.status >= 200 && xhr.status < 300) resolve();
           else reject(new Error(`Opslaan in cloud mislukt (HTTP ${xhr.status})`));
         };
-        xhr.onerror = () => reject(new Error('Netwerkfout tijdens uploaden. Controleer je verbinding.'));
+        xhr.onerror = () => {
+          clearTimeout(stallTimer);
+          reject(new Error('Netwerkfout tijdens uploaden. Controleer je verbinding.'));
+        };
+        xhr.onabort = () => clearTimeout(stallTimer);
         xhr.open('PUT', signedUrl);
         xhr.setRequestHeader('Content-Type', mimeType || 'audio/m4a');
         xhr.send(blob);
       });
 
-      // Stap 3: maak thread aan met alleen de storage path (geen audio-bytes naar Vercel)
+      // Stap 3: maak thread aan (120s time-out — kleine JSON-request, geen audio-bytes naar Vercel)
       setStatusMsg('Transcriptie aanmaken...');
-      const threadRes = await fetch('/api/create-recording-thread', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath, client, project: 'Transcripts' }),
-      });
+      const ctrl3 = new AbortController();
+      const t3 = setTimeout(() => ctrl3.abort(), 120_000);
+      let threadRes;
+      try {
+        threadRes = await fetch('/api/create-recording-thread', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, client, project: 'Transcripts' }),
+          signal: ctrl3.signal,
+        });
+      } finally {
+        clearTimeout(t3);
+      }
       if (!threadRes.ok) {
         const err = await threadRes.json().catch(() => ({}));
         throw new Error(err.error || `Thread aanmaken mislukt (HTTP ${threadRes.status})`);
@@ -154,9 +185,14 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
       setStatusMsg('');
       onRecordingComplete?.({ threadId: data.threadId, title: data.title, audioUrl: data.audioUrl ?? null, client: client ?? null });
     } catch (err) {
+      const message = err.name === 'AbortError'
+        ? 'Time-out — de verbinding heeft te lang geduurd. Je opname is bewaard, probeer het opnieuw.'
+        : err.message || 'Onbekende fout bij uploaden.';
       // Fout opslaan met blob zodat de gebruiker opnieuw kan proberen zonder opname te verliezen
-      setUploadError({ message: err.message || 'Onbekende fout bij uploaden.', blob, mimeType, filename, client });
+      setUploadError({ message, blob, mimeType, filename, client });
       setStatusMsg('');
+      // Vertel ChatPage dat de upload mislukt is zodat de laadspinner verdwijnt
+      onRecordingError?.();
     } finally {
       transcribingRef.current = false;
     }
@@ -356,6 +392,8 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete 
           console.error('[RecordingButton] queue_add FOUT:', qe);
           setStatusMsg('Upload mislukt: ' + e);
         }
+        // Upload mislukt of in wachtrij — laadspinner in ChatPage moet verdwijnen
+        onRecordingError?.();
       }
       return;
     }
