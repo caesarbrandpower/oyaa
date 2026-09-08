@@ -50,6 +50,26 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   const [showDragZone, setShowDragZone] = useState(false);
   useEffect(() => { setShowDragZone(!!window.__TAURI__); }, []);
 
+  // Token-sync: houd Rust Keychain actueel als de webview een nieuw token krijgt.
+  // Voorkomt refresh_token_already_used wanneer de webview roteert maar Rust de oude token bewaart.
+  useEffect(() => {
+    if (!window.__TAURI__) return;
+    let unsubscribe;
+    import('@/lib/supabase-browser').then(({ createClient }) => {
+      const sb = createClient();
+      const { data } = sb.auth.onAuthStateChange((event, session) => {
+        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
+          window.__TAURI__.core.invoke('update_session', {
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+          }).catch(() => {});
+        }
+      });
+      unsubscribe = data?.subscription?.unsubscribe;
+    });
+    return () => { unsubscribe?.(); };
+  }, []);
+
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState(initialThreads);
   const [activeThread, setActiveThread] = useState(null);
@@ -1324,6 +1344,12 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }, 1000);
   }
 
+  function handleRecordingError() {
+    clearInterval(recordingProgressRef.current);
+    setRecordingPending(false);
+    setRecordingProgress(0);
+  }
+
   async function handleRecordingComplete({ threadId, title, audioUrl, client }) {
     clearInterval(recordingProgressRef.current);
 
@@ -1522,7 +1548,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             )}
           </div>
           <div className="relative z-[51]" style={showDragZone ? { top: '20px' } : undefined}>
-            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} />
+            <RecordingButton onRecordingStart={handleRecordingStart} onRecordingComplete={handleRecordingComplete} onRecordingError={handleRecordingError} />
           </div>
         </div>
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ zoom: 1.1 }}>

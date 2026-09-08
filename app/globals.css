@@ -291,3 +291,16 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Tauri overlay-titelbalk: sleepzone bovenin de zijbalk.
+   Verborgen in de browser, actief als data-tauri aanwezig is (gezet door initialization_script). */
+.tauri-drag-zone {
+  display: none;
+  flex-shrink: 0;
+}
+[data-tauri] .tauri-drag-zone {
+  display: block;
+  height: 44px;
+  width: 100%;
+  -webkit-app-region: drag;
+}

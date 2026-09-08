@@ -8,9 +8,8 @@ export default function Header() {
   const router = useRouter();
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    const { signOut } = await import('@/lib/sign-out');
+    await signOut();
   }
 
   return (
