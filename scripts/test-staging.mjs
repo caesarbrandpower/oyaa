@@ -49,7 +49,11 @@ const env = {
 const SUPABASE_URL  = env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE  = env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON_KEY      = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const BASE_URL      = (env.OYAA_TEST_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+if (!env.OYAA_TEST_BASE_URL) {
+  console.error('FOUT: OYAA_TEST_BASE_URL is niet ingesteld. Gebruik bijv.:\n  OYAA_TEST_BASE_URL=https://chase.waybetter.nl node scripts/test-staging.mjs');
+  process.exit(1);
+}
+const BASE_URL      = env.OYAA_TEST_BASE_URL.replace(/\/$/, '');
 const TS_EMAIL      = env.OYAA_TEST_EMAIL ?? 'ruben@chase.amsterdam';
 const SSE_TIMEOUT   = 90_000;
 
