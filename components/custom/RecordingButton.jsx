@@ -29,9 +29,6 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete,
   const [isTauri, setIsTauri] = useState(false);
   useEffect(() => { setIsTauri(!!window.__TAURI__); }, []);
 
-  // Tauri-detectie — moet vóór alle useEffects staan die isTauri gebruiken
-  const isTauri = typeof window !== 'undefined' && !!window.__TAURI__;
-
   useEffect(() => {
     async function fetchClients() {
       const { createClient } = await import('@/lib/supabase-browser');
