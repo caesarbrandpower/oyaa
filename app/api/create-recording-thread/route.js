@@ -106,15 +106,17 @@ export async function POST(request) {
     return Response.json({ error: 'Thread aanmaken mislukt.' }, { status: 500 });
   }
 
-  // ── 4. Speechmatics-job indienen (audio ophalen van Storage) ───────────────
+  // ── 4. Speechmatics-job indienen (audio ophalen via Storage SDK) ─────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
   const callbackUrl = `${appUrl}/api/transcription-callback?thread_id=${thread.id}`;
 
   try {
-    // Haal audio op van Supabase Storage — server-naar-server, geen Vercel body-limiet
-    const audioResp = await fetch(audioUrl);
-    if (!audioResp.ok) throw new Error(`Storage fetch HTTP ${audioResp.status}`);
-    const audioBuffer = await audioResp.arrayBuffer();
+    // SDK-download is betrouwbaarder dan fetch(publicUrl) — vermijdt 504's bij grote bestanden
+    const { data: audioBlob, error: downloadErr } = await db.storage
+      .from('recordings')
+      .download(storagePath);
+    if (downloadErr || !audioBlob) throw new Error(`Storage download mislukt: ${downloadErr?.message ?? 'geen data'}`);
+    const audioBuffer = await audioBlob.arrayBuffer();
 
     const fileName = storagePath.split('/').pop() || 'recording.m4a';
     const jobId = await submitTranscriptionJob(
@@ -131,8 +133,22 @@ export async function POST(request) {
 
     console.log(`[create-recording-thread] job ${jobId} ingediend voor thread ${thread.id}`);
   } catch (err) {
-    // Job indienen mislukt — status blijft 'queued', cron herindient via retry-transcription
     console.error('[create-recording-thread] Speechmatics job mislukt:', err?.message ?? err);
+    // Status op 'failed' zodat de gebruiker de retry-knop ziet — niet als 'queued' laten hangen
+    // want de cron slaat threads zonder speechmatics_job_id over.
+    await db
+      .from('threads')
+      .update({
+        transcript_status: 'failed',
+        transcript_error: 'Transcriptie-aanvraag mislukt. Gebruik de knop hieronder om het opnieuw te proberen.',
+      })
+      .eq('id', thread.id);
+    if (recordingId) {
+      await db
+        .from('recordings')
+        .update({ transcript_status: 'failed' })
+        .eq('id', recordingId);
+    }
   }
 
   return Response.json({ threadId: thread.id, title, audioUrl });
