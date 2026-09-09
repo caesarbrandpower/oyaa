@@ -480,20 +480,37 @@ for (const test of CHASE_DOC_TYPES) {
 
 // ────────────────────────────────────────────────────────────────────────────
 // TDB — documentgeneratie via DB-lookup (geen recordingTranscript, wel recordingThreadId)
-// Dekt de browser-bug: messagesRef stale → transcript niet meegestuurd,
-// server zoekt het op via recordingThreadId uit de DB.
+// Simuleert het directe pad na een opname: recording aangemaakt, transcript in DB
+// opgeslagen, direct document genereren zonder de thread opnieuw te laden.
+// In de browser was messagesRef stale → recordingTranscript null, server moet
+// transcript zelf ophalen via recordingThreadId.
+// Dekt alle Chase-documenttypes (5) en All Day-types (2).
 // ────────────────────────────────────────────────────────────────────────────
 
 console.log('\n' + '='.repeat(60));
-console.log('TDB — DB-fallback: transcript ophalen zonder recordingTranscript');
+console.log('TDB — DB-fallback: alle documenttypes, geen recordingTranscript');
 console.log('='.repeat(60));
 
-{
+// mustContain: alleen voor meeting-summary controleren we of het transcript zichtbaar is
+// in de output — andere types gebruiken eigen templates die het transcript anders verwerken.
+// mustNotContain: de exacte frase die de server teruggeeft bij isEmptyDocumentRequest.
+const TDB_DOC_TYPES = [
+  { id: 'TDB1', type: 'meeting-summary',        label: 'Samenvatting',            client: 'Testklant SSE',      mustContain: [/student|budget|energie|ambassador|ruben/i] },
+  { id: 'TDB2', type: 'account-to-pm',          label: 'Briefing naar PM',        client: 'Testklant SSE',      mustContain: [] },
+  { id: 'TDB3', type: 'field-briefing',         label: 'Briefing naar BA',        client: 'Testklant SSE',      mustContain: [] },
+  { id: 'TDB4', type: 'account-to-creation',    label: 'Briefing naar Creatie',   client: 'Testklant SSE',      mustContain: [] },
+  { id: 'TDB5', type: 'evaluation',             label: 'Evaluatie',               client: 'Testklant SSE',      mustContain: [] },
+  { id: 'TDB6', type: 'allday-gespreksverslag', label: 'All Day Gespreksverslag', client: 'Testklant All Day',  mustContain: [] },
+  { id: 'TDB7', type: 'allday-debrief',         label: 'All Day Debrief',         client: 'Testklant All Day',  mustContain: [] },
+];
+
+for (const test of TDB_DOC_TYPES) {
   let threadId;
   try {
+    // Simuleert: opname net klaar, thread aangemaakt, transcript opgeslagen in DB
     const { data: t, error: tErr } = await sb.from('threads').insert({
       user_id: userId, tenant_id: CHASE_TENANT,
-      title: 'Testthread TDB1 recording', output_type: 'recording', client: 'Testklant SSE',
+      title: `Testthread ${test.id} recording`, output_type: 'recording', client: test.client,
     }).select('id').single();
     if (tErr || !t) throw new Error(tErr?.message ?? 'geen thread-id terug');
     threadId = t.id;
@@ -504,35 +521,36 @@ console.log('='.repeat(60));
     });
     if (mErr) throw new Error('bericht invoegen mislukt: ' + mErr.message);
   } catch (e) {
-    fail('TDB1', 'DB-fallback transcript → document met inhoud', ['setup mislukt: ' + e.message]);
-    threadId = null;
+    fail(test.id, `DB-fallback ${test.label} → document met inhoud`, ['setup mislukt: ' + e.message]);
+    continue;
   }
 
-  if (threadId) {
-    const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
-      threadId,
-      message: 'Maak een samenvatting',
-      outputType: 'meeting-summary',
-      recordingThreadId: threadId,
-      // recordingTranscript bewust weggelaten — simuleert browser met stale messagesRef
-    }, tenantHostname);
+  // Stuur géén recordingTranscript mee — server moet het zelf uit DB halen via recordingThreadId
+  const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
+    threadId,
+    message: `Maak een ${test.label.toLowerCase()} van dit transcript`,
+    outputType: test.type,
+    recordingThreadId: threadId,
+    // recordingTranscript bewust weggelaten — simuleert browser direct na opname
+  }, tenantHostname);
 
-    if (timeout) {
-      fail('TDB1', 'DB-fallback transcript → document met inhoud', [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]);
-    } else if (fetchError) {
-      fail('TDB1', 'DB-fallback transcript → document met inhoud', [fetchError]);
-    } else if (httpStatus !== 200) {
-      fail('TDB1', 'DB-fallback transcript → document met inhoud', [`HTTP ${httpStatus}`]);
-    } else {
-      const { failures, content } = checkSSE(events, {
-        mustContain: [/student|budget|energie|ambassador|ruben/i],
-        mustNotContain: [/wat is de input|plak.*transcript|geen.*input/i],
-      });
-      if (failures.length === 0) pass('TDB1', 'DB-fallback transcript → document bevat transcriptinhoud');
-      else {
-        fail('TDB1', 'DB-fallback transcript → document met inhoud', failures);
-        console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
-      }
+  if (timeout) {
+    fail(test.id, `DB-fallback ${test.label} → document gegenereerd`, [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]);
+  } else if (fetchError) {
+    fail(test.id, `DB-fallback ${test.label} → document gegenereerd`, [fetchError]);
+  } else if (httpStatus !== 200) {
+    fail(test.id, `DB-fallback ${test.label} → document gegenereerd`, [`HTTP ${httpStatus}`]);
+  } else {
+    // Primaire check: server vraagt NIET om input (= DB-fallback werkte)
+    // Alleen voor meeting-summary controleren we of transcriptinhoud zichtbaar is
+    const { failures, content } = checkSSE(events, {
+      mustContain: test.mustContain,
+      mustNotContain: [/\bwat is de input\b|\bwat.*input.*voor.*dit\b/i],
+    });
+    if (failures.length === 0) pass(test.id, `DB-fallback ${test.label} → document gegenereerd`);
+    else {
+      fail(test.id, `DB-fallback ${test.label} → document gegenereerd`, failures);
+      console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
     }
   }
 }

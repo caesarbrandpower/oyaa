@@ -1231,11 +1231,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   // --- Transcript pending / failed --- (async transcriptie)
+  // Dekking voor het moment dat transcript_status 'done' is maar berichten nog niet geladen
+  // zijn (poll zet status 'done' → effect haalt berichten op → render-window daartussen).
+  // Zonder deze uitbreiding verschijnen de TaskButtons even en gaat de klik via het verkeerde
+  // pad (handleTaskGenerate → handleNewThread clearet activeThreadRef → isRecordingSplit=false).
   const isTranscriptPending = !!(
     activeThread?.output_type === 'recording' &&
-    ['queued', 'processing'].includes(activeThread?.transcript_status) &&
     messages.length === 0 &&
-    !recordingPending
+    !recordingPending &&
+    activeThread?.transcript_status !== 'failed'
   );
   const isTranscriptFailed = !!(
     activeThread?.output_type === 'recording' &&
