@@ -738,6 +738,190 @@ for (const test of ALLDAY_TESTS) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// TSO — Volgordescenario's: exacte client-payload zoals nieuwe code die stuurt
+//
+// Scenario 1/3 (direct na opname, of na wegnavigeren en terugkeren):
+//   threadId: null, recordingThreadId: <rec>, recordingTranscript: FAKE
+//   → server maakt nieuw document-thread, gebruikt transcript direct
+//
+// Scenario 2 (na eerder gegenereerd document, messagesRef stale):
+//   threadId: null, recordingThreadId: <rec>, recordingTranscript: null
+//   → server maakt nieuw document-thread, haalt transcript op via recordingThreadId
+//
+// Scenario 3-fout (oud foutpad dat nu expliciete fout moet geven):
+//   threadId: <doc-thread>, recordingThreadId: null, message: "...van dit transcript"
+//   → server stuurt error-event, geen "Wat is de input?"
+// ────────────────────────────────────────────────────────────────────────────
+
+console.log('\n' + '='.repeat(60));
+console.log('TSO — Volgordescenario 1/3: transcript meegestuurd (threadId=null)');
+console.log('='.repeat(60));
+
+const TSO_ALL_TYPES = [
+  { id: 'TSO1',  type: 'meeting-summary',        label: 'Samenvatting',            client: 'Testklant SSE',     mustContain: [/student|budget|energie|ambassador|ruben/i] },
+  { id: 'TSO2',  type: 'account-to-pm',          label: 'Briefing naar PM',        client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSO3',  type: 'field-briefing',         label: 'Briefing naar BA',        client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSO4',  type: 'account-to-creation',    label: 'Briefing naar Creatie',   client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSO5',  type: 'evaluation',             label: 'Evaluatie',               client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSO6',  type: 'allday-gespreksverslag', label: 'All Day Gespreksverslag', client: 'Testklant All Day', mustContain: [] },
+  { id: 'TSO7',  type: 'allday-debrief',         label: 'All Day Debrief',         client: 'Testklant All Day', mustContain: [] },
+];
+
+for (const test of TSO_ALL_TYPES) {
+  // Simuleert exact de nieuwe client-payload: threadId=null, recordingThreadId + transcript
+  let recThreadId;
+  try {
+    const { data: t, error: tErr } = await sb.from('threads').insert({
+      user_id: userId, tenant_id: CHASE_TENANT,
+      title: `TSO recording ${test.id}`, output_type: 'recording', client: test.client,
+    }).select('id').single();
+    if (tErr || !t) throw new Error(tErr?.message ?? 'geen id');
+    recThreadId = t.id;
+    cleanupThreadIds.push(recThreadId);
+  } catch (e) {
+    fail(test.id, `Scenario 1 ${test.label} (met transcript)`, ['setup mislukt: ' + e.message]);
+    continue;
+  }
+
+  const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
+    threadId: null,
+    message: `Maak een ${test.label.toLowerCase()} van dit transcript`,
+    outputType: test.type,
+    recordingThreadId: recThreadId,
+    recordingTranscript: FAKE_TRANSCRIPT,
+    recordingClient: test.client,
+  }, tenantHostname);
+
+  if (timeout) { fail(test.id, `Scenario 1 ${test.label} (met transcript)`, [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]); continue; }
+  if (fetchError) { fail(test.id, `Scenario 1 ${test.label} (met transcript)`, [fetchError]); continue; }
+  if (httpStatus !== 200) { fail(test.id, `Scenario 1 ${test.label} (met transcript)`, [`HTTP ${httpStatus}`]); continue; }
+
+  const newThreadEvent = events.find(e => e.type === 'meta' && e.threadId);
+  if (newThreadEvent?.threadId) cleanupThreadIds.push(newThreadEvent.threadId);
+
+  const { failures, content } = checkSSE(events, {
+    mustContain: test.mustContain,
+    mustNotContain: [/\bwat is de input\b|\bwat.*input.*voor.*dit\b/i, /transcript niet gevonden/i],
+  });
+  if (failures.length === 0) pass(test.id, `Scenario 1 ${test.label} → document gegenereerd`);
+  else {
+    fail(test.id, `Scenario 1 ${test.label} (met transcript)`, failures);
+    console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
+  }
+}
+
+console.log('\n' + '='.repeat(60));
+console.log('TSO — Volgordescenario 2: geen transcript, DB-fallback (threadId=null)');
+console.log('='.repeat(60));
+
+const TSODB_ALL_TYPES = [
+  { id: 'TSODB1', type: 'meeting-summary',        label: 'Samenvatting',            client: 'Testklant SSE',     mustContain: [/student|budget|energie|ambassador|ruben/i] },
+  { id: 'TSODB2', type: 'account-to-pm',          label: 'Briefing naar PM',        client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSODB3', type: 'field-briefing',         label: 'Briefing naar BA',        client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSODB4', type: 'account-to-creation',    label: 'Briefing naar Creatie',   client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSODB5', type: 'evaluation',             label: 'Evaluatie',               client: 'Testklant SSE',     mustContain: [] },
+  { id: 'TSODB6', type: 'allday-gespreksverslag', label: 'All Day Gespreksverslag', client: 'Testklant All Day', mustContain: [] },
+  { id: 'TSODB7', type: 'allday-debrief',         label: 'All Day Debrief',         client: 'Testklant All Day', mustContain: [] },
+];
+
+for (const test of TSODB_ALL_TYPES) {
+  // Simuleert na eerder gegenereerd document: threadId=null, recordingThreadId bekend,
+  // maar recordingTranscript null (messagesRef was stale). Server haalt transcript uit DB.
+  let recThreadId;
+  try {
+    const { data: t, error: tErr } = await sb.from('threads').insert({
+      user_id: userId, tenant_id: CHASE_TENANT,
+      title: `TSODB recording ${test.id}`, output_type: 'recording', client: test.client,
+    }).select('id').single();
+    if (tErr || !t) throw new Error(tErr?.message ?? 'geen id');
+    recThreadId = t.id;
+    cleanupThreadIds.push(recThreadId);
+    const { error: mErr } = await sb.from('messages').insert({
+      thread_id: recThreadId, role: 'user', content: FAKE_TRANSCRIPT,
+    });
+    if (mErr) throw new Error('bericht invoegen mislukt: ' + mErr.message);
+  } catch (e) {
+    fail(test.id, `Scenario 2 ${test.label} (DB-fallback)`, ['setup mislukt: ' + e.message]);
+    continue;
+  }
+
+  const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
+    threadId: null,
+    message: `Maak een ${test.label.toLowerCase()} van dit transcript`,
+    outputType: test.type,
+    recordingThreadId: recThreadId,
+    recordingClient: test.client,
+    // recordingTranscript bewust weggelaten — simuleert stale messagesRef
+  }, tenantHostname);
+
+  if (timeout) { fail(test.id, `Scenario 2 ${test.label} (DB-fallback)`, [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]); continue; }
+  if (fetchError) { fail(test.id, `Scenario 2 ${test.label} (DB-fallback)`, [fetchError]); continue; }
+  if (httpStatus !== 200) { fail(test.id, `Scenario 2 ${test.label} (DB-fallback)`, [`HTTP ${httpStatus}`]); continue; }
+
+  const newThreadEvDB = events.find(e => e.type === 'meta' && e.threadId);
+  if (newThreadEvDB?.threadId) cleanupThreadIds.push(newThreadEvDB.threadId);
+
+  const { failures, content } = checkSSE(events, {
+    mustContain: test.mustContain,
+    mustNotContain: [/\bwat is de input\b|\bwat.*input.*voor.*dit\b/i, /transcript niet gevonden/i],
+  });
+  if (failures.length === 0) pass(test.id, `Scenario 2 ${test.label} → DB-fallback, document gegenereerd`);
+  else {
+    fail(test.id, `Scenario 2 ${test.label} (DB-fallback)`, failures);
+    console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
+  }
+}
+
+console.log('\n' + '='.repeat(60));
+console.log('TSO — Volgordescenario 3-fout: ontbrekende context → expliciete fout');
+console.log('='.repeat(60));
+
+// Simuleert het oude foutpad: threadId is een document-thread, geen recordingThreadId,
+// geen transcript — maar bericht bevat "van dit transcript".
+// Verwacht: server geeft error-event, geen "Wat is de input?".
+{
+  let docThreadId;
+  try {
+    const { data: t } = await sb.from('threads').insert({
+      user_id: userId, tenant_id: CHASE_TENANT,
+      title: 'Foutpad test document-thread', output_type: 'account-to-pm', client: 'Testklant SSE',
+    }).select('id').single();
+    docThreadId = t?.id;
+    if (docThreadId) cleanupThreadIds.push(docThreadId);
+  } catch { /* mislukt — test hieronder faalt dan op httpStatus */ }
+
+  const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
+    threadId: docThreadId ?? null,
+    message: 'Maak een samenvatting van dit transcript',
+    outputType: 'meeting-summary',
+    // geen recordingThreadId, geen recordingTranscript — het oude foutpad
+  }, tenantHostname);
+
+  if (timeout) {
+    fail('TSOERR1', 'Foutpad → expliciete fout, geen "Wat is de input?"', [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]);
+  } else if (fetchError) {
+    fail('TSOERR1', 'Foutpad → expliciete fout, geen "Wat is de input?"', [fetchError]);
+  } else if (httpStatus !== 200) {
+    fail('TSOERR1', 'Foutpad → expliciete fout, geen "Wat is de input?"', [`HTTP ${httpStatus}`]);
+  } else {
+    const errorEvent = events.find(e => e.type === 'error');
+    const doneEvent  = events.find(e => e.type === 'done');
+    const content    = String(doneEvent?.content ?? '');
+    const errors = [];
+    if (!errorEvent && !/transcript niet gevonden/i.test(content)) {
+      // Server had ofwel een error-event of foutmelding in content moeten sturen
+      if (/wat is de input|wat.*input.*voor.*dit/i.test(content)) {
+        errors.push('server antwoordde met "Wat is de input?" in plaats van een fout');
+      } else {
+        errors.push(`geen error-event en geen foutmelding in content: "${content.slice(0, 80)}"`);
+      }
+    }
+    if (errors.length === 0) pass('TSOERR1', 'Foutpad → expliciete fout, geen "Wat is de input?"');
+    else fail('TSOERR1', 'Foutpad → expliciete fout, geen "Wat is de input?"', errors);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Cleanup
 // ────────────────────────────────────────────────────────────────────────────
 

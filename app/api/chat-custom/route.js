@@ -356,40 +356,14 @@ export async function POST(request) {
             }
           }
         }
-        // Server-side fallback: als de client-ref gereset was en geen recordingThreadId of
-        // recordingTranscript meegestuurd heeft, maar het bericht duidelijk een recording-commando
-        // is, haal het transcript op van de meest recente recording-thread van deze gebruiker.
-        // Tijdvenster: 2 uur — ruim genoeg voor een sessie, eng genoeg om verwarring te voorkomen.
-        if (!effectiveRecordingTranscript && hasGenerateIntent
-            && /van dit transcript/i.test(message ?? '')) {
-          const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-          const tenantId = tenant?.id ?? null;
-          let fallbackQuery = supabase
-            .from('threads')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('output_type', 'recording')
-            .eq('transcript_status', 'done')
-            .gt('created_at', twoHoursAgo)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          if (tenantId) fallbackQuery = fallbackQuery.eq('tenant_id', tenantId);
-          const { data: recentThreads } = await fallbackQuery;
-          const fallbackThreadId = recentThreads?.[0]?.id ?? null;
-          if (fallbackThreadId) {
-            const { data: fallbackMsgs } = await supabase
-              .from('messages')
-              .select('content')
-              .eq('thread_id', fallbackThreadId)
-              .eq('role', 'user')
-              .order('created_at', { ascending: true })
-              .limit(1);
-            const fallbackCandidate = fallbackMsgs?.[0]?.content ?? null;
-            if (fallbackCandidate && fallbackCandidate.length > 100) {
-              effectiveRecordingTranscript = fallbackCandidate;
-              console.log(`[chat-custom] server-fallback transcript: thread ${fallbackThreadId}`);
-            }
-          }
+        // Als de client expliciet een recording-knopaanroep signaleert (recordingThreadId aanwezig
+        // of bericht bevat "van dit transcript") maar er toch geen transcript gevonden is, geef
+        // een zichtbare fout — nooit de generieke "Wat is de input?"-vraag.
+        if (hasGenerateIntent && !effectiveRecordingTranscript
+            && (!!recordingThreadId || /van dit transcript/i.test(message ?? ''))) {
+          writeEvent(controller, { type: 'error', error: 'Transcript niet gevonden. Vernieuw de pagina en probeer opnieuw.' });
+          controller.close();
+          return;
         }
 
         const hasSubstantialInput =

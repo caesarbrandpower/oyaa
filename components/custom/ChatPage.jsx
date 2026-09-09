@@ -434,7 +434,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   }
 
   const handleSend = useCallback(
-    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false, hasUserContent = true) => {
+    async (messageText, outputType = null, taskLabel = null, displayText = null, client = null, imageAttachments = [], transcriptAttachments = [], clientConfirmed = false, wizardProject = null, textAttachments = [], pdfAttachments = [], analysisConfirmed = false, hasUserContent = true, recordingContext = null) => {
       if (sendingRef.current) return;
 
       // Analyse-bevestigingsflow: gebruiker reageert op "Zal ik de briefing maken?"
@@ -660,7 +660,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         : false;
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
-      const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
+      const isRecordingSplit = (recordingContext != null) || (activeThreadRef.current?.output_type === 'recording' && isGenerateIntent);
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
         // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
@@ -720,9 +720,9 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             hasUserContent,
             ...(isImprove ? { improveDocument: true } : {}),
             ...(isRecordingSplit ? {
-              recordingClient: activeThreadRef.current?.client ?? null,
-              recordingThreadId: activeThreadRef.current?.id ?? null,
-              recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,
+              recordingClient: recordingContext?.client ?? activeThreadRef.current?.client ?? null,
+              recordingThreadId: recordingContext?.threadId ?? activeThreadRef.current?.id ?? null,
+              recordingTranscript: recordingContext?.transcript ?? messagesRef.current.find(m => m.role === 'user')?.content ?? null,
             } : {}),
           }),
           signal: controller.signal,
@@ -1165,6 +1165,20 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   function handleStop() {
     abortRef.current?.abort();
   }
+
+  const handleRecordingGenerate = useCallback((task) => {
+    handleSend(
+      `Maak een ${task.label.toLowerCase()} van dit transcript`,
+      task.id, task.label, task.label,
+      activeThread?.client ?? null,
+      [], [], false, null, [], [], false, true,
+      {
+        threadId: activeThread?.id ?? null,
+        client: activeThread?.client ?? null,
+        transcript: messages.find(m => m.role === 'user')?.content ?? null,
+      }
+    );
+  }, [activeThread, messages, handleSend]);
 
   function handleTaskClick(task) {
     setActiveTask(task);
@@ -1772,14 +1786,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                           {outputTypes.map(task => (
                             <button
                               key={task.id}
-                              onClick={() => handleSend(
-                                `Maak een ${task.label.toLowerCase()} van dit transcript`,
-                                task.id,
-                                task.label,
-                                task.label,
-                                activeThread.client ?? null,
-                                [], [], false, null, [], [], false
-                              )}
+                              onClick={() => handleRecordingGenerate(task)}
                               disabled={sending}
                               className="inline-flex items-center h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white/70 text-[12px] font-medium hover:bg-white/[0.09] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
