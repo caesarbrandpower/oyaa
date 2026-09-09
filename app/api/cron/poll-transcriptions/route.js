@@ -1,8 +1,9 @@
-// Cron-fallback: haalt openstaande Speechmatics-jobs op als de webhook niet aankwam.
+// Cron-fallback: haalt openstaande Speechmatics-jobs op als de webhook niet aankwam,
+// en herindient jobs die nooit zijn ingediend (bijv. na een Storage-fout bij upload).
 // Draait elke 5 minuten via Vercel cron (zie vercel.json).
 
 import { createServiceClient } from '@/lib/supabase-server';
-import { processTranscriptJson } from '@/lib/whisper';
+import { processTranscriptJson, submitTranscriptionJob } from '@/lib/whisper';
 import { saveTranscript } from '@/lib/save-transcript';
 
 const EU_ENDPOINT = 'https://eu1.asr.api.speechmatics.com';
@@ -105,5 +106,54 @@ export async function GET(request) {
   }
 
   console.log(`[poll-transcriptions] ${threads.length} gecontroleerd, ${processed} verwerkt, ${failed} mislukt`);
-  return Response.json({ ok: true, checked: threads.length, processed, failed });
+
+  // ── Herindienen: threads zonder speechmatics_job_id aangemaakt in de laatste 2 uur ──
+  // Dit vangt Storage-fouten op die de initiële jobsubmit blokkeerden.
+  // Tijdgrens van 2 uur = 24 cron-pogingen; daarna blijft de thread op 'failed'
+  // en moet de gebruiker handmatig opnieuw proberen.
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const { data: unsubmitted, error: unsubErr } = await supabase
+    .from('threads')
+    .select('id, audio_storage_path, tenant_id, transcript_status')
+    .in('transcript_status', ['queued', 'failed'])
+    .is('speechmatics_job_id', null)
+    .not('audio_storage_path', 'is', null)
+    .gt('created_at', twoHoursAgo);
+
+  if (unsubErr) {
+    console.error('[poll-transcriptions] fout bij ophalen niet-ingediende threads:', unsubErr.message);
+  }
+
+  let resubmitted = 0;
+  for (const thread of (unsubmitted ?? [])) {
+    try {
+      const { data: audioBlob, error: dlErr } = await supabase.storage
+        .from('recordings')
+        .download(thread.audio_storage_path);
+      if (dlErr || !audioBlob) {
+        console.warn(`[poll-transcriptions] audio download mislukt voor thread ${thread.id}:`, dlErr?.message);
+        continue;
+      }
+      const audioBuffer = await audioBlob.arrayBuffer();
+      const ext = thread.audio_storage_path.split('.').pop() || 'm4a';
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl) { console.warn('[poll-transcriptions] NEXT_PUBLIC_APP_URL ontbreekt, skip'); continue; }
+      const callbackUrl = `${appUrl}/api/transcription-callback?thread_id=${thread.id}`;
+      const jobId = await submitTranscriptionJob(audioBuffer, `recording.${ext}`, thread.tenant_id ?? null, callbackUrl);
+      await supabase
+        .from('threads')
+        .update({ speechmatics_job_id: jobId, transcript_status: 'processing', transcript_error: null })
+        .eq('id', thread.id);
+      console.log(`[poll-transcriptions] herindienen gelukt: job ${jobId} voor thread ${thread.id}`);
+      resubmitted++;
+    } catch (err) {
+      console.error(`[poll-transcriptions] herindienen mislukt voor thread ${thread.id}:`, err?.message ?? err);
+    }
+  }
+
+  if (resubmitted > 0) {
+    console.log(`[poll-transcriptions] ${resubmitted} thread(s) alsnog ingediend`);
+  }
+
+  return Response.json({ ok: true, checked: threads.length, processed, failed, resubmitted });
 }
