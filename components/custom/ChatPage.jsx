@@ -661,6 +661,15 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
       const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
+      console.log('[client-debug] handleSend:', JSON.stringify({
+        activeThreadId: activeThreadRef.current?.id ?? null,
+        activeThreadOutputType: activeThreadRef.current?.output_type ?? null,
+        isGenerateIntent,
+        isRecordingSplit,
+        outputType: outputType ?? null,
+        messagesInRef: messagesRef.current.length,
+        firstUserMsg: messagesRef.current.find(m => m.role === 'user')?.content?.slice(0, 40) ?? null,
+      }));
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
         // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
