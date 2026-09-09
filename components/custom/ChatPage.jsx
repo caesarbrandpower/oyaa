@@ -256,9 +256,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
 
   // Always update ref and state together — ref is read by handleSend (stable useCallback)
   function setActiveThreadBoth(thread) {
-    if (thread === null) {
-      console.log('[client-debug] setActiveThreadBoth(null) — oorzaak:', new Error().stack?.split('\n').slice(1, 5).join(' | '));
-    }
     activeThreadRef.current = thread;
     setActiveThread(thread);
   }
@@ -664,21 +661,6 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
       const bufferedStream = textAttachments.length > 0 || transcriptAttachments.length > 0 || pdfAttachments.length > 0;
       // Recording-splitsing: generatie vanuit een recording-thread maakt een nieuw document-thread aan
       const isRecordingSplit = activeThreadRef.current?.output_type === 'recording' && isGenerateIntent;
-      // Fallback: als activeThreadRef gereset is maar berichten wél alle user-rol hebben (recording-thread patroon),
-      // stuur het transcript alsnog mee zodat de server er niet om vraagt.
-      const allMsgsAreUser = messagesRef.current.length > 0 && messagesRef.current.every(m => m.role === 'user');
-      const hasRecordingContext = isRecordingSplit || (allMsgsAreUser && isGenerateIntent);
-      console.log('[client-debug] handleSend:', JSON.stringify({
-        activeThreadId: activeThreadRef.current?.id ?? null,
-        activeThreadOutputType: activeThreadRef.current?.output_type ?? null,
-        isGenerateIntent,
-        isRecordingSplit,
-        hasRecordingContext,
-        allMsgsAreUser,
-        outputType: outputType ?? null,
-        messagesInRef: messagesRef.current.length,
-        firstUserMsg: messagesRef.current.find(m => m.role === 'user')?.content?.slice(0, 40) ?? null,
-      }));
       setMessages((prev) => {
         const placeholder = { id: placeholderId, role: 'assistant', streaming: true, streamContent: '', isDocument: placeholderIsDoc, content: '', bufferedStream };
         // Pre-gen bericht alleen als er geen PDF-bijlagen zijn — anders stuurt de server een analyse-bericht
@@ -737,7 +719,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             analysisConfirmed,
             hasUserContent,
             ...(isImprove ? { improveDocument: true } : {}),
-            ...(hasRecordingContext ? {
+            ...(isRecordingSplit ? {
               recordingClient: activeThreadRef.current?.client ?? null,
               recordingThreadId: activeThreadRef.current?.id ?? null,
               recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,
