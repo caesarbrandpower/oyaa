@@ -360,7 +360,7 @@ export async function POST(request) {
         // recordingTranscript meegestuurd heeft, maar het bericht duidelijk een recording-commando
         // is, haal het transcript op van de meest recente recording-thread van deze gebruiker.
         // Tijdvenster: 2 uur — ruim genoeg voor een sessie, eng genoeg om verwarring te voorkomen.
-        if (!effectiveRecordingTranscript && hasGenerateIntent && !threadId
+        if (!effectiveRecordingTranscript && hasGenerateIntent
             && /van dit transcript/i.test(message ?? '')) {
           const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
           const tenantId = tenant?.id ?? null;
