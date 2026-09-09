@@ -78,6 +78,15 @@ export async function POST(request) {
     recordingProject = null,
   } = body;
 
+  // Tijdelijk diagnostisch log — verwijderen na analyse van de browser-bug
+  console.log('[chat-debug] binnenkomend verzoek:', JSON.stringify({
+    threadId: threadId ?? null,
+    outputType: outputType ?? null,
+    recordingThreadId: recordingThreadId ?? null,
+    recordingTranscript: recordingTranscript ? `[${recordingTranscript.length} tekens]` : null,
+    message: (message ?? '').slice(0, 60),
+  }));
+
   if (!message?.trim()) {
     return Response.json({ error: 'Bericht is verplicht.' }, { status: 400 });
   }
@@ -364,6 +373,16 @@ export async function POST(request) {
           || userOnlyMessage.includes('\n')
           || contentBeyondCommand.length > 70;
         const isEmptyDocumentRequest = hasGenerateIntent && !hasSubstantialInput && !wantsVaultAsInput;
+
+        // Tijdelijk diagnostisch log — verwijderen na analyse van de browser-bug
+        console.log('[chat-debug] verwerkt:', JSON.stringify({
+          threadId: activeThreadId ?? null,
+          threadOutputTypeFromDb: threadOutputTypeFromDb ?? null,
+          hasGenerateIntent,
+          effectiveRecordingTranscript: effectiveRecordingTranscript ? `[${effectiveRecordingTranscript.length} tekens]` : null,
+          hasSubstantialInput,
+          isEmptyDocumentRequest,
+        }));
 
         // Bij documentgeneratie nooit de kluis gebruiken als bron, tenzij de gebruiker dat expliciet vraagt.
         // Reden: kluisinhoud wordt dan input voor de briefing terwijl de gebruiker geen input heeft geleverd.
