@@ -5,6 +5,7 @@
  *   TD  — intent-detectie unit tests (hasGenerateIntent-regex, incl. fix vandaag)
  *   TR  — recordings + threads CRUD via HTTP
  *   TC  — chat-custom SSE: alle Chase documenttypes vanuit recording (knop-pad)
+ *   TDB — chat-custom SSE: DB-fallback transcript (geen recordingTranscript, wel recordingThreadId)
  *   TI  — chat-custom SSE: intent detectie via intypen ("Maak een samenvatting")
  *   TQ  — chat-custom SSE: vragen over transcript, geen documentgeneratie
  *   TF  — chat-custom SSE: vrij gesprek zonder audio
@@ -474,6 +475,65 @@ for (const test of CHASE_DOC_TYPES) {
   else {
     fail(test.id, test.label, failures);
     console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TDB — documentgeneratie via DB-lookup (geen recordingTranscript, wel recordingThreadId)
+// Dekt de browser-bug: messagesRef stale → transcript niet meegestuurd,
+// server zoekt het op via recordingThreadId uit de DB.
+// ────────────────────────────────────────────────────────────────────────────
+
+console.log('\n' + '='.repeat(60));
+console.log('TDB — DB-fallback: transcript ophalen zonder recordingTranscript');
+console.log('='.repeat(60));
+
+{
+  let threadId;
+  try {
+    const { data: t, error: tErr } = await sb.from('threads').insert({
+      user_id: userId, tenant_id: CHASE_TENANT,
+      title: 'Testthread TDB1 recording', output_type: 'recording', client: 'Testklant SSE',
+    }).select('id').single();
+    if (tErr || !t) throw new Error(tErr?.message ?? 'geen thread-id terug');
+    threadId = t.id;
+    cleanupThreadIds.push(threadId);
+
+    const { error: mErr } = await sb.from('messages').insert({
+      thread_id: threadId, role: 'user', content: FAKE_TRANSCRIPT,
+    });
+    if (mErr) throw new Error('bericht invoegen mislukt: ' + mErr.message);
+  } catch (e) {
+    fail('TDB1', 'DB-fallback transcript → document met inhoud', ['setup mislukt: ' + e.message]);
+    threadId = null;
+  }
+
+  if (threadId) {
+    const { events, timeout, fetchError, httpStatus } = await runSSE(cookie, {
+      threadId,
+      message: 'Maak een samenvatting',
+      outputType: 'meeting-summary',
+      recordingThreadId: threadId,
+      // recordingTranscript bewust weggelaten — simuleert browser met stale messagesRef
+    }, tenantHostname);
+
+    if (timeout) {
+      fail('TDB1', 'DB-fallback transcript → document met inhoud', [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]);
+    } else if (fetchError) {
+      fail('TDB1', 'DB-fallback transcript → document met inhoud', [fetchError]);
+    } else if (httpStatus !== 200) {
+      fail('TDB1', 'DB-fallback transcript → document met inhoud', [`HTTP ${httpStatus}`]);
+    } else {
+      const { failures, content } = checkSSE(events, {
+        mustContain: [/student|budget|energie|ambassador|ruben/i],
+        mustNotContain: [/wat is de input|plak.*transcript|geen.*input/i],
+      });
+      if (failures.length === 0) pass('TDB1', 'DB-fallback transcript → document bevat transcriptinhoud');
+      else {
+        fail('TDB1', 'DB-fallback transcript → document met inhoud', failures);
+        console.log(`    → preview: "${content.replace(/\n/g, ' ')}"`);
+      }
+    }
   }
 }
 
