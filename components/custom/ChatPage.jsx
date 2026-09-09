@@ -721,6 +721,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
             ...(isImprove ? { improveDocument: true } : {}),
             ...(isRecordingSplit ? {
               recordingClient: activeThreadRef.current?.client ?? null,
+              recordingThreadId: activeThreadRef.current?.id ?? null,
               recordingTranscript: messagesRef.current.find(m => m.role === 'user')?.content ?? null,
             } : {}),
           }),

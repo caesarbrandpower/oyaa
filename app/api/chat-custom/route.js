@@ -73,6 +73,7 @@ export async function POST(request) {
     hasUserContent: bodyHasUserContent = true,
     improveDocument = false,
     recordingTranscript = null,
+    recordingThreadId = null,
     recordingClient = null,
     recordingProject = null,
   } = body;
@@ -302,7 +303,7 @@ export async function POST(request) {
             effectiveOutputType = 'external-debrief';
           else if (/\b(evaluatie\s+maken|maak\s+een?\s+evaluatie|campagne[\s-]?evaluatie|sampling[\s-]?evaluatie)\b/i.test(recentText))
             effectiveOutputType = 'evaluation';
-          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript)) {
+          if (!effectiveOutputType && hasGenerateIntent && (threadOutputTypeFromDb === 'recording' || outputType === 'recording' || recordingTranscript || recordingThreadId)) {
             effectiveOutputType = 'meeting-summary';
           }
           if (effectiveOutputType) {
@@ -335,9 +336,30 @@ export async function POST(request) {
             contentBeyondCommand = (userOnlyMessage.slice(0, m.index) + ' ' + userOnlyMessage.slice(m.index + m[0].length)).trim();
           }
         }
+        // Als recordingTranscript ontbreekt maar er is een recordingThreadId of het huidige thread
+        // is een recording-thread: haal het transcript op uit de DB zodat isEmptyDocumentRequest
+        // niet onterecht vroeg terugkeert voordat we de kans krijgen het transcript te gebruiken.
+        let effectiveRecordingTranscript = recordingTranscript;
+        if (!effectiveRecordingTranscript && hasGenerateIntent) {
+          const sourceThreadId = recordingThreadId || (threadOutputTypeFromDb === 'recording' ? activeThreadId : null);
+          if (sourceThreadId) {
+            const { data: transcriptRows } = await supabase
+              .from('messages')
+              .select('content')
+              .eq('thread_id', sourceThreadId)
+              .eq('role', 'user')
+              .order('created_at', { ascending: true })
+              .limit(1);
+            const candidate = transcriptRows?.[0]?.content ?? null;
+            if (candidate && candidate !== message.trim()) {
+              effectiveRecordingTranscript = candidate;
+            }
+          }
+        }
+
         const hasSubstantialInput =
           hasOwnContent
-          || !!recordingTranscript
+          || !!effectiveRecordingTranscript
           || message.length > userOnlyMessage.length
           || userOnlyMessage.includes('\n')
           || contentBeyondCommand.length > 70;
@@ -470,8 +492,8 @@ export async function POST(request) {
         // Prioriteit 1: recordingTranscript uit request body (thread-splitsing vanuit recording-thread)
         // Prioriteit 2: eerste user-bericht in de DB als het een recording-thread is
         let recordingTranscriptContent = null;
-        if (recordingTranscript) {
-          recordingTranscriptContent = recordingTranscript;
+        if (effectiveRecordingTranscript) {
+          recordingTranscriptContent = effectiveRecordingTranscript;
         } else if (
           effectiveOutputType === 'meeting-summary' &&
           !hasTxtContent &&
