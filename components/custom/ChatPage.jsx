@@ -1200,33 +1200,41 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
   }
 
-  async function handleTranscriptReady(transcript, filename) {
-    if (!transcript) return false;
+  async function handleRecordingUploadComplete({ threadId, title, audioUrl }) {
+    const now = new Date().toISOString();
+    const optimisticThread = {
+      id: threadId,
+      title,
+      output_type: 'recording',
+      client: null,
+      project: null,
+      field_briefing_extras: {},
+      created_at: now,
+      updated_at: now,
+      audio_url: audioUrl ?? null,
+      transcript_status: 'processing',
+      transcript_error: null,
+    };
+    setActiveThreadBoth(optimisticThread);
+    setBriefingExtras({});
+    setThreads(prev => prev.some(t => t.id === threadId) ? prev : [optimisticThread, ...prev]);
+    setMessages([]);
+
     try {
       const { createClient: cb } = await import('@/lib/supabase-browser');
       const sb = cb();
-      const threadTitle = filename ? filename.replace(/\.[^.]+$/, '') : 'Geüpload transcript';
-      const { data: thread, error } = await sb
+      const { data: thread } = await sb
         .from('threads')
-        .insert({
-          user_id: user.id,
-          tenant_id: tenant?.id ?? null,
-          title: threadTitle,
-          output_type: 'recording',
-          transcript_status: 'done',
-        })
-        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, transcript_status, transcript_error, field_briefing_extras')
+        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, audio_storage_path, transcript_status, transcript_error, field_briefing_extras')
+        .eq('id', threadId)
         .single();
-      if (error || !thread) return false;
-      await sb.from('messages').insert({ thread_id: thread.id, role: 'user', content: transcript });
-      const fullThread = { ...thread, field_briefing_extras: thread.field_briefing_extras ?? {} };
-      setActiveThreadBoth(fullThread);
-      setMessages([{ id: 'upload-' + thread.id, role: 'user', content: transcript, created_at: new Date().toISOString(), attachments: [] }]);
-      setThreads(prev => [fullThread, ...prev.filter(t => t.id !== thread.id)]);
-      setBriefingExtras({});
-      return true;
+      if (thread) {
+        setActiveThreadBoth({ ...thread, field_briefing_extras: thread.field_briefing_extras ?? {} });
+        setBriefingExtras(thread.field_briefing_extras ?? {});
+        setThreads(prev => prev.map(t => t.id === thread.id ? thread : t));
+      }
     } catch {
-      return false;
+      // Optimistic data blijft staan
     }
   }
 
@@ -1727,7 +1735,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-medium text-white/60 mb-8">
                 Hi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je helpen?
               </h1>
-              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onRecordingUploadComplete={handleRecordingUploadComplete} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} locationsEnabled={tenant?.tenant_config?.features?.locations === true} suppliersEnabled={tenant?.tenant_config?.features?.suppliers === true} />
@@ -1905,7 +1913,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && !recordingPending && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onRecordingUploadComplete={handleRecordingUploadComplete} />
             </div>
           </div>
         )}

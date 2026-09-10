@@ -24,69 +24,26 @@ function isImageFile(file) {
   return IMAGE_EXTS.includes(ext);
 }
 
-export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscriptReady }) {
+export default function ChatInput({ onSend, disabled, onStop, prefill, onRecordingUploadComplete }) {
   const [value, setValue] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const pendingAudioIdRef = useRef(null);
-  const pendingAudioFilenameRef = useRef(null);
-  const [transcriptBarProgress, setTranscriptBarProgress] = useState(-1); // -1 = verborgen, 0-100 = actief
-  const barIntervalRef = useRef(null);
+  const audioUploadFilesRef = useRef({});
+  const audioUploadAbortRef = useRef({});
 
   const { transcribing, transcribeFile, recording, toggleRecording, cancelTranscription } = useAudioTranscription({
     onTranscript: (text) => {
-      const id = pendingAudioIdRef.current;
-      if (id) {
-        // Audio via paperclip → sla op als transcript-attachment
-        clearInterval(barIntervalRef.current);
-        setTranscriptBarProgress(100);
-        setTimeout(() => setTranscriptBarProgress(-1), 500);
-        const filename = pendingAudioFilenameRef.current;
-        setPendingAttachments((prev) =>
-          prev.map((a) => a.id === id ? { ...a, content: text, status: 'ready' } : a)
-        );
-        pendingAudioIdRef.current = null;
-        pendingAudioFilenameRef.current = null;
-        onTranscriptReady?.(text, filename);
-      } else {
-        // Inline mic-dictatie → gewoon in textarea
-        setValue((prev) => (prev ? prev + ' ' + text : text));
-      }
+      // Alleen inline mic-dictatie — audio-bestanden gaan via uploadAudioFile
+      setValue((prev) => (prev ? prev + ' ' + text : text));
     },
     onStatus: () => {},
     onError: (err) => {
-      const id = pendingAudioIdRef.current;
-      if (id) {
-        clearInterval(barIntervalRef.current);
-        setTranscriptBarProgress(-1);
-        setPendingAttachments((prev) =>
-          prev.map((a) => a.id === id ? { ...a, status: 'error' } : a)
-        );
-        pendingAudioIdRef.current = null;
-      }
       console.error('[ChatInput audio error]', err);
     },
   });
-
-  // Simuleer voortgangsbalk tijdens transcriberen
-  useEffect(() => {
-    if (transcribing && pendingAudioIdRef.current) {
-      setTranscriptBarProgress(0);
-      barIntervalRef.current = setInterval(() => {
-        setTranscriptBarProgress((prev) => {
-          if (prev < 0) return 0;
-          const remaining = 85 - prev;
-          return prev + Math.max(0.15, remaining * 0.012);
-        });
-      }, 500);
-    } else {
-      clearInterval(barIntervalRef.current);
-    }
-    return () => clearInterval(barIntervalRef.current);
-  }, [transcribing]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -149,18 +106,72 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }
 
+  async function uploadAudioFile(file, id) {
+    const controller = new AbortController();
+    audioUploadAbortRef.current[id] = controller;
+
+    setPendingAttachments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'loading', errorMsg: undefined } : a));
+
+    try {
+      const ext = (file.name.split('.').pop() || 'm4a').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const urlRes = await fetch('/api/recordings/request-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ext }),
+        signal: controller.signal,
+      });
+      if (!urlRes.ok) throw new Error('Upload kon niet gestart worden. Probeer opnieuw.');
+      const { signedUrl, path } = await urlRes.json();
+
+      const uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'audio/mpeg' },
+        body: file,
+        signal: controller.signal,
+      });
+      if (!uploadRes.ok) throw new Error('Upload mislukt. Controleer je verbinding en probeer opnieuw.');
+
+      const threadRes = await fetch('/api/create-recording-thread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath: path }),
+        signal: controller.signal,
+      });
+      if (!threadRes.ok) throw new Error('Verwerking mislukt. Probeer opnieuw.');
+      const result = await threadRes.json();
+
+      delete audioUploadAbortRef.current[id];
+      delete audioUploadFilesRef.current[id];
+      setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
+      onRecordingUploadComplete?.(result);
+    } catch (err) {
+      delete audioUploadAbortRef.current[id];
+      if (err?.name === 'AbortError') return;
+      setPendingAttachments((prev) =>
+        prev.map((a) => a.id === id ? { ...a, status: 'error', errorMsg: err?.message ?? 'Upload mislukt.' } : a)
+      );
+    }
+  }
+
+  function cancelAudioUpload(id) {
+    audioUploadAbortRef.current[id]?.abort();
+    delete audioUploadAbortRef.current[id];
+    delete audioUploadFilesRef.current[id];
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
   async function processFiles(files) {
 
     for (const file of files) {
       if (isAudioFile(file)) {
         const id = Math.random().toString(36).slice(2);
-        pendingAudioIdRef.current = id;
-        pendingAudioFilenameRef.current = file.name;
+        audioUploadFilesRef.current[id] = file;
         setPendingAttachments((prev) => [
           ...prev,
-          { id, filename: file.name, type: 'transcript', content: '', status: 'loading' },
+          { id, filename: file.name, type: 'transcript', status: 'loading' },
         ]);
-        transcribeFile(file, false);
+        uploadAudioFile(file, id);
         continue;
       }
 
@@ -245,14 +256,8 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
 
   function removeAttachment(id) {
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
-  }
-
-  function cancelTranscriptUpload(id) {
-    cancelTranscription();
-    clearInterval(barIntervalRef.current);
-    setTranscriptBarProgress(-1);
-    pendingAudioIdRef.current = null;
-    setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
+    delete audioUploadFilesRef.current[id];
+    delete audioUploadAbortRef.current[id];
   }
 
   const canSend =
@@ -289,36 +294,39 @@ export default function ChatInput({ onSend, disabled, onStop, prefill, onTranscr
                 )}
                 <span className="max-w-[160px] truncate">
                   {att.status === 'loading'
-                    ? (att.type === 'transcript' ? 'Transcriberen...' : att.type === 'pdf' ? 'PDF laden...' : 'Uitlezen...')
+                    ? (att.type === 'transcript' ? 'Uploaden...' : att.type === 'pdf' ? 'PDF laden...' : 'Uitlezen...')
                     : att.status === 'error' ? (att.errorMsg || 'Mislukt')
                     : att.filename}
                 </span>
+                {att.type === 'transcript' && att.status === 'error' && (
+                  <button
+                    onClick={() => {
+                      const f = audioUploadFilesRef.current[att.id];
+                      if (f) uploadAudioFile(f, att.id);
+                    }}
+                    className="ml-0.5 text-red-400/70 hover:text-red-300 transition-colors text-[10px] font-semibold underline"
+                    title="Opnieuw proberen"
+                  >
+                    Opnieuw
+                  </button>
+                )}
                 {att.type === 'transcript' && att.status === 'loading' ? (
                   <button
-                    onClick={() => cancelTranscriptUpload(att.id)}
+                    onClick={() => cancelAudioUpload(att.id)}
                     className="ml-0.5 text-white/25 hover:text-white/60 transition-colors"
                     title="Annuleren"
                   >
                     <X className="w-3 h-3" strokeWidth={2} />
                   </button>
-                ) : att.status !== 'loading' ? (
+                ) : (
                   <button
                     onClick={() => removeAttachment(att.id)}
                     className="ml-0.5 text-white/25 hover:text-white/60 transition-colors"
                   >
                     <X className="w-3 h-3" strokeWidth={2} />
                   </button>
-                ) : null}
+                )}
               </div>
-              {/* Progress bar onder transcript-pill tijdens laden */}
-              {att.type === 'transcript' && att.status === 'loading' && transcriptBarProgress >= 0 && (
-                <div className="h-0.5 bg-white/[0.08] rounded-full overflow-hidden w-full">
-                  <div
-                    className="h-full bg-orange/60 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${Math.min(100, transcriptBarProgress)}%` }}
-                  />
-                </div>
-              )}
             </div>
           ))}
         </div>

@@ -922,6 +922,89 @@ console.log('='.repeat(60));
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// TU — Upload-thread: bestandsupload route (request-upload endpoint)
+// ────────────────────────────────────────────────────────────────────────────
+
+console.log('\n' + '='.repeat(60));
+console.log('TU — Upload-thread: bestandsupload route');
+console.log('='.repeat(60));
+
+{
+  // TU1: /api/recordings/request-upload geeft een signed URL terug
+  let tu1Passed = false;
+  try {
+    const res = await fetch(`${BASE_URL}/api/recordings/request-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      body: JSON.stringify({ ext: 'm4a' }),
+    });
+    if (res.status !== 200) {
+      fail('TU1', '/api/recordings/request-upload → signed URL', [`HTTP ${res.status}`]);
+    } else {
+      const data = await res.json();
+      const errors = [];
+      if (!data.signedUrl || typeof data.signedUrl !== 'string') errors.push('signedUrl ontbreekt of is geen string');
+      if (!data.path || typeof data.path !== 'string') errors.push('path ontbreekt of is geen string');
+      if (!data.signedUrl?.startsWith('https://')) errors.push('signedUrl begint niet met https://');
+      if (errors.length === 0) {
+        pass('TU1', '/api/recordings/request-upload → signed URL + path ontvangen');
+        tu1Passed = true;
+      } else {
+        fail('TU1', '/api/recordings/request-upload → signed URL', errors);
+      }
+    }
+  } catch (e) {
+    fail('TU1', '/api/recordings/request-upload → signed URL', [e.message]);
+  }
+
+  // TU2: thread met output_type=recording + audio_url (upload-pad simulatie) genereert document
+  // Maakt direct een thread aan zoals create-recording-thread dat doet, inclusief audio_url.
+  // Verifieert dat de documentgeneratie correct werkt voor upload-gecreëerde threads.
+  {
+    const { data: tuThread, error: tuThreadErr } = await sb.from('threads').insert({
+      user_id: userId,
+      tenant_id: CHASE_TENANT,
+      title: 'TU2 upload-simulatie',
+      output_type: 'recording',
+      audio_url: 'https://example.com/fake-audio.m4a',
+      transcript_status: 'done',
+    }).select('id').single();
+
+    if (tuThreadErr || !tuThread) {
+      fail('TU2', 'Upload-thread documentgeneratie → thread aanmaken mislukt', [tuThreadErr?.message ?? 'geen data']);
+    } else {
+      cleanupThreadIds.push(tuThread.id);
+      await sb.from('messages').insert({ thread_id: tuThread.id, role: 'user', content: FAKE_TRANSCRIPT });
+
+      const { httpStatus, events, timeout, fetchError } = await runSSE(cookie,
+        {
+          message: `Maak een samenvatting van dit transcript`,
+          outputType: 'samenvatting',
+          outputTypeLabel: 'Samenvatting',
+          outputTypeLabelHeader: 'Samenvatting',
+          clientName: null,
+          threadId: null,
+          recordingThreadId: tuThread.id,
+          recordingTranscript: FAKE_TRANSCRIPT,
+        },
+        'chase-staging.waybetter.nl',
+      );
+
+      if (timeout) fail('TU2', 'Upload-thread documentgeneratie → Samenvatting', [`TIMEOUT na ${SSE_TIMEOUT / 1000}s`]);
+      else if (fetchError) fail('TU2', 'Upload-thread documentgeneratie → Samenvatting', [fetchError]);
+      else if (httpStatus !== 200) fail('TU2', 'Upload-thread documentgeneratie → Samenvatting', [`HTTP ${httpStatus}`]);
+      else {
+        const { failures, content } = checkSSE(events, {
+          expectDocument: true, expectDone: true, expectError: false,
+        });
+        if (failures.length === 0) pass('TU2', 'Upload-thread (audio_url aanwezig) → Samenvatting gegenereerd');
+        else fail('TU2', 'Upload-thread documentgeneratie → Samenvatting', failures);
+      }
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Cleanup
 // ────────────────────────────────────────────────────────────────────────────
 
