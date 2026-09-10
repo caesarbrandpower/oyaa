@@ -1200,8 +1200,34 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
     }
   }
 
-  function handleTranscriptReady() {
-    // Geen actie — tussenstap vervalt volledig
+  async function handleTranscriptReady(transcript, filename) {
+    if (!transcript) return false;
+    try {
+      const { createClient: cb } = await import('@/lib/supabase-browser');
+      const sb = cb();
+      const threadTitle = filename ? filename.replace(/\.[^.]+$/, '') : 'Geüpload transcript';
+      const { data: thread, error } = await sb
+        .from('threads')
+        .insert({
+          user_id: user.id,
+          tenant_id: tenant?.id ?? null,
+          title: threadTitle,
+          output_type: 'recording',
+          transcript_status: 'done',
+        })
+        .select('id, title, output_type, client, project, created_at, updated_at, audio_url, transcript_status, transcript_error, field_briefing_extras')
+        .single();
+      if (error || !thread) return false;
+      await sb.from('messages').insert({ thread_id: thread.id, role: 'user', content: transcript });
+      const fullThread = { ...thread, field_briefing_extras: thread.field_briefing_extras ?? {} };
+      setActiveThreadBoth(fullThread);
+      setMessages([{ id: 'upload-' + thread.id, role: 'user', content: transcript, created_at: new Date().toISOString(), attachments: [] }]);
+      setThreads(prev => [fullThread, ...prev.filter(t => t.id !== thread.id)]);
+      setBriefingExtras({});
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   const SEARCH_IDS_SET = new Set(['location-search', 'supplier-search']);
@@ -1328,7 +1354,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
   // --- Getrapt verschijnen opname-thread (0 = niets, 1 = transcript, 2 = card, 3 = tekst) ---
   const [recordingRevealStep, setRecordingRevealStep] = useState(0);
   useEffect(() => {
-    const isRecordingThread = !!(activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user'));
+    const isRecordingThread = !!((activeThread?.audio_url || activeThread?.output_type === 'recording') && messages.length > 0 && messages.every(m => m.role === 'user'));
     if (!isRecordingThread) { setRecordingRevealStep(0); return; }
     const t1 = setTimeout(() => setRecordingRevealStep(1), 300);
     const t2 = setTimeout(() => setRecordingRevealStep(2), 600);
@@ -1701,7 +1727,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               <h1 className="font-[family-name:var(--font-lexend)] text-[22px] font-medium text-white/60 mb-8">
                 Hi {user.firstName ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1).toLowerCase() : ''}. Hoe kan ik je helpen?
               </h1>
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
               {outputTypes.length > 0 && (
                 <div className="mt-6">
                   <TaskButtons outputTypes={outputTypes} onTaskClick={handleTaskClick} locationsEnabled={tenant?.tenant_config?.features?.locations === true} suppliersEnabled={tenant?.tenant_config?.features?.suppliers === true} />
@@ -1742,7 +1768,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
               />
             </div>
             {/* DocumentCard voor opname-transcript — onder het transcript bericht */}
-            {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (() => {
+            {(activeThread?.audio_url || activeThread?.output_type === 'recording') && messages.length > 0 && messages.every(m => m.role === 'user') && (() => {
               const transcript = messages.find(m => m.role === 'user')?.content;
               if (!transcript) return null;
               return (
@@ -1766,8 +1792,8 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
                 </div>
               );
             })()}
-            {/* Na transcript van opname: bevestiging + klikbare actie */}
-            {activeThread?.audio_url && messages.length > 0 && messages.every(m => m.role === 'user') && (
+            {/* Na transcript van opname of upload: bevestiging + klikbare actie */}
+            {(activeThread?.audio_url || activeThread?.output_type === 'recording') && messages.length > 0 && messages.every(m => m.role === 'user') && (
               <div className="px-4 md:px-8 pb-8" style={{ opacity: recordingRevealStep >= 3 ? 1 : 0, transition: 'opacity 0.5s ease' }}>
                 <div className="max-w-3xl mx-auto flex justify-start items-start gap-3">
                   <img src="/icons/waybetter-icon.svg" alt="" aria-hidden="true" className="w-6 h-6 rounded-md shrink-0 mt-1 opacity-70" />
@@ -1879,7 +1905,7 @@ export default function ChatPage({ user, tenant, initialThreads, initialPrefill,
         {!isEmptyState && !recordingPending && (
           <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
-              <ChatInput onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
+              <ChatInput key={activeThread?.id ?? 'empty'} onSend={(text, opts) => handleSend(text, null, null, null, null, opts?.imageAttachments ?? [], opts?.transcriptAttachments ?? [], false, null, opts?.textAttachments ?? [], opts?.pdfAttachments ?? [])} disabled={sending} onStop={handleStop} prefill={chatPrefill} onTranscriptReady={handleTranscriptReady} />
             </div>
           </div>
         )}
