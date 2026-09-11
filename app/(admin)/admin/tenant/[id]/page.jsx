@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import InternFilterToggle from '../../components/InternFilterToggle';
+import InviteUserForm from '../../components/InviteUserForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -227,6 +228,8 @@ export default async function TenantDetailPage({ params, searchParams }) {
           </div>
         )}
       </section>
+
+      <InviteUserForm hostname={tenantRow.hostname} />
     </div>
   );
 }
