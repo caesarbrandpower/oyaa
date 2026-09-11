@@ -2,38 +2,48 @@
 // Publieke evaluatie-preview pagina — geen auth vereist.
 import { createServiceClient } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
+import { getTheme } from '@/lib/pptx-themes';
+
 async function getEvalData(threadId) {
   const supabase = createServiceClient();
   const { data: thread } = await supabase
     .from('threads')
-    .select('field_briefing_extras')
+    .select('field_briefing_extras, tenants(tenant_config)')
     .eq('id', threadId)
     .single();
 
   if (!thread?.field_briefing_extras) return null;
 
   const entries = Object.values(thread.field_briefing_extras);
-  return entries.find((v) => v?.campagne) ?? null;
+  const d = entries.find((v) => v?.campagne) ?? null;
+  if (!d) return null;
+
+  return { d, tenantConfig: thread.tenants?.tenant_config ?? null };
 }
 
 export default async function EvaluatiePage({ params }) {
   const { id } = await params;
-  const d = await getEvalData(id);
-  if (!d) notFound();
+  const result = await getEvalData(id);
+  if (!result) notFound();
+
+  const { d, tenantConfig } = result;
+  const theme = getTheme(d.klant, tenantConfig);
+
+  const C = {
+    navy:     `#${theme.colors.navy}`,
+    geel:     `#${theme.colors.accent}`,
+    greyblue: `#${theme.colors.greyblue}`,
+    lichtbg:  `#${theme.colors.lightbg}`,
+    white:    `#${theme.colors.white}`,
+  };
+  const logoMain = theme.logosWeb.main;
+  const logoDiap = theme.logosWeb.diap;
 
   const totaalSamples   = d.dagen?.reduce((s, dag) => s + (dag.samples   || 0), 0) ?? d.totaal_samples   ?? 0;
   const totaalBezoekers = d.dagen?.reduce((s, dag) => s + (dag.bezoekers || 0), 0) ?? d.totaal_bezoekers ?? 0;
   const target          = d.target ?? 0;
   const delta           = totaalSamples - target;
   const realisatiePct   = target > 0 ? Math.round((totaalSamples / target) * 100) : 0;
-
-  const C = {
-    navy:     '#0F1052',
-    geel:     '#E9FF31',
-    greyblue: '#9BAFBC',
-    lichtbg:  '#EDECE9',
-    white:    '#FFFFFF',
-  };
 
   return (
     <>
@@ -77,7 +87,7 @@ export default async function EvaluatiePage({ params }) {
                   Campagne evaluatie
                 </div>
               </div>
-              <img src="/chase_logo_diap.png" alt="Chase" style={{ height: 36, opacity: 0.85, flexShrink: 0, marginTop: 4 }} />
+              <img src={logoDiap} alt={theme.brandName} style={{ height: 36, opacity: 0.85, flexShrink: 0, marginTop: 4 }} />
             </div>
             <p style={{ color: C.greyblue, fontSize: 12, marginTop: 12, marginBottom: 0 }}>
               {[d.dagen?.length && `${d.dagen.length} dagen`, d.locaties?.length && `${d.locaties.length} locaties`, d.periode]
@@ -87,7 +97,7 @@ export default async function EvaluatiePage({ params }) {
           {d.foto_voor_url && (
             <div className="eval-header-foto">
               <img src={d.foto_voor_url} alt="Voorblad" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,16,82,0.5) 0%, rgba(15,16,82,0) 100%)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to right, ${C.navy}80 0%, ${C.navy}00 100%)` }} />
             </div>
           )}
         </section>
@@ -96,7 +106,7 @@ export default async function EvaluatiePage({ params }) {
         <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Kernresultaten</h2>
-            <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
+            <img src={logoMain} alt="" style={{ height: 26, opacity: 0.4 }} />
           </div>
           <div className="eval-kern-grid">
             {[
@@ -128,7 +138,7 @@ export default async function EvaluatiePage({ params }) {
           <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Aantallen per dag</h2>
-              <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
+              <img src={logoMain} alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -161,7 +171,7 @@ export default async function EvaluatiePage({ params }) {
           <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Resultaten per locatie</h2>
-              <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
+              <img src={logoMain} alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -201,7 +211,7 @@ export default async function EvaluatiePage({ params }) {
           <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Verloop van de actie</h2>
-              <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
+              <img src={logoMain} alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
             <div className="eval-verloop-row">
               <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -258,7 +268,7 @@ export default async function EvaluatiePage({ params }) {
           <section style={{ background: C.white, borderRadius: 16, padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Tungsten Bold, Arial, sans-serif', color: C.navy, fontSize: 26, margin: 0 }}>Actiepunten</h2>
-              <img src="/chase_logo_main.png" alt="" style={{ height: 26, opacity: 0.4 }} />
+              <img src={logoMain} alt="" style={{ height: 26, opacity: 0.4 }} />
             </div>
             <p style={{ fontFamily: 'Tungsten Book, Arial, sans-serif', color: C.greyblue, fontSize: 14, margin: '0 0 12px' }}>
               Volgende editie
@@ -285,11 +295,11 @@ export default async function EvaluatiePage({ params }) {
         {d.foto_achter_url && (
           <section style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', minHeight: 220 }}>
             <img src={d.foto_achter_url} alt="Afsluitfoto" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, display: 'block' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,16,82,0.65)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: `rgba(${parseInt(theme.colors.navy.slice(0,2),16)},${parseInt(theme.colors.navy.slice(2,4),16)},${parseInt(theme.colors.navy.slice(4,6),16)},0.65)` }} />
             <div style={{ position: 'relative', padding: '2.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
-              <p style={{ color: C.geel, fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', margin: '0 0 10px' }}>Chase Brand Activation</p>
+              <p style={{ color: C.geel, fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', margin: '0 0 10px' }}>{theme.brandName}</p>
               <h2 style={{ color: C.white, fontFamily: 'Tungsten Bold, Arial, sans-serif', fontSize: 46, lineHeight: 1.1, margin: '0 0 20px' }}>{d.campagne}</h2>
-              <img src="/chase_logo_diap.png" alt="Chase" style={{ height: 28, opacity: 0.7 }} />
+              <img src={logoDiap} alt={theme.brandName} style={{ height: 28, opacity: 0.7 }} />
             </div>
           </section>
         )}
