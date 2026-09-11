@@ -133,7 +133,24 @@ function AuthConfirmInner() {
       setStep('set-password');
     } else {
       setStep('done');
-      setTimeout(() => router.push('/app'), 1500);
+      // Stuur door naar de juiste tenant-subdomain i.p.v. altijd /app op het huidige domein.
+      // Bij meerdere tenants wint de vroegste koppeling (meest primair).
+      const { data: { user: me } } = await supabase.auth.getUser();
+      const { data: link } = await supabase
+        .from('user_tenants')
+        .select('tenants(hostname)')
+        .eq('user_id', me?.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const hostname = link?.tenants?.hostname;
+      setTimeout(() => {
+        if (hostname && hostname !== window.location.hostname) {
+          window.location.href = `https://${hostname}/app`;
+        } else {
+          router.push('/app');
+        }
+      }, 1500);
     }
   }
 
