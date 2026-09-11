@@ -795,9 +795,9 @@ export default function DocumentView({ content, onClose, onImprove, onContentSav
     try {
       const evaluationData = {
         ...(extras ?? {}),
-        foto_product: extras?.foto_product ?? null,
-        foto_actie1:  extras?.foto_actie1  ?? null,
-        foto_actie2:  extras?.foto_actie2  ?? null,
+        foto_voor:   extras?.foto_voor_url   ?? extras?.foto_voor   ?? null,
+        foto_midden: extras?.foto_midden_url ?? extras?.foto_midden ?? null,
+        foto_achter: extras?.foto_achter_url ?? extras?.foto_achter ?? null,
       };
       const res = await fetch('/api/generate-pptx', {
         method: 'POST',
