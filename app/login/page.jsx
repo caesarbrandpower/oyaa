@@ -19,7 +19,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-[380px]">
         <div className="mb-10 text-center">
           <h1 className="font-[family-name:var(--font-lexend)] text-3xl tracking-[0.15em] font-bold text-orange uppercase mb-3">
-            Waybetter
+            Waybetter®
           </h1>
           <p className="text-[15px] text-white/40 font-[family-name:var(--font-outfit)]">
             Jouw bureau cockpit
