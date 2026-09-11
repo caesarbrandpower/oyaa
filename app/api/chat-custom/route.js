@@ -1202,7 +1202,7 @@ ${userTextOnly}`;
           // hasGenerateIntent kan true zijn terwijl Claude een verduidelijkingsvraag stelt.
           // looksLikeDocument vereist bold sectiekoppen of markdown headings — verduidelijkingsvragen
           // halen die drempel niet. Bij twijfel false: gemiste briefing is beter dan leeg document.
-          isDocument: isDocument && looksLikeDocument(displayContent),
+          isDocument: isDocument && (isEvaluationType || looksLikeDocument(displayContent)),
           ...(evaluationData ? { evaluationData } : {}),
         });
 
