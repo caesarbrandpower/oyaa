@@ -43,7 +43,11 @@ export default function TauriCallbackPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d]">
-      <p className="text-[14px] text-white/40">Verbinden...</p>
+      <div className="flex gap-[7px] items-center">
+        <span className="w-[5px] h-[5px] rounded-full bg-white/25 animate-pulse" style={{ animationDelay: '0ms' }} />
+        <span className="w-[5px] h-[5px] rounded-full bg-white/25 animate-pulse" style={{ animationDelay: '200ms' }} />
+        <span className="w-[5px] h-[5px] rounded-full bg-white/25 animate-pulse" style={{ animationDelay: '400ms' }} />
+      </div>
     </div>
   );
 }
