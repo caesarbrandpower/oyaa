@@ -68,6 +68,18 @@ export default function RecordingButton({ onRecordingStart, onRecordingComplete,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTauri]);
 
+  // recording-done — popup heeft de upload afgehandeld, geen tweede upload nodig
+  useEffect(() => {
+    if (!isTauri) return;
+    let unlisten;
+    window.__TAURI__.event.listen('recording-done', () => {
+      // Popup navigeert naar de thread; wij gaan alleen terug naar idle.
+      setUiState('idle');
+    }).then(fn => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTauri]);
+
   // queue-entry-uploaded — achtergrond-upload via wachtrij is gelukt
   useEffect(() => {
     if (!isTauri) return;
